@@ -29,6 +29,7 @@
 #include <linux/resume_user_mode.h>
 #include <linux/psi.h>
 #include <linux/part_stat.h>
+#include <linux/percpu_counter.h>
 #include "blk.h"
 #include "blk-cgroup.h"
 #include "blk-ioprio.h"
@@ -1077,6 +1078,10 @@ static void blkcg_css_free(struct cgroup_subsys_state *css)
 
 	mutex_lock(&blkcg_pol_mutex);
 
+#ifdef CONFIG_BLK_DEV_THROTTLING
+	percpu_counter_destroy(&blkcg->nr_dirtied);
+#endif
+
 	list_del(&blkcg->all_blkcgs_node);
 
 	for (i = 0; i < BLKCG_MAX_POLS; i++)
@@ -1138,6 +1143,9 @@ blkcg_css_alloc(struct cgroup_subsys_state *parent_css)
 	INIT_HLIST_HEAD(&blkcg->blkg_list);
 #ifdef CONFIG_CGROUP_WRITEBACK
 	INIT_LIST_HEAD(&blkcg->cgwb_list);
+#endif
+#ifdef CONFIG_BLK_DEV_THROTTLING
+	percpu_counter_init(&blkcg->nr_dirtied, 0, GFP_KERNEL);
 #endif
 	list_add_tail(&blkcg->all_blkcgs_node, &all_blkcgs);
 

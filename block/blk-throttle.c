@@ -1401,6 +1401,25 @@ static int tg_print_rwstat_recursive(struct seq_file *sf, void *v)
 	return 0;
 }
 
+static int tg_set_buffered_write_bps(struct cgroup_subsys_state *css,
+				     struct cftype *cft,
+				     u64 val)
+{
+	struct blkcg *blkcg = css_to_blkcg(css);
+	if (blkcg)
+		blkcg->buffered_write_bps = val;
+	return 0;
+}
+static u64 tg_read_buffered_write_bps(struct cgroup_subsys_state *css,
+				      struct cftype *cft)
+{
+
+	struct blkcg *blkcg = css_to_blkcg(css);
+	if (blkcg)
+		return (u64)blkcg->buffered_write_bps;
+	return 0;
+}
+
 static struct cftype throtl_legacy_files[] = {
 	{
 		.name = "throttle.read_bps_device",
@@ -1445,6 +1464,12 @@ static struct cftype throtl_legacy_files[] = {
 		.name = "throttle.io_serviced_recursive",
 		.private = offsetof(struct throtl_grp, stat_ios),
 		.seq_show = tg_print_rwstat_recursive,
+	},
+	{
+		.name = "throttle.buffered_write_bps",
+		.read_u64 = tg_read_buffered_write_bps,
+		.write_u64 = tg_set_buffered_write_bps,
+		.max_write_len = 256,
 	},
 	{ }	/* terminate */
 };

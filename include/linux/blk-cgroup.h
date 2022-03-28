@@ -58,6 +58,14 @@ struct blkcg {
 #ifdef CONFIG_CGROUP_WRITEBACK
 	struct list_head		cgwb_list;
 #endif
+
+#ifdef CONFIG_BLK_DEV_THROTTLING
+	struct percpu_counter		nr_dirtied;
+	unsigned long			bw_time_stamp;
+	unsigned long			dirtied_stamp;
+	unsigned long			dirty_ratelimit;
+	unsigned long long		buffered_write_bps;
+#endif
 };
 
 struct blkg_iostat {
@@ -198,6 +206,18 @@ static inline void blkcg_unpin_online(struct blkcg *blkcg)
 	} while (blkcg);
 }
 
+#ifdef CONFIG_BLK_DEV_THROTTLING
+static inline uint64_t blkcg_buffered_write_bps(struct blkcg *blkcg)
+{
+	return blkcg->buffered_write_bps;
+}
+
+static inline unsigned long blkcg_dirty_ratelimit(struct blkcg *blkcg)
+{
+	return blkcg->dirty_ratelimit;
+}
+#endif
+
 #else	/* CONFIG_BLK_CGROUP */
 
 struct blkcg {
@@ -256,6 +276,28 @@ static inline int blkcg_set_fc_appid(char *app_id, u64 cgrp_id, size_t app_id_le
 out_cgrp_put:
 	cgroup_put(cgrp);
 	return ret;
+}
+
+/**
+ * blkcg_css - find the current css
+ *
+ * Find the css associated with either the kthread or the current task.
+ * This may return a dying css, so it is up to the caller to use tryget logic
+ * to confirm it is alive and well.
+ */
+static inline struct cgroup_subsys_state *blkcg_css(void)
+{
+	struct cgroup_subsys_state *css;
+
+	css = kthread_blkcg();
+	if (css)
+		return css;
+	return task_css(current, io_cgrp_id);
+}
+
+static inline struct blkcg *task_blkcg(struct task_struct *tsk)
+{
+		return container_of(blkcg_css(), struct blkcg, css);
 }
 
 /**
