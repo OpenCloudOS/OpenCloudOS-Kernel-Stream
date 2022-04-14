@@ -1502,7 +1502,8 @@ static enum hrtimer_restart tick_sched_timer(struct hrtimer *timer)
 	return HRTIMER_RESTART;
 }
 
-static int sched_skew_tick;
+/* -1 for adaptive setting (enable skew tick for machines with >16 CPUs) */
+static int sched_skew_tick = IS_ENABLED(CONFIG_X86) ? -1 : 0;
 
 static int __init skew_tick(char *str)
 {
@@ -1519,6 +1520,7 @@ void tick_setup_sched_timer(void)
 {
 	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
 	ktime_t now = ktime_get();
+	int cpus = num_possible_cpus();
 
 	/*
 	 * Emulate tick processing via per-CPU hrtimers:
@@ -1530,9 +1532,9 @@ void tick_setup_sched_timer(void)
 	hrtimer_set_expires(&ts->sched_timer, tick_init_jiffy_update());
 
 	/* Offset the tick to avert jiffies_lock contention. */
-	if (sched_skew_tick) {
+	if (sched_skew_tick > 0 || (sched_skew_tick < 0 && cpus > 16)) {
 		u64 offset = TICK_NSEC >> 1;
-		do_div(offset, num_possible_cpus());
+		do_div(offset, cpus);
 		offset *= smp_processor_id();
 		hrtimer_add_expires_ns(&ts->sched_timer, offset);
 	}
