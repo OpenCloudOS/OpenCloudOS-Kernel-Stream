@@ -689,7 +689,7 @@ static int netlink_create(struct net *net, struct socket *sock, int protocol,
 
 	netlink_lock_table();
 #ifdef CONFIG_MODULES
-	if (!nl_table[protocol].registered) {
+	if (!nl_table[protocol].registered && protocol != NETLINK_AUDIT && protocol != NETLINK_SELINUX) {
 		netlink_unlock_table();
 		request_module("net-pf-%d-proto-%d", PF_NETLINK, protocol);
 		netlink_lock_table();
