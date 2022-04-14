@@ -4642,7 +4642,8 @@ void __init tcp_init(void)
 					NULL,
 					&tcp_hashinfo.ehash_mask,
 					0,
-					thash_entries ? 0 : 512 * 1024);
+	/* mjqiu: 512 * 1024 -> 1024 * 1024, to double tcp_max_tw_buckets */
+					thash_entries ? 0 : 1024 * 1024);
 	for (i = 0; i <= tcp_hashinfo.ehash_mask; i++)
 		INIT_HLIST_NULLS_HEAD(&tcp_hashinfo.ehash[i].chain, i);
 
