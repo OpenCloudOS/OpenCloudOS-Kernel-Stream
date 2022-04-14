@@ -1157,6 +1157,8 @@ int proc_dou8vec_minmax(struct ctl_table *table, int write,
 EXPORT_SYMBOL_GPL(proc_dou8vec_minmax);
 
 #ifdef CONFIG_MAGIC_SYSRQ
+static int __sysrq_use_leftctrl = 1;
+
 static int sysrq_sysctl_handler(struct ctl_table *table, int write,
 				void *buffer, size_t *lenp, loff_t *ppos)
 {
@@ -1171,6 +1173,22 @@ static int sysrq_sysctl_handler(struct ctl_table *table, int write,
 
 	if (write)
 		sysrq_toggle_support(tmp);
+
+	return 0;
+}
+
+static int sysrq_use_leftctrl_sysctl_handler(struct ctl_table *table, int write,
+		void __user *buffer, size_t *lenp,
+		loff_t *ppos)
+{
+	int error;
+
+	error = proc_dointvec(table, write, buffer, lenp, ppos);
+	if (error)
+		return error;
+
+	if (write)
+		sysrq_toggle_sysrq_key(__sysrq_use_leftctrl);
 
 	return 0;
 }
@@ -2065,6 +2083,14 @@ static struct ctl_table kern_table[] = {
 		.maxlen		= sizeof (int),
 		.mode		= 0644,
 		.proc_handler	= sysrq_sysctl_handler,
+	},
+	{
+		.procname       = "sysrq_use_leftctrl",
+		.data           = &__sysrq_use_leftctrl,
+		.maxlen         = sizeof(int),
+		.mode           = 0644,
+		.proc_handler   = sysrq_use_leftctrl_sysctl_handler,
+
 	},
 #endif
 #ifdef CONFIG_PROC_SYSCTL
