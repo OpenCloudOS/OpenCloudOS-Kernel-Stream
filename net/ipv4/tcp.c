@@ -4651,12 +4651,14 @@ void __init tcp_init(void)
 		alloc_large_system_hash("TCP established",
 					sizeof(struct inet_ehash_bucket),
 					thash_entries,
-					17, /* one slot per 128 KB of memory */
+					(totalram_pages() >= 128 * 1024) ?
+					13 : 17,
 					0,
 					NULL,
 					&tcp_hashinfo.ehash_mask,
 					0,
-					thash_entries ? 0 : 512 * 1024);
+					/* mjqiu: 512 * 1024 -> 1024 * 1024, to double tcp_max_tw_buckets */
+					thash_entries ? 0 : 1024 * 1024);
 	for (i = 0; i <= tcp_hashinfo.ehash_mask; i++)
 		INIT_HLIST_NULLS_HEAD(&tcp_hashinfo.ehash[i].chain, i);
 
