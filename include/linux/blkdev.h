@@ -625,7 +625,7 @@ extern void blk_clear_pm_only(struct request_queue *q);
 
 static inline bool queue_is_mq(struct request_queue *q)
 {
-	return q->mq_ops;
+	return q && q->mq_ops;
 }
 
 #ifdef CONFIG_PM
