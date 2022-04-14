@@ -59,7 +59,7 @@ static const u8 nf_ct_ext_type_len[NF_CT_EXT_NUM] = {
 static __always_inline unsigned int total_extension_size(void)
 {
 	/* remember to add new extensions below */
-	BUILD_BUG_ON(NF_CT_EXT_NUM > 10);
+	BUILD_BUG_ON(NF_CT_EXT_NUM > 11);
 
 	return sizeof(struct nf_ct_ext) +
 	       sizeof(struct nf_conn_help)
