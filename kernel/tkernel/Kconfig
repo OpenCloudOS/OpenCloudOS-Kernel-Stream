@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0-only
+menuconfig TKERNEL
+	bool "Tencent Kernel Features"
+	default n
+
+if TKERNEL
+
+config TKERNEL_NONPRIV_NETBIND
+	bool "Allow non-privileged user to bind specific low ports"
+	default n
+
+endif

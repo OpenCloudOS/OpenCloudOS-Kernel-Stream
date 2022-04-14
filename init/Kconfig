@@ -1968,6 +1968,7 @@ config ASN1
 	  functions to call on what tags.
 
 source "kernel/Kconfig.locks"
+source "kernel/Kconfig.tkernel"
 
 config ARCH_HAS_NON_OVERLAPPING_ADDRESS_SPACE
 	bool

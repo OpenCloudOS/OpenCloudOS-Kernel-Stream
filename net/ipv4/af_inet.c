@@ -121,6 +121,7 @@
 #include <net/compat.h>
 
 #include <trace/events/sock.h>
+#include <linux/tkernel.h>
 
 /* The inetsw table contains everything that inet_create needs to
  * build a new socket.
@@ -505,7 +506,7 @@ int __inet_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
 	snum = ntohs(addr->sin_port);
 	err = -EACCES;
 	if (!(flags & BIND_NO_CAP_NET_BIND_SERVICE) &&
-	    snum && inet_port_requires_bind_service(net, snum) &&
+	    snum && inet_port_requires_bind_service(net, snum) && !check_nonpriv_prot_sock(snum) &&
 	    !ns_capable(net->user_ns, CAP_NET_BIND_SERVICE))
 		goto out;
 
