@@ -67,6 +67,7 @@
 
 #include <linux/uaccess.h>
 #include <linux/mroute6.h>
+#include <linux/tkernel.h>
 
 #include "ip6_offload.h"
 
@@ -304,7 +305,7 @@ static int __inet6_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
 
 	snum = ntohs(addr->sin6_port);
 	if (!(flags & BIND_NO_CAP_NET_BIND_SERVICE) &&
-	    snum && inet_port_requires_bind_service(net, snum) &&
+	    snum && inet_port_requires_bind_service(net, snum) && !prot_sock_flag[snum] &&
 	    !ns_capable(net->user_ns, CAP_NET_BIND_SERVICE))
 		return -EACCES;
 
