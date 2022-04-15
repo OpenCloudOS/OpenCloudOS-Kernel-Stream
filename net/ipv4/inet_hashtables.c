@@ -1044,13 +1044,17 @@ int __inet_hash_connect(struct inet_timewait_death_row *death_row,
 other_parity_scan:
 	port = low + offset;
 	for (i = 0; i < remaining; i += 2, port += 2) {
+		int ret;
+
 		if (unlikely(port >= high))
 			port -= remaining;
 		if (inet_is_local_reserved_port(net, port))
 			continue;
 		head = &hinfo->bhash[inet_bhashfn(net, port,
 						  hinfo->bhash_size)];
-		spin_lock_bh(&head->lock);
+		ret = spin_trylock_bh(&head->lock);
+		if (!ret)
+			continue;
 
 		/* Does not bother with rcv_saddr checks, because
 		 * the established check is already unique enough.
