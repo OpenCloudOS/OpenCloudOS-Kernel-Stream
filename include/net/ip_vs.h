@@ -932,6 +932,7 @@ struct netns_ipvs {
 	int			sysctl_schedule_icmp;
 	int			sysctl_ignore_tunneled;
 	int			sysctl_run_estimation;
+	int			sysctl_tunnel_df_force_zero;
 
 	/* ip_vs_lblc */
 	int			sysctl_lblc_expiration;
