@@ -688,7 +688,7 @@ static void raw_destroy(struct sock *sk)
 static int raw_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 {
 	struct inet_sock *inet = inet_sk(sk);
-	struct sockaddr_in *addr = (struct sockaddr_in *) uaddr;
+	struct sockaddr_in *addr = (struct sockaddr_in *)uaddr;
 	struct net *net = sock_net(sk);
 	u32 tb_id = RT_TABLE_LOCAL;
 	int ret = -EINVAL;

@@ -8,7 +8,7 @@
 #include <linux/types.h>
 #include <net/sock.h>
 
-extern const struct proto_ops inet_stream_ops;
+extern struct proto_ops inet_stream_ops;
 extern const struct proto_ops inet_dgram_ops;
 
 /*
