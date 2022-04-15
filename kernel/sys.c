@@ -50,6 +50,7 @@
 #include <linux/user_namespace.h>
 #include <linux/time_namespace.h>
 #include <linux/binfmts.h>
+#include <linux/pid_namespace.h>
 
 #include <linux/sched.h>
 #include <linux/sched/autogroup.h>
@@ -1278,6 +1279,39 @@ static int override_release(char __user *release, size_t len)
 	return ret;
 }
 
+extern int release_suffix;
+/* if in contanier overridle*/
+static int override_release_for_container(char __user *release, size_t len)
+{
+	int ret = 0;
+
+	/* in container */
+	if (task_active_pid_ns(current)->level) {
+		const char *rest = UTS_RELEASE;
+		const char *suffix = "_docker_guest";
+		char buf[__NEW_UTS_LEN + 1];
+		int nbar = 0;
+		int idx = 0;
+		int len = strlen(rest);
+		int newlen = strlen(suffix);
+		/* if string too long , do nothing */
+		if (len + newlen > __NEW_UTS_LEN)
+			return ret;
+
+		strncpy(buf, rest, len);
+		while (*rest) {
+			if (*rest == '-' &&  ++nbar >= 3)
+				break;
+			idx++;
+			rest++;
+		}
+		scnprintf(buf+idx, sizeof(buf)-idx, "%s%s", suffix, rest);
+		ret = copy_to_user(release, buf, len + newlen + 1);
+
+	}
+	return ret;
+}
+
 SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 {
 	struct new_utsname tmp;
@@ -1289,6 +1323,8 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 		return -EFAULT;
 
 	if (override_release(name->release, sizeof(name->release)))
+		return -EFAULT;
+	if (release_suffix && override_release_for_container(name->release, sizeof(name->release)))
 		return -EFAULT;
 	if (override_architecture(name))
 		return -EFAULT;
@@ -1313,6 +1349,8 @@ SYSCALL_DEFINE1(uname, struct old_utsname __user *, name)
 		return -EFAULT;
 
 	if (override_release(name->release, sizeof(name->release)))
+		return -EFAULT;
+	if (release_suffix && override_release_for_container(name->release, sizeof(name->release)))
 		return -EFAULT;
 	if (override_architecture(name))
 		return -EFAULT;
