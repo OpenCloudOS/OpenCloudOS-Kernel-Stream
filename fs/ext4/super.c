@@ -3105,6 +3105,8 @@ static int _ext4_show_options(struct seq_file *seq, struct super_block *sb,
 		SEQ_OPTS_PRINT("max_dir_size_kb=%u", sbi->s_max_dir_size_kb);
 	if (test_opt(sb, DATA_ERR_ABORT))
 		SEQ_OPTS_PUTS("data_err=abort");
+	if (test_opt(sb, BARRIER))
+		SEQ_OPTS_PUTS("barrier");
 
 	fscrypt_show_test_dummy_encryption(seq, sep, sb);
 
@@ -4562,7 +4564,7 @@ static int __ext4_fill_super(struct fs_context *fc, struct super_block *sb)
 	sbi->s_min_batch_time = EXT4_DEF_MIN_BATCH_TIME;
 	sbi->s_max_batch_time = EXT4_DEF_MAX_BATCH_TIME;
 
-	if ((def_mount_opts & EXT4_DEFM_NOBARRIER) == 0)
+	if ((def_mount_opts & EXT4_MOUNT_BARRIER))
 		set_opt(sb, BARRIER);
 
 	/*
@@ -5238,6 +5240,8 @@ static int __ext4_fill_super(struct fs_context *fc, struct super_block *sb)
 
 	/* We have now updated the journal if required, so we can
 	 * validate the data journaling mode. */
+	if (IS_EXT3_SB(sb) && test_opt(sb, DATA_FLAGS) == 0)
+		set_opt(sb, WRITEBACK_DATA);
 	switch (test_opt(sb, DATA_FLAGS)) {
 	case 0:
 		/* No mode set, assume a default based on the journal
