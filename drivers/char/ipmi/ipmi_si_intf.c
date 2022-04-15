@@ -254,7 +254,7 @@ struct smi_info {
 static int force_kipmid[IPMI_MAX_INTFS];
 static int num_force_kipmid;
 
-static unsigned int kipmid_max_busy_us[IPMI_MAX_INTFS];
+static unsigned int kipmid_max_busy_us[IPMI_MAX_INTFS] = { 1, 1, 1, 1 };
 static int num_max_busy_us;
 
 static bool unload_when_empty = true;
