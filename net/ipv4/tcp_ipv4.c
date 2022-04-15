@@ -2252,7 +2252,7 @@ void inet_sk_rx_dst_set(struct sock *sk, const struct sk_buff *skb)
 }
 EXPORT_SYMBOL(inet_sk_rx_dst_set);
 
-const struct inet_connection_sock_af_ops ipv4_specific = {
+struct inet_connection_sock_af_ops ipv4_specific = {
 	.queue_xmit	   = ip_queue_xmit,
 	.send_check	   = tcp_v4_send_check,
 	.rebuild_header	   = inet_sk_rebuild_header,

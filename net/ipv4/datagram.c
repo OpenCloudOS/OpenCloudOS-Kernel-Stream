@@ -19,7 +19,7 @@
 int __ip4_datagram_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 {
 	struct inet_sock *inet = inet_sk(sk);
-	struct sockaddr_in *usin = (struct sockaddr_in *) uaddr;
+	struct sockaddr_in *usin = (struct sockaddr_in *)uaddr;
 	struct flowi4 *fl4;
 	struct rtable *rt;
 	__be32 saddr;

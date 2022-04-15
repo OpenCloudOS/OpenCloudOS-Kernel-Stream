@@ -1238,7 +1238,7 @@ int inet6_recvmsg(struct socket *sock, struct msghdr *msg, size_t size,
 /*
  * reassembly.c
  */
-extern const struct proto_ops inet6_stream_ops;
+extern struct proto_ops inet6_stream_ops;
 extern const struct proto_ops inet6_dgram_ops;
 extern const struct proto_ops inet6_sockraw_ops;
 
@@ -1290,6 +1290,12 @@ int ipv6_sock_mc_join_ssm(struct sock *sk, int ifindex,
 			  const struct in6_addr *addr, unsigned int mode);
 int ipv6_sock_mc_drop(struct sock *sk, int ifindex,
 		      const struct in6_addr *addr);
+/* public func in tcp_ipv6.c */
+extern struct sock *tcp_v6_syn_recv_sock(const struct sock *sk, struct sk_buff *skb,
+										struct request_sock *req,
+										struct dst_entry *dst,
+										struct request_sock *req_unhash,
+										bool *own_req);
 
 static inline int ip6_sock_set_v6only(struct sock *sk)
 {

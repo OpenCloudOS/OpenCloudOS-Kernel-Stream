@@ -679,7 +679,7 @@ int inet6_recvmsg(struct socket *sock, struct msghdr *msg, size_t size,
 	return err;
 }
 
-const struct proto_ops inet6_stream_ops = {
+struct proto_ops inet6_stream_ops = {
 	.family		   = PF_INET6,
 	.owner		   = THIS_MODULE,
 	.release	   = inet6_release,
@@ -711,6 +711,7 @@ const struct proto_ops inet6_stream_ops = {
 #endif
 	.set_rcvlowat	   = tcp_set_rcvlowat,
 };
+EXPORT_SYMBOL(inet6_stream_ops);
 
 const struct proto_ops inet6_dgram_ops = {
 	.family		   = PF_INET6,

@@ -3326,6 +3326,7 @@ void sock_def_readable(struct sock *sk)
 	sk_wake_async(sk, SOCK_WAKE_WAITD, POLL_IN);
 	rcu_read_unlock();
 }
+EXPORT_SYMBOL(sock_def_readable);
 
 static void sock_def_write_space(struct sock *sk)
 {

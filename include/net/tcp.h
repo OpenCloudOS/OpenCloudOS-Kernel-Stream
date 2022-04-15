@@ -909,7 +909,7 @@ struct tcp_skb_cb {
 
 #define TCP_SKB_CB(__skb)	((struct tcp_skb_cb *)&((__skb)->cb[0]))
 
-extern const struct inet_connection_sock_af_ops ipv4_specific;
+extern struct inet_connection_sock_af_ops ipv4_specific;
 
 #if IS_ENABLED(CONFIG_IPV6)
 /* This is the variant of inet6_iif() that must be used by TCP,
@@ -937,7 +937,7 @@ static inline int tcp_v6_sdif(const struct sk_buff *skb)
 	return 0;
 }
 
-extern const struct inet_connection_sock_af_ops ipv6_specific;
+extern struct inet_connection_sock_af_ops ipv6_specific;
 
 INDIRECT_CALLABLE_DECLARE(void tcp_v6_send_check(struct sock *sk, struct sk_buff *skb));
 INDIRECT_CALLABLE_DECLARE(int tcp_v6_rcv(struct sk_buff *skb));
