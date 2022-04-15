@@ -14,9 +14,11 @@
 #include <generated/utsrelease.h>
 #include <linux/kallsyms.h>
 #include <linux/ptrace.h>
+#include <linux/sync_core.h>
 #include "ttools.h"
 
 #define TTOOLS_MINOR		254
+#define TTOOLS_VER		"2.0"
 
 
 struct ttools_pid {
@@ -144,9 +146,6 @@ static long ttools_dev_ioctl(struct file *filp,
 	void __user *argp = (void __user *)arg;
 	struct ttools_fd_ref fd_ref;
 
-	if (!capable(CAP_SYS_ADMIN))
-		return -EPERM;
-
 	switch (ioctl) {
 	case TTOOLS_PTRACE_PROTECT:
 		ret = ttools_ptrace_protect_task(current->group_leader);
@@ -177,13 +176,16 @@ static struct miscdevice ttools_dev = {
 	TTOOLS_MINOR,
 	"ttools",
 	&ttools_chardev_ops,
+	.mode = 0666,
 };
 
 
 static void flush_icache_1(void *info)
 {
 	smp_mb();
+#ifdef CONFIG_X86
 	sync_core();
+#endif
 }
 
 static int ttools_init(void)
@@ -201,6 +203,7 @@ static int ttools_init(void)
 	ptrace_pre_hook = ttools_ptrace_hook;
 	smp_wmb();
 	smp_call_function(flush_icache_1, NULL, 1);
+	pr_info("ttools " TTOOLS_VER " loaded\n");
 	return ret;
 }
 
@@ -211,9 +214,10 @@ static void ttools_exit(void)
 	smp_call_function(flush_icache_1, NULL, 1);
 	misc_deregister(&ttools_dev);
 	ttools_clean_task_list();
+	pr_info("ttools " TTOOLS_VER " unloaded\n");
 }
 
 module_init(ttools_init);
 module_exit(ttools_exit);
-MODULE_DESCRIPTION("ttools for "  UTS_RELEASE);
+MODULE_DESCRIPTION("ttools " TTOOLS_VER " for "  UTS_RELEASE);
 MODULE_LICENSE("GPL");
