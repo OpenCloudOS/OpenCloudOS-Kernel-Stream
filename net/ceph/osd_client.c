@@ -54,6 +54,17 @@ static void unlink_linger(struct ceph_osd *osd,
 			  struct ceph_osd_linger_request *lreq);
 static void clear_backoffs(struct ceph_osd *osd);
 
+bool ceph_epoch_barrier_cmp(struct ceph_osd_client *osdc)
+{
+	if (sysctl_ceph_ignore_epoch_barrier) {
+		if (!sysctl_ceph_epoch_barrier_ceiling || osdc->epoch_barrier > sysctl_ceph_epoch_barrier_ceiling) {
+			net_warn_ratelimited("osdc %p, epoch_barrir: %u ignored\n", osdc, osdc->epoch_barrier);
+			return false;
+		}
+	}
+	return (osdc->osdmap->epoch < osdc->epoch_barrier);
+}
+
 #if 1
 static inline bool rwsem_is_wrlocked(struct rw_semaphore *sem)
 {
@@ -1554,7 +1565,7 @@ static bool target_should_be_paused(struct ceph_osd_client *osdc,
 	WARN_ON(pi->id != t->target_oloc.pool);
 	return ((t->flags & CEPH_OSD_FLAG_READ) && pauserd) ||
 	       ((t->flags & CEPH_OSD_FLAG_WRITE) && pausewr) ||
-	       (osdc->osdmap->epoch < osdc->epoch_barrier);
+	       ceph_epoch_barrier_cmp(osdc);
 }
 
 static int pick_random_replica(const struct ceph_osds *acting)
@@ -2421,8 +2432,8 @@ again:
 	if (osdc->abort_err) {
 		dout("req %p abort_err %d\n", req, osdc->abort_err);
 		err = osdc->abort_err;
-	} else if (osdc->osdmap->epoch < osdc->epoch_barrier) {
-		dout("req %p epoch %u barrier %u\n", req, osdc->osdmap->epoch,
+	} else if (ceph_epoch_barrier_cmp(osdc)) {
+		printk(KERN_INFO "req %p osdc %p epoch %u barrier %u\n", req, osdc, osdc->osdmap->epoch,
 		     osdc->epoch_barrier);
 		req->r_t.paused = true;
 		maybe_request_map(osdc);
@@ -4240,7 +4251,7 @@ done:
 		  ceph_osdmap_flag(osdc, CEPH_OSDMAP_FULL) ||
 		  have_pool_full(osdc);
 	if (was_pauserd || was_pausewr || pauserd || pausewr ||
-	    osdc->osdmap->epoch < osdc->epoch_barrier)
+	    ceph_epoch_barrier_cmp(osdc))
 		maybe_request_map(osdc);
 
 	kick_requests(osdc, &need_resend, &need_resend_linger);

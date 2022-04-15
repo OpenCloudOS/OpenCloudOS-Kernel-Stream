@@ -29,6 +29,9 @@
 #include <linux/ceph/auth.h>
 #include "crypto.h"
 
+static struct ctl_table_header *ceph_table_header;
+int sysctl_ceph_ignore_epoch_barrier;
+unsigned int sysctl_ceph_epoch_barrier_ceiling;
 
 /*
  * Module compatibility interface.  For now it doesn't do anything,
@@ -845,6 +848,37 @@ int ceph_open_session(struct ceph_client *client)
 }
 EXPORT_SYMBOL(ceph_open_session);
 
+static struct ctl_table ceph_table[] = {
+	{
+		.procname	= "ceph_ignore_epoch_barrier",
+		.data		= &sysctl_ceph_ignore_epoch_barrier,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax
+	},
+	{
+		.procname	= "ceph_epoch_barrier_ceiling",
+		.data		= &sysctl_ceph_epoch_barrier_ceiling,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_douintvec_minmax,
+	},
+	{}
+};
+
+int cephfs_sysctl_register(void)
+{
+	ceph_table_header = register_sysctl_sz("net/ceph", ceph_table, ARRAY_SIZE(ceph_table));
+	if (!ceph_table_header)
+		return -ENOMEM;
+	return 0;
+}
+
+void cephfs_sysctl_unregister(void)
+{
+	unregister_sysctl_table(ceph_table_header);
+}
+
 int ceph_wait_for_latest_osdmap(struct ceph_client *client,
 				unsigned long timeout)
 {
@@ -866,6 +900,10 @@ EXPORT_SYMBOL(ceph_wait_for_latest_osdmap);
 static int __init init_ceph_lib(void)
 {
 	int ret = 0;
+
+	ret = cephfs_sysctl_register();
+	if (ret)
+		goto out;
 
 	ceph_debugfs_init();
 
@@ -892,6 +930,8 @@ out_crypto:
 	ceph_crypto_shutdown();
 out_debugfs:
 	ceph_debugfs_cleanup();
+	cephfs_sysctl_unregister();
+out:
 	return ret;
 }
 
@@ -900,6 +940,7 @@ static void __exit exit_ceph_lib(void)
 	dout("exit_ceph_lib\n");
 	WARN_ON(!ceph_strings_empty());
 
+	cephfs_sysctl_unregister();
 	ceph_osdc_cleanup();
 	ceph_msgr_exit();
 	ceph_crypto_shutdown();
