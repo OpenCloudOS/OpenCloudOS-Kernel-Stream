@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# TKernel configuration
+#
+
+config NETATOP
+	bool 'netatop support'
+	default n
+	depends on NETFILTER
+	help
+		netatop module from TKernel
