@@ -206,10 +206,11 @@ static void dump_target(struct seq_file *s, struct ceph_osd_request_target *t)
 		seq_puts(s, "\tP");
 }
 
-static void dump_request(struct seq_file *s, struct ceph_osd_request *req)
+static void dump_request(struct seq_file *s, struct ceph_osd *osd, struct ceph_osd_request *req)
 {
 	int i;
 
+	seq_printf(s, "osd %p  con %p req %p\t", osd, &osd->o_con, req);
 	seq_printf(s, "%llu\t", req->r_tid);
 	dump_target(s, &req->r_t);
 
@@ -240,7 +241,7 @@ static void dump_requests(struct seq_file *s, struct ceph_osd *osd)
 		struct ceph_osd_request *req =
 		    rb_entry(n, struct ceph_osd_request, r_node);
 
-		dump_request(s, req);
+		dump_request(s, osd, req);
 	}
 
 	mutex_unlock(&osd->lock);

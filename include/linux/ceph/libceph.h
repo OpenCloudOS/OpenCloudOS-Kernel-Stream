@@ -25,6 +25,9 @@
 #include <linux/ceph/ceph_fs.h>
 #include <linux/ceph/string_table.h>
 
+extern int sysctl_ceph_ignore_epoch_barrier;
+extern unsigned int sysctl_ceph_epoch_barrier_ceiling;
+
 /*
  * mount options
  */
