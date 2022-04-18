@@ -2,3 +2,5 @@
 *.h   diff=cpp
 *.dtsi diff=dts
 *.dts  diff=dts
+.ci/ export-ignore
+dist/ export-ignore

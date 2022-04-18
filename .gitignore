@@ -161,3 +161,7 @@ x509.genkey
 
 # Documentation toolchain
 sphinx_*/
+
+# OpenCloudOS dist files
+/dist/rpm
+/dist/workdir
