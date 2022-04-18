@@ -2021,6 +2021,12 @@ static struct ctl_table vs_vars[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
+	{
+		.procname       = "tunnel_df_force_zero",
+		.maxlen         = sizeof(int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec
+		},
 #ifdef CONFIG_IP_VS_DEBUG
 	{
 		.procname	= "debug_level",
