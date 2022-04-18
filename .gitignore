@@ -168,3 +168,11 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+# Dist files
+/dist/rpm
+/dist/workdir
+
+# Tencent dist files
+/dist/rpm
+/dist/workdir
