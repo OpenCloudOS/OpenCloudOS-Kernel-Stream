@@ -3654,6 +3654,20 @@ int do_tcp_setsockopt(struct sock *sk, int level, int optname,
 			tcp_enable_tx_delay();
 		WRITE_ONCE(tp->tcp_tx_delay, val);
 		break;
+	case TCP_FULLNAT_REAL:
+
+		if (optlen < sizeof(struct tcp_fullnat_real_opt))
+			err = -EINVAL;
+		else {
+			struct tcp_fullnat_real_opt opt;
+			if (copy_from_sockptr(&opt, optval, sizeof(struct tcp_fullnat_real_opt)))
+				err = -EFAULT;
+			else {
+				tp->fullnat_real_ip = opt.real_ip;
+				tp->fullnat_real_port = opt.real_port;
+			}
+		}
+		break;
 	default:
 		err = -ENOPROTOOPT;
 		break;

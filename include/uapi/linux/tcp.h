@@ -129,6 +129,12 @@ enum {
 
 #define TCP_TX_DELAY		37	/* delay outgoing packets by XX usec */
 
+#define TCP_FULLNAT_REAL	10000
+
+struct tcp_fullnat_real_opt {
+	__u32 real_ip;
+	__u16 real_port;
+};
 
 #define TCP_REPAIR_ON		1
 #define TCP_REPAIR_OFF		0

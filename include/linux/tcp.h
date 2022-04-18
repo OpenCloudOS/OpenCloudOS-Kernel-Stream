@@ -452,6 +452,11 @@ struct tcp_sock {
 	 */
 	struct request_sock __rcu *fastopen_rsk;
 	struct saved_syn *saved_syn;
+
+	u32 fullnat_real_ip;
+	u16 fullnat_real_port;
+	u32 fullnat_first_data_seq;
+	bool fullnat_real_ip_inserted;
 };
 
 enum tsq_enum {

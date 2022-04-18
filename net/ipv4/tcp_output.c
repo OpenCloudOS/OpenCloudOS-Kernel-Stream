@@ -600,6 +600,20 @@ static void bpf_skops_write_hdr_opt(struct sock *sk, struct sk_buff *skb,
 }
 #endif
 
+#define TCPOPT_ADDR  200
+#define TCPOLEN_ADDR 8      /* |opcode|size|ip+port| = 1 + 1 + 6 */
+
+/*
+ * insert client ip in tcp option, now only support IPV4,
+ * must be 4 bytes alignment.
+ */
+struct ip_vs_tcpo_addr {
+	__u8 opcode;
+	__u8 opsize;
+	__u16 port;
+	__u32 addr;
+};
+
 /* Write previously computed TCP options to the packet.
  *
  * Beware: Something in the Internet is very sensitive to the ordering of
@@ -614,7 +628,8 @@ static void bpf_skops_write_hdr_opt(struct sock *sk, struct sk_buff *skb,
  * (but it may well be that other scenarios fail similarly).
  */
 static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
-			      struct tcp_out_options *opts)
+			      struct tcp_out_options *opts,
+				  bool fullnat_opt)
 {
 	__be32 *ptr = (__be32 *)(th + 1);
 	u16 options = opts->options;	/* mungable copy */
@@ -711,6 +726,11 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 	smc_options_write(ptr, &options);
 
 	mptcp_options_write(th, ptr, tp, opts);
+
+	if (unlikely(fullnat_opt)) {
+		*ptr++ = htonl(TCPOPT_ADDR << 24 | TCPOLEN_ADDR << 16 | tp->fullnat_real_port);
+		*ptr++ = htonl(tp->fullnat_real_ip);
+	}
 }
 
 static void smc_set_option(const struct tcp_sock *tp,
@@ -767,7 +787,8 @@ static void mptcp_set_option_cond(const struct request_sock *req,
  */
 static unsigned int tcp_syn_options(struct sock *sk, struct sk_buff *skb,
 				struct tcp_out_options *opts,
-				struct tcp_md5sig_key **md5)
+				struct tcp_md5sig_key **md5,
+				bool fullnat_opt)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	unsigned int remaining = MAX_TCP_OPTION_SPACE;
@@ -841,6 +862,10 @@ static unsigned int tcp_syn_options(struct sock *sk, struct sk_buff *skb,
 	}
 
 	bpf_skops_hdr_opt_len(sk, skb, NULL, NULL, 0, opts, &remaining);
+
+	if (fullnat_opt) {
+		remaining -= 8;
+	}
 
 	return MAX_TCP_OPTION_SPACE - remaining;
 }
@@ -921,7 +946,8 @@ static unsigned int tcp_synack_options(const struct sock *sk,
  */
 static unsigned int tcp_established_options(struct sock *sk, struct sk_buff *skb,
 					struct tcp_out_options *opts,
-					struct tcp_md5sig_key **md5)
+					struct tcp_md5sig_key **md5,
+					bool fullnat_opt)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	unsigned int size = 0;
@@ -989,6 +1015,9 @@ static unsigned int tcp_established_options(struct sock *sk, struct sk_buff *skb
 
 		size = MAX_TCP_OPTION_SPACE - remaining;
 	}
+
+	if (unlikely(fullnat_opt))
+		size += 8;
 
 	return size;
 }
@@ -1254,6 +1283,7 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	struct tcphdr *th;
 	u64 prior_wstamp;
 	int err;
+	bool fullnat_opt = false;
 
 	BUG_ON(!skb || !tcp_skb_pcount(skb));
 	tp = tcp_sk(sk);
@@ -1283,10 +1313,25 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 	memset(&opts, 0, sizeof(opts));
 
 	if (unlikely(tcb->tcp_flags & TCPHDR_SYN)) {
-		tcp_options_size = tcp_syn_options(sk, skb, &opts, &md5);
+		if (unlikely(!(tcb->tcp_flags & TCPHDR_ACK) && tp->fullnat_real_ip &&
+						tp->fullnat_real_port)) {
+			tp->fullnat_first_data_seq = tcb->seq + 1;
+			tp->fullnat_real_ip_inserted = false;
+			fullnat_opt = true;
+		}
+		tcp_options_size = tcp_syn_options(sk, skb, &opts, &md5, fullnat_opt);
 	} else {
+		if (unlikely(tp->fullnat_real_ip && tp->fullnat_real_port &&
+					!(tcb->tcp_flags & TCPHDR_RST) &&
+					!(tcb->tcp_flags & TCPHDR_FIN))) {
+			if (after(tcb->seq, tp->fullnat_first_data_seq))
+				tp->fullnat_real_ip_inserted = true;
+			if (!tp->fullnat_real_ip_inserted)
+				fullnat_opt = true;
+		}
 		tcp_options_size = tcp_established_options(sk, skb, &opts,
-							   &md5);
+							   &md5,
+							   fullnat_opt);
 		/* Force a PSH flag on all (GSO) packets to expedite GRO flush
 		 * at receiver : This slightly improve GRO performance.
 		 * Note that we do not force the PSH flag for non GSO packets,
@@ -1367,7 +1412,7 @@ static int __tcp_transmit_skb(struct sock *sk, struct sk_buff *skb,
 		th->window	= htons(min(tp->rcv_wnd, 65535U));
 	}
 
-	tcp_options_write(th, tp, &opts);
+	tcp_options_write(th, tp, &opts, fullnat_opt);
 
 #ifdef CONFIG_TCP_MD5SIG
 	/* Calculate the MD5 hash, as we have all we need now */
@@ -1837,7 +1882,7 @@ unsigned int tcp_current_mss(struct sock *sk)
 			mss_now = tcp_sync_mss(sk, mtu);
 	}
 
-	header_len = tcp_established_options(sk, NULL, &opts, &md5) +
+	header_len = tcp_established_options(sk, NULL, &opts, &md5, false) +
 		     sizeof(struct tcphdr);
 	/* The mss_cache is sized based on tp->tcp_header_len, which assumes
 	 * some common options. If this is an odd packet (because we have SACK
@@ -3713,7 +3758,7 @@ struct sk_buff *tcp_make_synack(const struct sock *sk, struct dst_entry *dst,
 
 	/* RFC1323: The window in SYN & SYN/ACK segments is never scaled. */
 	th->window = htons(min(req->rsk_rcv_wnd, 65535U));
-	tcp_options_write(th, NULL, &opts);
+	tcp_options_write(th, NULL, &opts, false);
 	th->doff = (tcp_header_size >> 2);
 	TCP_INC_STATS(sock_net(sk), TCP_MIB_OUTSEGS);
 
