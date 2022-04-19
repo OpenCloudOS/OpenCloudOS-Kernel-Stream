@@ -853,10 +853,142 @@ static int do_vfs_ioctl(struct file *filp, unsigned int fd,
 	return -ENOIOCTLCMD;
 }
 
+#define NV_CMD "nvidia-smi"
+unsigned int nv_ioctl_id = 0xc020462a;
+unsigned int nv_cmd_id_get_gram = 0x800203;
+
+struct nv_get_pid_count {
+	u32 count;
+};
+
+struct pids {
+	u32 pid;
+	u32 pad[9];
+};
+
+struct nv_get_gram {
+	u32 count;
+	u32 pad;
+	struct pids pid[0];
+};
+
+struct nv_cmd {
+	u32 u1;
+	u32 u2;
+	u64 cmd;
+	void *data;
+};
+
+unsigned int sysctl_nvidia_smi_trap;
+
+static int convert_pid_to_container(int pid_in_host)
+{
+	struct pid *ppid;
+	pid_t new_pid;
+	struct task_struct *tsk;
+	struct pid_namespace *current_pid_ns;
+
+	ppid = get_task_pid(current, PIDTYPE_PID);
+	if (ppid == NULL) {
+		printk(KERN_ERR "get current task pid failed for pid:%d\n", pid_in_host);
+		return 0;
+	}
+	tsk = find_task_by_pid_ns(pid_in_host, &init_pid_ns);
+	if (tsk == NULL) {
+		printk(KERN_ERR "find task for pid:%d failed\n", pid_in_host);
+		return 0;
+	}
+
+	current_pid_ns = task_active_pid_ns(current);
+	if (current_pid_ns == NULL) {
+		printk(KERN_ERR "get current pid ns failed host pid:%d\n", pid_in_host);
+		return 0;
+	}
+	new_pid = task_pid_nr_ns(tsk, ppid->numbers[current_pid_ns->level].ns);
+
+	return new_pid;
+}
+
+static int get_nv_cmd(unsigned long arg, struct nv_cmd *nv_cmd)
+{
+	int n;
+
+	n = copy_from_user(nv_cmd, (void __user *)arg, sizeof(*nv_cmd));
+	if (n != 0) {
+		printk(KERN_ERR "get nv cmd:copy from user failed\n");
+		return -EINVAL;
+	}
+	return 0;
+}
+static int get_nv_pid_count(struct nv_cmd *nv_cmd)
+{
+	struct nv_get_pid_count get_pid_count;
+	int n, count;
+
+	n = copy_from_user(&get_pid_count, (void __user *)nv_cmd->data, sizeof(get_pid_count));
+	if (n != 0) {
+		printk(KERN_ERR "get nv pid count:copy from user failed\n");
+		return 0;
+	}
+	count = get_pid_count.count;
+
+	return count;
+}
+
+static void change_nv_pid(struct nv_cmd *nv_cmd, int count)
+{
+	int len;
+	struct nv_get_gram *get_gram;
+	int n, i;
+	u32 guest_pid;
+	bool write;
+
+	len = sizeof(struct nv_get_gram) + sizeof(struct pids) * count;
+	get_gram = (struct nv_get_gram *)kmalloc(len, GFP_KERNEL);
+	if (!get_gram) {
+		printk(KERN_ERR "change nv pid: malloc nv get gram failed\n");
+		return;
+	}
+	n = copy_from_user(get_gram, (void __user *)nv_cmd->data, len);
+	if (n != 0) {
+		printk(KERN_ERR "change nv pid:copy from user to get gram addr failed ret:%d\n", n);
+		goto out;
+	}
+	i = 0;
+	write = false;
+	while (i < get_gram->count) {
+		guest_pid = convert_pid_to_container(get_gram->pid[i].pid);
+		if (guest_pid > 0) {
+			/* If process run in other container then geust_pid will return 0. Then we should
+			 * not change the pid
+			 */
+			printk(KERN_INFO "change nv pid: host pid:%d, container pid:%d\n", get_gram->pid[i].pid,
+					guest_pid);
+			write = true;
+			get_gram->pid[i].pid = guest_pid;
+		}
+		i++;
+	}
+	if (write) {
+		n = copy_to_user((void __user *)nv_cmd->data, get_gram, len);
+		if (n != 0) {
+			printk(KERN_ERR "change nv pid: get gram copy to user failed ret:%d\n", n);
+			goto out;
+		}
+		printk(KERN_INFO "change nv pid: change succeed\n");
+	}
+
+out:
+	kfree(get_gram);
+}
+
+
 SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
 {
 	struct fd f = fdget(fd);
 	int error;
+	struct nv_cmd nv_cmd;
+	int count;
 
 	if (!f.file)
 		return -EBADF;
@@ -871,6 +1003,20 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd, unsigned int, cmd, unsigned long, arg)
 
 out:
 	fdput(f);
+
+	if ((sysctl_nvidia_smi_trap == 1) &&
+			(task_active_pid_ns(current)->level) && (nv_ioctl_id == cmd)) {
+		char buf[sizeof(current->comm)];
+
+		get_task_comm(buf, current);
+		if ((strcmp(buf, NV_CMD) == 0) && (get_nv_cmd(arg, &nv_cmd) == 0) &&
+				(nv_cmd.cmd == nv_cmd_id_get_gram)) {
+			count = get_nv_pid_count(&nv_cmd);
+			if (count > 0)
+				change_nv_pid(&nv_cmd, count);
+		}
+	}
+
 	return error;
 }
 

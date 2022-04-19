@@ -82,6 +82,7 @@ extern void __init files_maxfiles_init(void);
 
 extern unsigned long get_max_files(void);
 extern unsigned int sysctl_nr_open;
+extern unsigned int sysctl_nvidia_smi_trap;
 
 typedef __kernel_rwf_t rwf_t;
 
