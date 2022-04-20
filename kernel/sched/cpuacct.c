@@ -26,6 +26,8 @@ struct cpuacct {
 	/* cpuusage holds pointer to a u64-type object on every CPU */
 	u64 __percpu	*cpuusage;
 	struct kernel_cpustat __percpu	*cpustat;
+	struct timespec64 uptime;
+	u64 idletime;
 };
 
 static inline struct cpuacct *css_ca(struct cgroup_subsys_state *css)
@@ -55,6 +57,7 @@ static struct cgroup_subsys_state *
 cpuacct_css_alloc(struct cgroup_subsys_state *parent_css)
 {
 	struct cpuacct *ca;
+	u32 cpu;
 
 	if (!parent_css)
 		return &root_cpuacct.css;
@@ -70,6 +73,10 @@ cpuacct_css_alloc(struct cgroup_subsys_state *parent_css)
 	ca->cpustat = alloc_percpu(struct kernel_cpustat);
 	if (!ca->cpustat)
 		goto out_free_cpuusage;
+
+	ktime_get_boottime_ts64(&ca->uptime);
+	for_each_possible_cpu(cpu)
+		ca->idletime += (__force u64) kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE];
 
 	return &ca->css;
 
@@ -289,6 +296,29 @@ static int cpuacct_stats_show(struct seq_file *sf, void *v)
 	return 0;
 }
 
+static int cpuacct_uptime_show(struct seq_file *sf, void *v)
+{
+	struct cpuacct *ca = css_ca(seq_css(sf));
+	struct timespec64 uptime, idle, curr;
+	u64 idletime = 0;
+	u32 cpu, rem;
+
+	ktime_get_boottime_ts64(&curr);
+	uptime = timespec64_sub(curr, ca->uptime);
+
+	for_each_possible_cpu(cpu)
+		idletime += (__force u64) kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE];
+
+	idle.tv_sec = div_u64_rem(idletime - ca->idletime, NSEC_PER_SEC, &rem);
+	idle.tv_nsec = rem;
+	seq_printf(sf, "%lu.%02lu %lu.%02lu\n",
+			(unsigned long) uptime.tv_sec,
+			(uptime.tv_nsec / (NSEC_PER_SEC / 100)),
+			(unsigned long) idle.tv_sec,
+			(idle.tv_nsec / (NSEC_PER_SEC / 100)));
+	return 0;
+}
+
 static struct cftype files[] = {
 	{
 		.name = "usage",
@@ -322,6 +352,10 @@ static struct cftype files[] = {
 	{
 		.name = "stat",
 		.seq_show = cpuacct_stats_show,
+	},
+	{
+		.name = "uptime",
+		.seq_show = cpuacct_uptime_show,
 	},
 	{ }	/* terminate */
 };
