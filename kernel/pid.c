@@ -82,6 +82,7 @@ struct pid_namespace init_pid_ns = {
 	.ns.inum = PROC_PID_INIT_INO,
 #ifdef CONFIG_PID_NS
 	.ns.ops = &pidns_operations,
+	.max_map_count = DEFAULT_MAX_MAP_COUNT,
 #endif
 };
 EXPORT_SYMBOL_GPL(init_pid_ns);

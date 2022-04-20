@@ -161,7 +161,11 @@ static int madvise_update_vma(struct vm_area_struct *vma,
 	*prev = vma;
 
 	if (start != vma->vm_start) {
+	#ifdef CONFIG_PID_NS
+		if (unlikely(mm->map_count >= task_active_pid_ns(current)->max_map_count))
+	#else
 		if (unlikely(mm->map_count >= sysctl_max_map_count))
+	#endif
 			return -ENOMEM;
 		error = __split_vma(mm, vma, start, 1);
 		if (error)
@@ -169,7 +173,11 @@ static int madvise_update_vma(struct vm_area_struct *vma,
 	}
 
 	if (end != vma->vm_end) {
+	#ifdef CONFIG_PID_NS
+		if (unlikely(mm->map_count >= task_active_pid_ns(current)->max_map_count))
+	#else
 		if (unlikely(mm->map_count >= sysctl_max_map_count))
+	#endif
 			return -ENOMEM;
 		error = __split_vma(mm, vma, end, 0);
 		if (error)

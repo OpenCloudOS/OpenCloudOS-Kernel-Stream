@@ -31,6 +31,9 @@ struct pid_namespace {
 	struct ucounts *ucounts;
 	int reboot;	/* group exit code if this pidns was rebooted */
 	struct ns_common ns;
+#ifdef CONFIG_PID_NS
+	int max_map_count;
+#endif
 } __randomize_layout;
 
 extern struct pid_namespace init_pid_ns;
