@@ -124,7 +124,7 @@
 /*
  * Protected counters by write_lock_irq(&tasklist_lock)
  */
-unsigned long total_forks;	/* Handle normal Linux uptimes. */
+DEFINE_PER_CPU(unsigned long, total_forks) = 0;
 int nr_threads;			/* The idle threads do not count.. */
 
 static int max_threads;		/* tunable limit on nr_threads */
@@ -149,6 +149,17 @@ int lockdep_tasklist_lock_is_held(void)
 }
 EXPORT_SYMBOL_GPL(lockdep_tasklist_lock_is_held);
 #endif /* #ifdef CONFIG_PROVE_RCU */
+
+int nr_forks(void)
+{
+	int cpu;
+	int total = 0;
+
+	for_each_possible_cpu(cpu)
+		total += per_cpu(total_forks, cpu);
+
+	return total;
+}
 
 int nr_processes(void)
 {
@@ -2712,7 +2723,7 @@ __latent_entropy struct task_struct *copy_process(
 		attach_pid(p, PIDTYPE_PID);
 		nr_threads++;
 	}
-	total_forks++;
+	__this_cpu_inc(total_forks);
 	hlist_del_init(&delayed.node);
 	spin_unlock(&current->sighand->siglock);
 	syscall_tracepoint_update(p);
