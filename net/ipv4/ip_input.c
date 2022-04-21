@@ -469,6 +469,12 @@ static struct sk_buff *ip_rcv_core(struct sk_buff *skb, struct net *net)
 	}
 
 	__IP_UPD_PO_STATS(net, IPSTATS_MIB_IN, skb->len);
+	if (skb->dev) {
+		__SNMP_INC_STATS(skb->dev->mib.dev_statistics,
+				 DEV_MIB_IPV4_RX_PKTS);
+		__SNMP_ADD_STATS(skb->dev->mib.dev_statistics,
+				 DEV_MIB_IPV4_RX_BYTES, skb->len);
+	}
 
 	skb = skb_share_check(skb, GFP_ATOMIC);
 	if (!skb) {
