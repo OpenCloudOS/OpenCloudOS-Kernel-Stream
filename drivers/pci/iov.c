@@ -447,6 +447,8 @@ static ssize_t sriov_numvfs_store(struct device *dev,
 
 	if (num_vfs == 0) {
 		/* disable VFs */
+		dev_info(&pdev->dev, "disable vfs. old vfs %d, new vfs %d\n",
+			 pdev->sriov->num_VFs, num_vfs);
 		ret = pdev->driver->sriov_configure(pdev, 0);
 		goto exit;
 	}
@@ -458,6 +460,9 @@ static ssize_t sriov_numvfs_store(struct device *dev,
 		ret = -EBUSY;
 		goto exit;
 	}
+
+	dev_info(&pdev->dev, "enable vfs. old vfs %d, new vfs %d\n",
+		 pdev->sriov->num_VFs, num_vfs);
 
 	ret = pdev->driver->sriov_configure(pdev, num_vfs);
 	if (ret < 0)
@@ -719,6 +724,8 @@ static void sriov_disable(struct pci_dev *dev)
 
 	if (!iov->num_VFs)
 		return;
+
+	pr_info("disable %d sriov vfs\n", iov->num_VFs);
 
 	sriov_del_vfs(dev);
 	iov->ctrl &= ~(PCI_SRIOV_CTRL_VFE | PCI_SRIOV_CTRL_MSE);
