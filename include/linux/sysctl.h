@@ -246,6 +246,7 @@ extern int pwrsw_enabled;
 extern int unaligned_enabled;
 extern int unaligned_dump_stack;
 extern int no_unaligned_warning;
+extern int cpuset_cpuinfo_show_realinfo;
 
 extern struct ctl_table sysctl_mount_point[];
 
