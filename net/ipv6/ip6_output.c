@@ -126,8 +126,19 @@ static int ip6_finish_output2(struct net *net, struct sock *sk, struct sk_buff *
 	neigh = __ipv6_neigh_lookup_noref(dev, nexthop);
 
 	if (unlikely(IS_ERR_OR_NULL(neigh))) {
-		if (unlikely(!neigh))
+		if (unlikely(!neigh)) {
+			/*
+			 * If dev is tunnel, ignore neigh_create.
+			 * For now, use init_net's ip6_tunnel_neigh_bypass.
+			 */
+			if (init_net.ipv6.sysctl.ip6_tunnel_neigh_bypass &&
+				(dev->flags & IFF_POINTOPOINT)) {
+				ret = dev_queue_xmit(skb);
+				rcu_read_unlock_bh();
+				return ret;
+			}
 			neigh = __neigh_create(&nd_tbl, nexthop, dev, false);
+		}
 		if (IS_ERR(neigh)) {
 			rcu_read_unlock();
 			IP6_INC_STATS(net, idev, IPSTATS_MIB_OUTNOROUTES);
