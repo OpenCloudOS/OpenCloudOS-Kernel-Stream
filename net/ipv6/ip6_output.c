@@ -119,8 +119,18 @@ static int ip6_finish_output2(struct net *net, struct sock *sk, struct sk_buff *
 	rcu_read_lock_bh();
 	nexthop = rt6_nexthop((struct rt6_info *)dst, daddr);
 	neigh = __ipv6_neigh_lookup_noref(dev, nexthop);
-	if (unlikely(!neigh))
+	if (unlikely(!neigh)) {
+		/* If dev is tunnel, ignore neigh_create.
+		* For now, use init_net's ip6_tunnel_neigh_bypass.
+		*/
+		if (init_net.ipv6.sysctl.ip6_tunnel_neigh_bypass &&
+			(dev->flags & IFF_POINTOPOINT)) {
+			ret = dev_queue_xmit(skb);
+			rcu_read_unlock_bh();
+			return ret;
+		}
 		neigh = __neigh_create(&nd_tbl, nexthop, dev, false);
+	}
 	if (!IS_ERR(neigh)) {
 		sock_confirm_neigh(skb, neigh);
 		ret = neigh_output(neigh, skb, false);
