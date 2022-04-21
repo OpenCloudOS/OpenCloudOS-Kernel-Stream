@@ -28,6 +28,7 @@ struct netns_sysctl_ipv6 {
 	int ip6_rt_gc_elasticity;
 	int ip6_rt_mtu_expires;
 	int ip6_rt_min_advmss;
+	int ip6_tunnel_neigh_bypass;
 	u32 multipath_hash_fields;
 	u8 multipath_hash_policy;
 	u8 bindv6only;
