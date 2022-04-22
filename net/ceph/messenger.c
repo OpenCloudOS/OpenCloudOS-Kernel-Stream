@@ -91,6 +91,7 @@ static bool con_flag_valid(unsigned long con_flag)
 	case CEPH_CON_F_WRITE_PENDING:
 	case CEPH_CON_F_SOCK_CLOSED:
 	case CEPH_CON_F_BACKOFF:
+	case CEPH_CON_F_FORCE_FAULT:
 		return true;
 	default:
 		return false;
@@ -1597,6 +1598,10 @@ static void ceph_con_workfn(struct work_struct *work)
 
 		break;	/* If we make it to here, we're done */
 	}
+
+	if (!fault && ceph_con_flag_test_and_clear(con, CEPH_CON_F_FORCE_FAULT))
+		fault = true;
+
 	if (fault)
 		con_fault(con);
 	mutex_unlock(&con->mutex);
@@ -1862,6 +1867,23 @@ bool ceph_con_keepalive_expired(struct ceph_connection *con,
 		return timespec64_compare(&now, &ts) >= 0;
 	}
 	return false;
+}
+
+void ceph_con_fault_force(struct ceph_connection *con)
+{
+	bool need_queue = false;
+
+	pr_info("%s con %p %s%lld\n", __func__, con, ENTITY_NAME(con->peer_name));
+	mutex_lock(&con->mutex);
+	if (con->state == CEPH_CON_S_OPEN) {
+		con->error_msg = "osd request timeout and force con fault";
+		ceph_con_flag_set(con, CEPH_CON_F_FORCE_FAULT);
+		need_queue = true;
+	}
+	mutex_unlock(&con->mutex);
+
+	if (need_queue && ceph_con_flag_test_and_set(con, CEPH_CON_F_WRITE_PENDING) == 0)
+		queue_con(con);
 }
 
 static struct ceph_msg_data *ceph_msg_data_add(struct ceph_msg *msg)
