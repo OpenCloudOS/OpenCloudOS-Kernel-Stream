@@ -120,6 +120,7 @@ static int mdsc_show(struct seq_file *s, void *p)
 				seq_printf(s, " %s", req->r_path2);
 		}
 
+		seq_printf(s, "\tpid:%d", req->r_pid);
 		seq_puts(s, "\n");
 	}
 	mutex_unlock(&mdsc->mutex);
