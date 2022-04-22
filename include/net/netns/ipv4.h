@@ -226,5 +226,6 @@ struct netns_ipv4 {
 
 	atomic_t	rt_genid;
 	siphash_key_t	ip_id_key;
+	int sysctl_tcp_wan_timestamps;
 };
 #endif

@@ -4021,6 +4021,7 @@ void tcp_parse_options(const struct net *net,
 {
 	const unsigned char *ptr;
 	const struct tcphdr *th = tcp_hdr(skb);
+	struct iphdr *iph = ip_hdr(skb);
 	int length = (th->doff * 4) - sizeof(struct tcphdr);
 
 	ptr = (const unsigned char *)(th + 1);
@@ -4074,8 +4075,9 @@ void tcp_parse_options(const struct net *net,
 				break;
 			case TCPOPT_TIMESTAMP:
 				if ((opsize == TCPOLEN_TIMESTAMP) &&
-				    ((estab && opt_rx->tstamp_ok) ||
-				     (!estab && net->ipv4.sysctl_tcp_timestamps))) {
+						((estab && opt_rx->tstamp_ok) ||
+						 (!estab && net->ipv4.sysctl_tcp_timestamps &&
+						  (net->ipv4.sysctl_tcp_wan_timestamps || is_private_ip(iph->saddr))))) {
 					opt_rx->saw_tstamp = 1;
 					opt_rx->rcv_tsval = get_unaligned_be32(ptr);
 					opt_rx->rcv_tsecr = get_unaligned_be32(ptr + 4);

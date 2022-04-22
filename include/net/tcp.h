@@ -1175,6 +1175,24 @@ static inline bool tcp_skb_sent_after(u64 t1, u64 t2, u32 seq1, u32 seq2)
 	return t1 > t2 || (t1 == t2 && after(seq1, seq2));
 }
 
+static inline int is_private_ip(__be32 daddr)
+{
+	__u8 i, j;
+#if defined(__LITTLE_ENDIAN)
+	i = daddr & 0xFF;
+	j = (daddr >> 8) & 0xFF;
+#elif defined(__BIG_ENDIAN)
+	i = (daddr >> 24) & 0xFF;
+	j = (daddr >> 16) & 0xFF;
+#else
+#error Unknown Endian
+#endif
+	return i == 11 || i == 30 || i == 9 || i == 127 || i == 10 ||
+		(i == 172 && j >= 16 && j < 32) ||
+		(i == 192 && j == 168) ||
+		(i == 100 && j >= 64 && j <= 127);
+}
+
 /* These functions determine how the current flow behaves in respect of SACK
  * handling. SACK is negotiated with the peer, and therefore it can vary
  * between different flows.
