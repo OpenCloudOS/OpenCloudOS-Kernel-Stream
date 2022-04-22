@@ -42,3 +42,4 @@ void show_mem(unsigned int filter, nodemask_t *nodemask)
 	printk("%lu pages hwpoisoned\n", atomic_long_read(&num_poisoned_pages));
 #endif
 }
+EXPORT_SYMBOL(show_mem);
