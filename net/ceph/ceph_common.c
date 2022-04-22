@@ -250,6 +250,8 @@ enum {
 	Opt_tcp_nodelay,
 	Opt_abort_on_full,
 	Opt_rxbounce,
+	Opt_req_resend,
+	Opt_noreq_resend,
 };
 
 enum {
@@ -305,6 +307,8 @@ static const struct fs_parameter_spec ceph_parameters[] = {
 	fsparam_string	("secret",			Opt_secret),
 	fsparam_flag_no ("share",			Opt_share),
 	fsparam_flag_no ("tcp_nodelay",			Opt_tcp_nodelay),
+	fsparam_flag_no ("req_resend",			Opt_req_resend),
+	fsparam_flag_no ("noreq_resend",		Opt_noreq_resend),
 	{}
 };
 
@@ -592,6 +596,12 @@ int ceph_parse_param(struct fs_parameter *param, struct ceph_options *opt,
 	case Opt_rxbounce:
 		opt->flags |= CEPH_OPT_RXBOUNCE;
 		break;
+	case Opt_req_resend:
+		opt->flags |= CEPH_OPT_REQ_RESEND;
+		break;
+	case Opt_noreq_resend:
+		opt->flags &= ~CEPH_OPT_REQ_RESEND;
+		break;
 
 	default:
 		BUG();
@@ -670,6 +680,8 @@ int ceph_print_client_options(struct seq_file *m, struct ceph_client *client,
 		seq_puts(m, "abort_on_full,");
 	if (opt->flags & CEPH_OPT_RXBOUNCE)
 		seq_puts(m, "rxbounce,");
+	if ((opt->flags & CEPH_OPT_REQ_RESEND) == 0)
+		seq_puts(m, "noreq_resend,");
 
 	if (opt->mount_timeout != CEPH_MOUNT_TIMEOUT_DEFAULT)
 		seq_printf(m, "mount_timeout=%d,",
