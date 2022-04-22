@@ -39,8 +39,9 @@ extern unsigned int sysctl_ceph_epoch_barrier_ceiling;
 #define CEPH_OPT_NOMSGSIGN        (1<<5) /* don't sign msgs (msgr1) */
 #define CEPH_OPT_ABORT_ON_FULL    (1<<6) /* abort w/ ENOSPC when full */
 #define CEPH_OPT_RXBOUNCE         (1<<7) /* double-buffer read data */
+#define CEPH_OPT_REQ_RESEND       (1<<8) /* resend request if timeout */
 
-#define CEPH_OPT_DEFAULT   (CEPH_OPT_TCP_NODELAY)
+#define CEPH_OPT_DEFAULT   (CEPH_OPT_TCP_NODELAY | CEPH_OPT_REQ_RESEND)
 
 #define ceph_set_opt(client, opt) \
 	(client)->options->flags |= CEPH_OPT_##opt;
@@ -141,6 +142,7 @@ struct ceph_client {
 	struct dentry *debugfs_monmap;
 	struct dentry *debugfs_osdmap;
 	struct dentry *debugfs_options;
+	struct dentry *debugfs_req_resend;
 #endif
 };
 
