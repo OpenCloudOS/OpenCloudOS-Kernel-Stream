@@ -299,6 +299,7 @@ struct ceph_mds_request {
 
 	int r_fmode;        /* file mode, if expecting cap */
 	int r_request_release_offset;
+	pid_t r_pid;
 	const struct cred *r_cred;
 	struct timespec64 r_stamp;
 

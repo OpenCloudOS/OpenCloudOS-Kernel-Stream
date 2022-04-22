@@ -12,6 +12,7 @@
 #include <linux/bits.h>
 #include <linux/ktime.h>
 #include <linux/bitmap.h>
+#include <linux/pid_namespace.h>
 
 #include "super.h"
 #include "mds_client.h"
@@ -1174,6 +1175,11 @@ static void __register_request(struct ceph_mds_client *mdsc,
 	insert_request(&mdsc->request_tree, req);
 
 	req->r_cred = get_current_cred();
+	if (pid_alive(current)) {
+		req->r_pid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
+	} else {
+		req->r_pid = -1;
+	}
 
 	if (mdsc->oldest_tid == 0 && req->r_op != CEPH_MDS_OP_SETFILELOCK)
 		mdsc->oldest_tid = req->r_tid;
