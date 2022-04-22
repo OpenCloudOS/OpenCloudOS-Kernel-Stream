@@ -3113,6 +3113,9 @@ static void nvme_remove(struct pci_dev *pdev)
 {
 	struct nvme_dev *dev = pci_get_drvdata(pdev);
 
+	/* output the hotplug nvme drive letter and BDF */
+	dev_info(dev->ctrl.device, "remove pci function %s\n", dev_name(&pdev->dev));
+
 	nvme_change_ctrl_state(&dev->ctrl, NVME_CTRL_DELETING);
 	pci_set_drvdata(pdev, NULL);
 
