@@ -244,6 +244,9 @@ extern void ext4_es_unregister_shrinker(struct ext4_sb_info *sbi);
 
 extern int ext4_seq_es_shrinker_info_show(struct seq_file *seq, void *v);
 
+extern unsigned int ext4_shrink_es_timeout;
+extern unsigned int ext4_shrink_es_timeout_min;
+
 extern int __init ext4_init_pending(void);
 extern void ext4_exit_pending(void);
 extern void ext4_init_pending_tree(struct ext4_pending_tree *tree);
