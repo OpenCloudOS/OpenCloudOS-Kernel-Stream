@@ -63,6 +63,7 @@
 static struct ext4_lazy_init *ext4_li_info;
 static DEFINE_MUTEX(ext4_li_mtx);
 static struct ratelimit_state ext4_mount_msg_ratelimit;
+static struct ctl_table_header *ext4_sysctl_table;
 
 static int ext4_load_journal(struct super_block *, struct ext4_super_block *,
 			     unsigned long journal_devnum);
@@ -7340,6 +7341,18 @@ MODULE_ALIAS_FS("ext4");
 /* Shared across all ext4 file systems */
 wait_queue_head_t ext4__ioend_wq[EXT4_WQ_HASH_SZ];
 
+static struct ctl_table ext4_sysctls[] = {
+	{
+		.procname	= "shrink_es_timeout",
+		.data		= &ext4_shrink_es_timeout,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &ext4_shrink_es_timeout_min,
+	},
+	{ }
+};
+
 static int __init ext4_init_fs(void)
 {
 	int i, err;
@@ -7380,9 +7393,15 @@ static int __init ext4_init_fs(void)
 	err = ext4_init_mballoc();
 	if (err)
 		goto out2;
+
+	ext4_sysctl_table = register_sysctl_sz("fs/ext4",
+			ext4_sysctls, ARRAY_SIZE(ext4_sysctls));
+	if (ext4_sysctl_table == NULL)
+		goto out1;
+
 	err = init_inodecache();
 	if (err)
-		goto out1;
+		goto out0;
 
 	err = ext4_fc_init_dentry_cache();
 	if (err)
@@ -7401,6 +7420,8 @@ out:
 	ext4_fc_destroy_dentry_cache();
 out05:
 	destroy_inodecache();
+out0:
+	unregister_sysctl_table(ext4_sysctl_table);
 out1:
 	ext4_exit_mballoc();
 out2:
@@ -7427,6 +7448,7 @@ static void __exit ext4_exit_fs(void)
 	unregister_filesystem(&ext4_fs_type);
 	ext4_fc_destroy_dentry_cache();
 	destroy_inodecache();
+	unregister_sysctl_table(ext4_sysctl_table);
 	ext4_exit_mballoc();
 	ext4_exit_sysfs();
 	ext4_exit_system_zone();

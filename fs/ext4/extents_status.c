@@ -156,11 +156,17 @@ static int __revise_pending(struct inode *inode, ext4_lblk_t lblk,
 			    ext4_lblk_t len,
 			    struct pending_reservation **prealloc);
 
+unsigned int ext4_shrink_es_timeout;
+unsigned int ext4_shrink_es_timeout_min;
+
 int __init ext4_init_es(void)
 {
 	ext4_es_cachep = KMEM_CACHE(extent_status, SLAB_RECLAIM_ACCOUNT);
 	if (ext4_es_cachep == NULL)
 		return -ENOMEM;
+
+	ext4_shrink_es_timeout = jiffies_to_msecs(HZ/4);
+	ext4_shrink_es_timeout_min = jiffies_to_msecs(HZ/10);
 	return 0;
 }
 
@@ -1548,6 +1554,7 @@ static int __es_shrink(struct ext4_sb_info *sbi, int nr_to_scan,
 	int nr_to_walk;
 	int nr_shrunk = 0;
 	int retried = 0, nr_skipped = 0;
+	unsigned long end_time = 0;
 
 	es_stats = &sbi->s_es_stats;
 	start_time = ktime_get();
@@ -1555,6 +1562,7 @@ static int __es_shrink(struct ext4_sb_info *sbi, int nr_to_scan,
 retry:
 	spin_lock(&sbi->s_es_lock);
 	nr_to_walk = sbi->s_es_nr_inode;
+	end_time = jiffies + msecs_to_jiffies(ext4_shrink_es_timeout);
 	while (nr_to_walk-- > 0) {
 		if (list_empty(&sbi->s_es_list)) {
 			spin_unlock(&sbi->s_es_lock);
@@ -1590,6 +1598,15 @@ retry:
 
 		if (nr_to_scan <= 0)
 			goto out;
+
+		/*
+		 * As tkernel disabled preempt, so it's meaningless to unlock
+		 * sbi->s_es_lock, here we call cond_resched instead to avoid
+		 * soft lockup
+		 */
+		if (time_after_eq(jiffies, end_time))
+			cond_resched();
+
 		spin_lock(&sbi->s_es_lock);
 	}
 	spin_unlock(&sbi->s_es_lock);
