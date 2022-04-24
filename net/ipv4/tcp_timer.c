@@ -31,6 +31,14 @@ EXPORT_SYMBOL(sysctl_tcp_init_rto);
 int sysctl_tcp_synack_rto_interval __read_mostly = 200;
 EXPORT_SYMBOL(sysctl_tcp_synack_rto_interval);
 
+/* default value is 200ms */
+int sysctl_tcp_rto_min __read_mostly = 200;
+EXPORT_SYMBOL(sysctl_tcp_rto_min);
+
+/* default value is 120s */
+int sysctl_tcp_rto_max __read_mostly = 120;
+EXPORT_SYMBOL(sysctl_tcp_rto_max);
+
 static u32 tcp_clamp_rto_to_user_timeout(const struct sock *sk)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
