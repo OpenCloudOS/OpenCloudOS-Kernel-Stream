@@ -163,6 +163,7 @@ struct nvme_request {
 	u8			flags;
 	u16			status;
 	struct nvme_ctrl	*ctrl;
+	u8			opcode;
 };
 
 /*

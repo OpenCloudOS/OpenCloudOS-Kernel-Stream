@@ -74,6 +74,11 @@ static int nvme_submit_user_cmd(struct request_queue *q,
 	if (timeout)
 		req->timeout = timeout;
 	nvme_req(req)->flags |= NVME_REQ_USERCMD;
+	if (cmd->common.opcode == nvme_cmd_read ||
+		cmd->common.opcode == nvme_cmd_write) {
+		req->__sector = meta_seed;
+		req->__data_len = bufflen;
+	}
 
 	if (ubuffer && bufflen) {
 		if (!vec)

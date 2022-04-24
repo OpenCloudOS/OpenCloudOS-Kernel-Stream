@@ -652,6 +652,7 @@ void nvme_init_request(struct request *req, struct nvme_command *cmd)
 		req->cmd_flags |= REQ_POLLED;
 	nvme_clear_nvme_request(req);
 	memcpy(nvme_req(req)->cmd, cmd, sizeof(*cmd));
+	nvme_req(req)->opcode = cmd->common.opcode;
 }
 EXPORT_SYMBOL_GPL(nvme_init_request);
 
