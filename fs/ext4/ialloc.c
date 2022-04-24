@@ -1143,6 +1143,9 @@ got:
 		block_bitmap_bh = ext4_read_block_bitmap(sb, group);
 		if (IS_ERR(block_bitmap_bh)) {
 			err = PTR_ERR(block_bitmap_bh);
+			printk(KERN_ERR "%s: failed to update group #%d due to EIO on %s,"
+			       " meta-data may be inconsistent.\n",
+			       __func__, group, sbi->s_journal->j_devname);
 			goto out;
 		}
 		BUFFER_TRACE(block_bitmap_bh, "get block bitmap access");
