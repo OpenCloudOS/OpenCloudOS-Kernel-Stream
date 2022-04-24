@@ -23,6 +23,14 @@
 #include <linux/gfp.h>
 #include <net/tcp.h>
 
+/* default value is 1s */
+int sysctl_tcp_init_rto __read_mostly = 1000;
+EXPORT_SYMBOL(sysctl_tcp_init_rto);
+
+/* default value is 200ms */
+int sysctl_tcp_synack_rto_interval __read_mostly = 200;
+EXPORT_SYMBOL(sysctl_tcp_synack_rto_interval);
+
 static u32 tcp_clamp_rto_to_user_timeout(const struct sock *sk)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);

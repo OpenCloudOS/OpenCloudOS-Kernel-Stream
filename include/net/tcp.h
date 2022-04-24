@@ -141,7 +141,9 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCP_RTO_MAX	((unsigned)(120*HZ))
 #define TCP_RTO_MIN	((unsigned)(HZ/5))
 #define TCP_TIMEOUT_MIN	(2U) /* Min timeout for TCP timers in jiffies */
-#define TCP_TIMEOUT_INIT ((unsigned)(1*HZ))	/* RFC6298 2.1 initial RTO value	*/
+//#define TCP_TIMEOUT_INIT ((unsigned)(1*HZ))	/* RFC6298 2.1 initial RTO value	*/
+#define TCP_TIMEOUT_INIT ((unsigned)((sysctl_tcp_init_rto*HZ)/1000))
+
 #define TCP_TIMEOUT_FALLBACK ((unsigned)(3*HZ))	/* RFC 1122 initial RTO value, now
 						 * used as a fallback RTO for the
 						 * initial data transmission if no
@@ -161,7 +163,8 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define MAX_TCP_KEEPCNT		127
 #define MAX_TCP_SYNCNT		127
 
-#define TCP_SYNQ_INTERVAL	(HZ/5)	/* Period of SYNACK timer */
+//#define TCP_SYNQ_INTERVAL	(HZ/5)	/* Period of SYNACK timer */
+#define TCP_SYNQ_INTERVAL	((unsigned)((sysctl_tcp_synack_rto_interval*HZ)/1000))
 
 #define TCP_PAWS_24DAYS	(60 * 60 * 24 * 24)
 #define TCP_PAWS_MSL	60		/* Per-host timestamps are invalidated
@@ -251,6 +254,8 @@ extern int sysctl_tcp_no_delay_ack;
 extern int sysctl_tcp_init_cwnd;
 extern int sysctl_tcp_tw_ignore_syn_tsval_zero;
 extern int sysctl_tcp_inherit_buffsize;
+extern int sysctl_tcp_init_rto;
+extern int sysctl_tcp_synack_rto_interval;
 
 #define TCP_RACK_LOSS_DETECTION  0x1 /* Use RACK to detect losses */
 #define TCP_RACK_STATIC_REO_WND  0x2 /* Use static RACK reo wnd */
