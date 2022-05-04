@@ -847,6 +847,9 @@ void submit_bio_noacct(struct bio *bio)
 		break;
 	}
 
+	/* attach cgroup */
+	bio_associate_blkg(bio);
+
 	if (blk_throtl_bio(bio))
 		return;
 

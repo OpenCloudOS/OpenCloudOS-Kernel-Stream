@@ -29,6 +29,7 @@
 #include <linux/resume_user_mode.h>
 #include <linux/psi.h>
 #include <linux/part_stat.h>
+#include <linux/percpu.h>
 #include <linux/percpu_counter.h>
 #include "blk.h"
 #include "blk-cgroup.h"
@@ -243,6 +244,216 @@ struct blkcg_gq *blkg_lookup_slowpath(struct blkcg *blkcg,
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(blkg_lookup_slowpath);
+
+#ifdef	CONFIG_SMP
+static LIST_HEAD(alloc_list);
+static DEFINE_SPINLOCK(alloc_lock);
+static void dkstats_alloc_fn(struct work_struct *);
+static DECLARE_DELAYED_WORK(dkstats_alloc_work, dkstats_alloc_fn);
+
+static void dkstats_alloc_fn(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	static struct disk_stats *dkstats;
+	struct blkcg_dkstats *ds;
+	bool empty = false;
+
+ dkstats_alloc:
+	if (!dkstats) {
+		dkstats = alloc_percpu(struct disk_stats);
+		if (!dkstats) {
+			/* allocation failed, try again after some time */
+			schedule_delayed_work(dwork, msecs_to_jiffies(10));
+			return;
+		}
+	}
+
+	/* now we have alloc success and can safely hold lock */
+	spin_lock_irq(&alloc_lock);
+	if (list_empty(&alloc_list)) {
+		empty = true;
+		goto out;
+	}
+
+	ds = list_first_entry(&alloc_list, struct blkcg_dkstats, alloc_node);
+	list_del_init(&ds->alloc_node);
+	swap(ds->dkstats, dkstats);
+
+	empty = list_empty(&alloc_list);
+ out:
+	spin_unlock_irq(&alloc_lock);
+	if (!empty) {
+		cond_resched();
+		goto dkstats_alloc;
+	}
+}
+#endif
+
+static struct blkcg_dkstats *blkcg_dkstats_alloc(struct block_device *bdev)
+{
+	struct blkcg_dkstats *ds;
+	unsigned long flags;
+
+	/* inside io path, donot consider GFP_KERNEL */
+	ds = kzalloc(sizeof(struct blkcg_dkstats), GFP_ATOMIC);
+	if (!ds)
+		return NULL;
+
+	ds->part = bdev;
+	INIT_LIST_HEAD(&ds->list_node);
+	INIT_LIST_HEAD(&ds->alloc_node);
+
+#ifdef	CONFIG_SMP
+	/* percpu can't alloc inside IO path */
+	spin_lock_irqsave(&alloc_lock, flags);
+	list_add(&ds->alloc_node, &alloc_list);
+	schedule_delayed_work(&dkstats_alloc_work, 0);
+	spin_unlock_irqrestore(&alloc_lock, flags);
+#else
+	memset(&ds->dkstats, 0, sizeof(ds->dkstats));
+#endif
+	return ds;
+}
+
+static void blkcg_dkstats_rcu_free(struct rcu_head *rcu_head)
+{
+	struct blkcg_dkstats *ds;
+	ds = container_of(rcu_head, struct blkcg_dkstats, rcu_head);
+
+#ifdef	CONFIG_SMP
+	if (ds->dkstats)
+		free_percpu(ds->dkstats);
+#endif
+	kfree(ds);
+}
+
+static void blkcg_dkstats_free(struct blkcg_dkstats *ds)
+{
+#ifdef CONFIG_SMP
+	if (!list_empty(&ds->alloc_node)) {
+		spin_lock_irq(&alloc_lock);
+		list_del_init(&ds->alloc_node);
+		spin_unlock_irq(&alloc_lock);
+	}
+#endif
+	list_del_init(&ds->list_node);
+	call_rcu(&ds->rcu_head, blkcg_dkstats_rcu_free);
+}
+
+static void blkcg_dkstats_free_all(struct request_queue *q)
+{
+	struct blkcg_gq *blkg;
+
+	spin_lock_irq(&q->queue_lock);
+	list_for_each_entry(blkg, &q->blkg_list, q_node) {
+		struct blkcg *blkcg = blkg->blkcg;
+		struct blkcg_dkstats *ds, *ns;
+
+		spin_lock_irq(&blkcg->lock);
+		list_for_each_entry_safe(ds, ns, &blkcg->dkstats_list, list_node) {
+			if (ds->part->bd_disk->queue != q)
+				continue;
+
+			if (blkcg->dkstats_hint == ds)
+				blkcg->dkstats_hint = NULL;
+
+			blkcg_dkstats_free(ds);
+		}
+		spin_unlock_irq(&blkcg->lock);
+	}
+	spin_unlock_irq(&q->queue_lock);
+}
+
+static inline int blkcg_do_io_stat(struct blkcg *blkcg)
+{
+	return blkcg->dkstats_on;
+}
+
+struct disk_stats *blkcg_dkstats_find(struct blkcg *blkcg, int cpu, struct block_device *bdev, int *alloc)
+{
+	struct blkcg_dkstats *ds;
+
+	/* blkcg_dkstats list protected by rcu */
+	WARN_ON_ONCE(!rcu_read_lock_held());
+
+	if (!blkcg_do_io_stat(blkcg))
+		return NULL;
+
+	ds = rcu_dereference(blkcg->dkstats_hint);
+	if (ds && ds->part == bdev)
+		goto out;
+
+	list_for_each_entry(ds, &blkcg->dkstats_list, list_node) {
+		if (ds->part == bdev) {
+			rcu_assign_pointer(blkcg->dkstats_hint, ds);
+			goto out;
+		}
+	}
+	return NULL;
+ out:
+	if (alloc)
+		*alloc = 0;
+#ifdef CONFIG_SMP
+	return ds->dkstats ? per_cpu_ptr(ds->dkstats, cpu) : NULL;
+#else
+	return &ds->dkstats;
+#endif
+}
+EXPORT_SYMBOL_GPL(blkcg_dkstats_find);
+
+static struct blkcg_dkstats *blkcg_dkstats_find_locked(struct blkcg *blkcg, int cpu, struct block_device *bdev)
+{
+	struct blkcg_dkstats *ds;
+
+	ds = rcu_dereference(blkcg->dkstats_hint);
+	if (ds && ds->part == bdev)
+		return ds;
+
+	list_for_each_entry(ds, &blkcg->dkstats_list, list_node) {
+		if (ds->part == bdev) {
+			rcu_assign_pointer(blkcg->dkstats_hint, ds);
+			return ds;
+		}
+	}
+	return NULL;
+}
+
+struct disk_stats *blkcg_dkstats_find_create(struct blkcg *blkcg, int cpu, struct block_device *bdev)
+{
+	struct blkcg_dkstats *ds;
+	struct disk_stats *dk;
+	unsigned long flags;
+	int alloc = 1;
+
+	/* blkcg_dkstats list protected by rcu */
+	WARN_ON_ONCE(!rcu_read_lock_held());
+
+	if (!blkcg_do_io_stat(blkcg))
+		return NULL;
+
+	/* double lock, singleton here*/
+	dk = blkcg_dkstats_find(blkcg, cpu, bdev, &alloc);
+	if (dk || !alloc)
+		return dk;
+
+	spin_lock_irqsave(&blkcg->lock, flags);
+	ds = blkcg_dkstats_find_locked(blkcg, cpu, bdev);
+	if (!ds) {
+		ds = blkcg_dkstats_alloc(bdev);
+		if (!ds)
+			goto out;
+		list_add(&ds->list_node, &blkcg->dkstats_list);
+	}
+#ifdef CONFIG_SMP
+	dk = ds->dkstats ? per_cpu_ptr(ds->dkstats, cpu) : NULL;
+#else
+	dk = &ds->dkstats;
+#endif
+out:
+	spin_unlock_irqrestore(&blkcg->lock, flags);
+	return dk;
+}
+EXPORT_SYMBOL_GPL(blkcg_dkstats_find_create);
 
 /*
  * If @new_blkg is %NULL, this function tries to allocate a new one as
@@ -502,6 +713,144 @@ static int blkcg_reset_stats(struct cgroup_subsys_state *css,
 	}
 
 	spin_unlock_irq(&blkcg->lock);
+	mutex_unlock(&blkcg_pol_mutex);
+	return 0;
+}
+
+static void blkcg_dkstats_seqf_dummy(struct blkcg *blkcg, struct block_device *bdev,
+					  struct seq_file *seqf)
+{
+	struct disk_stats stat;
+	part_stat_read_all(bdev, &stat);
+	seq_printf(seqf, "%4d %7d %s %lu %lu %lu "
+		   "%u %lu %lu %lu %u %u %u %u %u %u\n",
+		   MAJOR(bdev->bd_dev), MINOR(bdev->bd_dev),
+		   bdev->bd_disk->disk_name,
+		   0UL, 0UL, 0UL, 0U, 0UL, 0UL, 0UL, 0U, 0U, 0U,
+		   0U, jiffies_to_msecs(part_stat_read(bdev, io_ticks)),
+		   (unsigned int)div_u64(stat.nsecs[STAT_READ] +
+						 stat.nsecs[STAT_WRITE] +
+						 stat.nsecs[STAT_DISCARD] +
+						 stat.nsecs[STAT_FLUSH],
+							NSEC_PER_MSEC));
+}
+
+static void blkcg_dkstats_seqf_print(struct blkcg *blkcg, struct block_device *bdev,
+				     struct seq_file *seqf)
+{
+	unsigned long rd_nsecs = blkcg_part_stat_read(blkcg, bdev, nsecs[READ]);
+	unsigned long wr_nsecs = blkcg_part_stat_read(blkcg, bdev, nsecs[WRITE]);
+	struct disk_stats stat;
+	part_stat_read_all(bdev, &stat);
+
+	seq_printf(seqf, "%4d %7d %s %lu %lu %lu "
+		   "%u %lu %lu %lu %u %u %u %u %u %u\n",
+		   MAJOR(bdev->bd_dev), MINOR(bdev->bd_dev),
+		   bdev->bd_disk->disk_name,
+		   blkcg_part_stat_read(blkcg, bdev, ios[READ]),
+		   blkcg_part_stat_read(blkcg, bdev, merges[READ]),
+		   blkcg_part_stat_read(blkcg, bdev, sectors[READ]),
+		   (unsigned int)rd_nsecs / 1000000,
+		   blkcg_part_stat_read(blkcg, bdev, ios[WRITE]),
+		   blkcg_part_stat_read(blkcg, bdev, merges[WRITE]),
+		   blkcg_part_stat_read(blkcg, bdev, sectors[WRITE]),
+		   (unsigned int)wr_nsecs / 1000000, 0,
+		   (unsigned int)(rd_nsecs + wr_nsecs) / 100000, 0,
+		   jiffies_to_msecs(part_stat_read(bdev, io_ticks)),
+		   (unsigned int)div_u64(stat.nsecs[STAT_READ] +
+						 stat.nsecs[STAT_WRITE] +
+						 stat.nsecs[STAT_DISCARD] +
+						 stat.nsecs[STAT_FLUSH],
+							NSEC_PER_MSEC));
+}
+
+static int blkcg_dkstats_show_partion(struct blkcg *blkcg, struct gendisk *gd,
+				      struct seq_file *seqf)
+{
+	struct block_device *part;
+	unsigned long idx;
+	struct blkcg_dkstats *ds;
+
+	rcu_read_lock();
+	xa_for_each(&gd->part_tbl, idx, part) {
+		if (bdev_is_partition(part) && !bdev_nr_sectors(part))
+				continue;
+		if (!kobject_get_unless_zero(&part->bd_device.kobj))
+				continue;
+
+		rcu_read_unlock();
+		spin_lock_irq(&blkcg->lock);
+		list_for_each_entry(ds, &blkcg->dkstats_list, list_node) {
+			if (ds->part == part) {
+				blkcg_dkstats_seqf_print(blkcg, part, seqf);
+				break;
+			}
+		}
+		if (ds->part != part)
+			blkcg_dkstats_seqf_dummy(blkcg, part, seqf);
+
+		spin_unlock_irq(&blkcg->lock);
+		put_device(&part->bd_device);
+		rcu_read_lock();
+	}
+	rcu_read_unlock();
+	return 0;
+}
+
+static int blkcg_dkstats_enable(struct cgroup_subsys_state *css,
+				struct cftype *cftype, u64 val)
+{
+	struct blkcg *blkcg = css_to_blkcg(css);
+	struct blkcg_dkstats *ds;
+
+	mutex_lock(&blkcg_pol_mutex);
+	spin_lock_irq(&blkcg->lock);
+
+	if (blkcg->dkstats_on) {
+		blkcg->dkstats_on = val;
+		goto out;
+	}
+
+	list_for_each_entry(ds, &blkcg->dkstats_list, list_node) {
+#ifdef CONFIG_SMP
+		if (ds->dkstats) {
+			unsigned int cpu;
+			for_each_possible_cpu(cpu) {
+				struct disk_stats *dk = per_cpu_ptr(ds->dkstats, cpu);
+				memset(dk, 0, sizeof(struct disk_stats));
+			}
+		}
+#else
+		memset(&ds->dkstats, 0, sizeof(ds->dkstats));
+#endif
+	}
+	blkcg->dkstats_on = val;
+
+ out:
+	spin_unlock_irq(&blkcg->lock);
+	mutex_unlock(&blkcg_pol_mutex);
+	return 0;
+}
+
+static int blkcg_dkstats_show(struct seq_file *sf, void *v)
+{
+	struct blkcg *blkcg = css_to_blkcg(seq_css(sf));
+	struct class_dev_iter iter;
+	struct device *dev;
+
+	mutex_lock(&blkcg_pol_mutex);
+
+	if (!blkcg_do_io_stat(blkcg))
+		goto out;
+
+	class_dev_iter_init(&iter, &block_class, NULL, &disk_type);
+	while ((dev = class_dev_iter_next(&iter))) {
+		struct gendisk *disk = dev_to_disk(dev);
+		blkcg_dkstats_show_partion(blkcg, disk, sf);
+	}
+
+	class_dev_iter_exit(&iter);
+ out:
 	mutex_unlock(&blkcg_pol_mutex);
 	return 0;
 }
@@ -987,6 +1336,11 @@ static struct cftype blkcg_legacy_files[] = {
 		.name = "reset_stats",
 		.write_u64 = blkcg_reset_stats,
 	},
+	{
+		.name = "diskstats",
+		.write_u64 = blkcg_dkstats_enable,
+		.seq_show = blkcg_dkstats_show,
+	},
 	{ }	/* terminate */
 };
 
@@ -1022,6 +1376,13 @@ static struct cftype blkcg_legacy_files[] = {
 static void blkcg_css_offline(struct cgroup_subsys_state *css)
 {
 	struct blkcg *blkcg = css_to_blkcg(css);
+	struct blkcg_dkstats *ds, *ns;
+
+	spin_lock_irq(&blkcg->lock);
+	blkcg->dkstats_hint = NULL;
+	list_for_each_entry_safe(ds, ns, &blkcg->dkstats_list, list_node)
+		blkcg_dkstats_free(ds);
+	spin_unlock_irq(&blkcg->lock);
 
 	/* this prevents anyone from attaching or migrating to this blkcg */
 	wb_blkcg_offline(blkcg);
@@ -1141,6 +1502,7 @@ blkcg_css_alloc(struct cgroup_subsys_state *parent_css)
 	refcount_set(&blkcg->online_pin, 1);
 	INIT_RADIX_TREE(&blkcg->blkg_tree, GFP_NOWAIT | __GFP_NOWARN);
 	INIT_HLIST_HEAD(&blkcg->blkg_list);
+	INIT_LIST_HEAD(&blkcg->dkstats_list);
 #ifdef CONFIG_CGROUP_WRITEBACK
 	INIT_LIST_HEAD(&blkcg->cgwb_list);
 #endif
@@ -1251,6 +1613,7 @@ err_unlock:
  */
 void blkcg_exit_queue(struct request_queue *q)
 {
+	blkcg_dkstats_free_all(q);
 	blkg_destroy_all(q);
 	blk_throtl_exit(q);
 }

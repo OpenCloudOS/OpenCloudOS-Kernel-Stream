@@ -936,6 +936,18 @@ static enum bio_merge_status bio_attempt_back_merge(struct request *req,
 	return BIO_MERGE_OK;
 }
 
+static void blkcg_stat_acct(struct blkcg *blkcg, struct request *req, int new_io)
+{
+	struct block_device *part = req->part;
+	int rw = rq_data_dir(req), cpu;
+
+	if (!new_io) {
+		cpu = part_stat_lock_();
+		blkcg_part_stat_inc(blkcg, cpu, part, merges[rw]);
+		part_stat_unlock_();
+	}
+}
+
 static enum bio_merge_status bio_attempt_front_merge(struct request *req,
 		struct bio *bio, unsigned int nr_segs)
 {
@@ -959,6 +971,7 @@ static enum bio_merge_status bio_attempt_front_merge(struct request *req,
 	bio_crypt_do_front_merge(req, bio);
 
 	blk_account_io_merge_bio(req);
+	blkcg_stat_acct(bio_blkcg(bio), req, 0);
 	return BIO_MERGE_OK;
 }
 
@@ -981,6 +994,7 @@ static enum bio_merge_status bio_attempt_discard_merge(struct request_queue *q,
 	req->nr_phys_segments = segments + 1;
 
 	blk_account_io_merge_bio(req);
+	blkcg_stat_acct(bio_blkcg(bio), req, 0);
 	return BIO_MERGE_OK;
 no_merge:
 	req_set_nomerge(q, req);

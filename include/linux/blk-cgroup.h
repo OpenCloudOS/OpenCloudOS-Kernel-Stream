@@ -37,6 +37,18 @@ enum blkg_iostat_type {
 	BLKG_IOSTAT_NR,
 };
 
+struct blkcg_dkstats {
+#ifdef	CONFIG_SMP
+	struct disk_stats __percpu 	*dkstats;
+	struct list_head		alloc_node;
+#else
+	struct disk_stats		dkstats;
+#endif
+	struct block_device		*part;
+	struct list_head		list_node;
+	struct rcu_head			rcu_head;
+};
+
 struct blkcg_gq;
 struct blkg_policy_data;
 
@@ -66,6 +78,10 @@ struct blkcg {
 	unsigned long			dirty_ratelimit;
 	unsigned long long		buffered_write_bps;
 #endif
+	/* disk_stats for per blkcg */
+	unsigned int			dkstats_on;
+	struct list_head		dkstats_list;
+	struct blkcg_dkstats		*dkstats_hint;
 };
 
 struct blkg_iostat {
@@ -118,6 +134,56 @@ struct blkcg_gq {
 };
 
 extern struct cgroup_subsys_state * const blkcg_root_css;
+
+struct disk_stats *blkcg_dkstats_find(struct blkcg *blkcg, int cpu,
+				      struct block_device *bdev, int *alloc);
+struct disk_stats *blkcg_dkstats_find_create(struct blkcg *blkcg,
+				      int cpu, struct block_device *bdev);
+
+#define __blkcg_part_stat_add(blkcg, cpu, part, field, addnd)		\
+({									\
+	struct disk_stats *ds;						\
+	ds = blkcg_dkstats_find_create((blkcg), (cpu), (part));		\
+	if (ds)								\
+		ds->field += (addnd);					\
+})
+
+#define blkcg_part_stat_add(blkcg, cpu, part, field, addnd)	do {	\
+	__blkcg_part_stat_add((blkcg), (cpu), (part), field, (addnd));	\
+} while (0)
+
+#define blkcg_part_stat_dec(blkcg, cpu, gendiskp, field)	\
+	blkcg_part_stat_add(blkcg, cpu, gendiskp, field, -1)
+#define blkcg_part_stat_inc(blkcg, cpu, gendiskp, field)	\
+	blkcg_part_stat_add(blkcg, cpu, gendiskp, field, 1)
+#define blkcg_part_stat_sub(blkcg, cpu, gendiskp, field, subnd) \
+	blkcg_part_stat_add(blkcg, cpu, gendiskp, field, -subnd)
+
+#ifdef CONFIG_SMP
+#define blkcg_part_stat_read(blkcg, part, field)			\
+({									\
+	typeof((part)->bd_stats->field) res = 0;				\
+	unsigned int cpu;						\
+	for_each_possible_cpu(cpu) {					\
+		struct disk_stats *ds;					\
+		ds = blkcg_dkstats_find(blkcg, cpu, part, NULL);	\
+		if (!ds)						\
+			break;						\
+		res += ds->field;					\
+	}								\
+	res;								\
+})
+#else
+#define blkcg_part_stat_read(blkcg, part, field)			\
+({									\
+	typeof((part)->bd_stats->field) res = 0;				\
+	struct disk_stats *ds;						\
+	ds = blkcg_dkstats_find(blkcg, cpu, part, NULL);		\
+	if (ds)								\
+		res = ds->field;					\
+	res;								\
+})
+#endif
 
 void blkcg_destroy_blkgs(struct blkcg *blkcg);
 void blkcg_schedule_throttle(struct request_queue *q, bool use_memdelay);
@@ -234,6 +300,13 @@ static inline bool blk_cgroup_congested(void) { return false; }
 #ifdef CONFIG_BLOCK
 static inline void blkcg_schedule_throttle(struct request_queue *q, bool use_memdelay) { }
 static inline struct blkcg *bio_blkcg(struct bio *bio) { return NULL; }
+
+#define blkcg_part_stat_add(blkcg, cpu, part, field, addnd) do {} while (0)
+#define blkcg_part_stat_dec(blkcg, cpu, gendiskp, field) do {} while (0)
+#define blkcg_part_stat_inc(blkcg, cpu, gendiskp, field) do {} while (0)
+#define blkcg_part_stat_sub(blkcg, cpu, gendiskp, field, subnd) do {} while (0)
+#define blkcg_part_stat_read(blkcg, part, field) do {} while (0)
+
 #endif /* CONFIG_BLOCK */
 
 #endif	/* CONFIG_BLK_CGROUP */

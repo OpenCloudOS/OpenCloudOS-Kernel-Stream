@@ -124,8 +124,7 @@ const char *bdevname(struct block_device *bdev, char *buf)
 }
 EXPORT_SYMBOL(bdevname);
 
-static void part_stat_read_all(struct block_device *part,
-		struct disk_stats *stat)
+void part_stat_read_all(struct block_device *part, struct disk_stats *stat)
 {
 	int cpu;
 

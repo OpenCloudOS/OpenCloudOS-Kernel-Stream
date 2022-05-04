@@ -44,6 +44,7 @@ struct blk_crypto_profile;
 extern const struct device_type disk_type;
 extern struct device_type part_type;
 extern struct class block_class;
+extern const struct device_type disk_type;
 
 /* Must be consistent with blk_mq_poll_stats_bkt() */
 #define BLK_MQ_POLL_STATS_BKTS 16

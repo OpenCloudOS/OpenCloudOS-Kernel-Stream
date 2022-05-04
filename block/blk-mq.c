@@ -29,6 +29,7 @@
 #include <linux/prefetch.h>
 #include <linux/blk-crypto.h>
 #include <linux/part_stat.h>
+#include <linux/blk-cgroup.h>
 
 #include <trace/events/block.h>
 
@@ -756,6 +757,43 @@ static void blk_complete_request(struct request *req)
 	req->__data_len = 0;
 }
 
+static void blkcg_account_io_completion(struct request *req, struct bio *bio,
+					unsigned int bytes)
+{
+	if (blk_do_io_stat(req)) {
+		const int rw = bio_data_dir(bio);
+		struct blkcg *blkcg = bio_blkcg(bio);
+		struct block_device *part;
+		int cpu;
+
+		cpu = part_stat_lock_();
+		part = req->part;
+		blkcg_part_stat_add(blkcg, cpu, part, sectors[rw], bytes >> 9);
+		part_stat_unlock_();
+	}
+}
+
+static void blkcg_account_io_done(struct request *req, struct bio *bio)
+{
+	/*
+	 * Account IO completion.  flush_rq isn't accounted as a
+	 * normal IO on queueing nor completion.  Accounting the
+	 * containing request is enough.
+	 */
+	if (blk_do_io_stat(req) && !(req->cmd_flags & RQF_FLUSH_SEQ)) {
+		unsigned long duration = ktime_get_ns() - req->start_time_ns;
+		const int rw = rq_data_dir(req);
+		struct block_device *part = req->part;
+		struct blkcg *blkcg = bio_blkcg(bio);
+		int cpu;
+
+		cpu = part_stat_lock_();
+		blkcg_part_stat_inc(blkcg, cpu, part, ios[rw]);
+		blkcg_part_stat_add(blkcg, cpu, part, nsecs[rw], duration);
+		part_stat_unlock_();
+	}
+}
+
 /**
  * blk_update_request - Complete multiple bytes without completing the request
  * @req:      the request being processed
@@ -807,6 +845,10 @@ bool blk_update_request(struct request *req, blk_status_t error,
 	while (req->bio) {
 		struct bio *bio = req->bio;
 		unsigned bio_bytes = min(bio->bi_iter.bi_size, nr_bytes);
+
+		blkcg_account_io_completion(req, bio, bio_bytes);
+		if (req->bio == req->biotail)
+			blkcg_account_io_done(req, bio);
 
 		if (bio_bytes == bio->bi_iter.bi_size)
 			req->bio = bio->bi_next;

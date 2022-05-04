@@ -328,6 +328,7 @@ static inline bool blk_do_io_stat(struct request *rq)
 }
 
 void update_io_ticks(struct block_device *part, unsigned long now, bool end);
+void part_stat_read_all(struct block_device *part, struct disk_stats *stat);
 
 static inline void req_set_nomerge(struct request_queue *q, struct request *req)
 {

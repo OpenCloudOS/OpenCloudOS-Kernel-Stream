@@ -15,6 +15,17 @@ struct disk_stats {
 };
 
 /*
+ * Revert defintion for usage in block/blk-core.c
+ */
+#ifdef	CONFIG_SMP
+#define part_stat_lock_()	({ rcu_read_lock(); get_cpu(); })
+#define part_stat_unlock_()	do { put_cpu(); rcu_read_unlock(); } while (0)
+#else /* !CONFIG_SMP */
+#define part_stat_lock_()	({ rcu_read_lock(); 0; })
+#define part_stat_unlock_()	rcu_read_unlock()
+#endif
+
+/*
  * Macros to operate on percpu disk statistics:
  *
  * {disk|part|all}_stat_{add|sub|inc|dec}() modify the stat counters and should
