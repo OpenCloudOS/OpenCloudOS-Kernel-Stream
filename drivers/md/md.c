@@ -64,6 +64,7 @@
 #include <linux/slab.h>
 #include <linux/percpu-refcount.h>
 #include <linux/part_stat.h>
+#include <linux/blk-cgroup.h>
 
 #include <trace/events/block.h>
 #include "md.h"
@@ -453,6 +454,8 @@ static void md_submit_bio(struct bio *bio)
 {
 	const int rw = bio_data_dir(bio);
 	struct mddev *mddev = bio->bi_bdev->bd_disk->private_data;
+	struct blkcg *blkcg = bio_blkcg(bio);
+	unsigned int sectors, cpu;
 
 	if (mddev == NULL || mddev->pers == NULL) {
 		bio_io_error(bio);
@@ -473,10 +476,17 @@ static void md_submit_bio(struct bio *bio)
 		return;
 	}
 
+	sectors = bio_sectors(bio);
 	/* bio could be mergeable after passing to underlayer */
 	bio->bi_opf &= ~REQ_NOMERGE;
 
 	md_handle_request(mddev, bio);
+
+	cpu = part_stat_lock_();
+	blkcg_part_stat_inc(blkcg, cpu, mddev->gendisk->part0, ios[rw]);
+	blkcg_part_stat_add(blkcg, cpu, mddev->gendisk->part0, sectors[rw],
+		    sectors);
+	part_stat_unlock_();
 }
 
 /* mddev_suspend makes sure no new requests are submitted
