@@ -30,6 +30,7 @@
 #include <linux/part_stat.h>
 #include <linux/blk-crypto.h>
 #include <linux/blk-crypto-profile.h>
+#include <linux/blk-cgroup.h>
 
 #define DM_MSG_PREFIX "core"
 
@@ -501,6 +502,9 @@ static bool bio_is_flush_with_data(struct bio *bio)
 static void dm_io_acct(bool end, struct mapped_device *md, struct bio *bio,
 		       unsigned long start_time, struct dm_stats_aux *stats_aux)
 {
+	struct blkcg *blkcg = bio_blkcg(bio);
+	unsigned long duration = jiffies - start_time;
+	int rw = bio_data_dir(bio), cpu;
 	bool is_flush_with_data;
 	unsigned int bi_size;
 
@@ -513,8 +517,14 @@ static void dm_io_acct(bool end, struct mapped_device *md, struct bio *bio,
 
 	if (!end)
 		bio_start_io_acct_time(bio, start_time);
-	else
+	else {
 		bio_end_io_acct(bio, start_time);
+
+		cpu = part_stat_lock_();
+		blkcg_part_stat_add(blkcg, cpu, dm_disk(md)->part0, nsecs[rw],
+					jiffies_to_nsecs(duration));
+		part_stat_unlock_();
+	}
 
 	if (unlikely(dm_stats_used(&md->stats)))
 		dm_stats_account_io(&md->stats, bio_data_dir(bio),
@@ -1611,8 +1621,16 @@ static void dm_submit_bio(struct bio *bio)
 	struct mapped_device *md = bio->bi_bdev->bd_disk->private_data;
 	int srcu_idx;
 	struct dm_table *map;
+	struct blkcg *blkcg = bio_blkcg(bio);
+	int rw = bio_data_dir(bio), cpu;
 
 	map = dm_get_live_table(md, &srcu_idx);
+
+	cpu = part_stat_lock_();
+	blkcg_part_stat_inc(blkcg, cpu, dm_disk(md)->part0, ios[rw]);
+	blkcg_part_stat_add(blkcg, cpu, dm_disk(md)->part0, sectors[rw],
+				bio_sectors(bio));
+	part_stat_unlock_();
 
 	/* If suspended, or map not yet available, queue this IO for later */
 	if (unlikely(test_bit(DMF_BLOCK_IO_FOR_SUSPEND, &md->flags)) ||
