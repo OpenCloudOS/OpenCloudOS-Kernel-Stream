@@ -2754,6 +2754,7 @@ static int cpuset_cgroup_stat_show(struct seq_file *sf, void *v)
 	return 0;
 }
 
+#ifdef CONFIG_X86
 /*
  *	Get CPU information for use by the procfs.
  */
@@ -2898,6 +2899,7 @@ static int cpuset_cgroup_cpuinfo_show(struct seq_file *sf, void *v)
 	}
 	return 0;
 }
+#endif
 
 static int cpuset_cgroup_loadavg_show(struct seq_file *sf, void *v);
 
@@ -3059,10 +3061,12 @@ static struct cftype legacy_files[] = {
 		.seq_show = cpuset_cgroup_stat_show,
 	},
 
+#ifdef CONFIG_X86
 	{
 		.name = "cpuinfo",
 		.seq_show = cpuset_cgroup_cpuinfo_show,
 	},
+#endif
 
 	{
 		.name = "loadavg",
