@@ -2860,9 +2860,9 @@ static u64 get_iowait_time(int cpu)
 }
 
 
-static int cpuset_cgroup_stat_show_comm(struct seq_file *sf, void *v, struct cpuset *cs)
+static int cpuset_cgroup_stat_show_comm(struct seq_file *sf, void *v, struct cpuset *cs, int max_cpu)
 {
-	int i, j;
+	int i, j, k = 0;
 	u64 user, nice, system, idle, iowait, irq, softirq, steal;
 	u64 guest, guest_nice, n_ctx_switch, n_process, n_running, n_blocked;
 	u64 sum = 0;
@@ -2880,10 +2880,13 @@ static int cpuset_cgroup_stat_show_comm(struct seq_file *sf, void *v, struct cpu
 	is_top_cgrp = !cs->css.parent ? true : false;
 
 	for_each_cpu(i, cs->cpus_allowed) {
+		struct kernel_cpustat kcs;
+
+		if (++k > max_cpu)
+			break;
 		user += kcpustat_cpu(i).cpustat[CPUTIME_USER];
 		nice += kcpustat_cpu(i).cpustat[CPUTIME_NICE];
 		system += kcpustat_cpu(i).cpustat[CPUTIME_SYSTEM];
-		struct kernel_cpustat kcs;
 		kcpustat_cpu_fetch(&kcs, i);
 		idle += get_idle_time(&kcs, i);
 		iowait += get_iowait_time(i);
@@ -2917,12 +2920,16 @@ static int cpuset_cgroup_stat_show_comm(struct seq_file *sf, void *v, struct cpu
 	seq_putc(sf, '\n');
 
 	j = 0;
+	k = 0;
 	for_each_cpu(i, cs->cpus_allowed) {
+		struct kernel_cpustat kcs;
+
 		/* Copy values here to work around gcc-2.95.3, gcc-2.96 */
+		if (++k > max_cpu)
+			break;
 		user = kcpustat_cpu(i).cpustat[CPUTIME_USER];
 		nice = kcpustat_cpu(i).cpustat[CPUTIME_NICE];
 		system = kcpustat_cpu(i).cpustat[CPUTIME_SYSTEM];
-		struct kernel_cpustat kcs;
 		kcpustat_cpu_fetch(&kcs, i);
 		idle += get_idle_time(&kcs, i);
 		iowait = get_iowait_time(i);
@@ -2950,10 +2957,14 @@ static int cpuset_cgroup_stat_show_comm(struct seq_file *sf, void *v, struct cpu
 	seq_put_decimal_ull(sf, "intr ", (unsigned long long)sum);
 
 	/* sum again ? it could be updated? */
+	k = 0;
 	for_each_irq_nr(j) {
 		sum = 0;
-		for_each_cpu(i, cs->cpus_allowed)
+		for_each_cpu(i, cs->cpus_allowed) {
+			if (++k > max_cpu)
+				break;
 			sum += kstat_irqs_cpu(j, i);
+		}
 
 		seq_put_decimal_ull(sf, " ", sum);
 	}
@@ -2962,7 +2973,10 @@ static int cpuset_cgroup_stat_show_comm(struct seq_file *sf, void *v, struct cpu
 	n_process = 0;
 	n_running = 0;
 	n_blocked = 0;
+	k = 0;
 	for_each_cpu(i, cs->cpus_allowed) {
+		if (++k > max_cpu)
+			break;
 		n_ctx_switch += nr_context_switches_cpu(i);
 		n_process += per_cpu(total_forks, i);
 		n_running += nr_running_cpu(i);
@@ -2992,7 +3006,7 @@ static int cpuset_cgroup_stat_show_comm(struct seq_file *sf, void *v, struct cpu
 static int cpuset_cgroup_stat_show(struct seq_file *sf, void *v)
 {
 	struct cpuset *cs = css_cs(seq_css(sf));
-	return cpuset_cgroup_stat_show_comm(sf, v, cs);
+	return cpuset_cgroup_stat_show_comm(sf, v, cs, INT_MAX);
 }
 
 #ifdef CONFIG_X86
@@ -3043,7 +3057,7 @@ static void show_cpuinfo_misc(struct seq_file *m, struct cpuinfo_x86 *c)
 }
 #endif
 
-static int cpuset_cgroup_cpuinfo_show_comm(struct seq_file *sf, void *v, struct cpuset *cs)
+static int cpuset_cgroup_cpuinfo_show_comm(struct seq_file *sf, void *v, struct cpuset *cs, int max_cpu)
 {
 	int i, j, k = 0;
 	struct cpuinfo_x86 *c;
@@ -3062,6 +3076,8 @@ static int cpuset_cgroup_cpuinfo_show_comm(struct seq_file *sf, void *v, struct 
 		else
 			cpu = k;
 		k++;
+		if (k > max_cpu)
+			break;
 		seq_printf(sf, "processor\t: %u\n"
 				"vendor_id\t: %s\n"
 				"cpu family\t: %d\n"
@@ -3143,7 +3159,7 @@ static int cpuset_cgroup_cpuinfo_show_comm(struct seq_file *sf, void *v, struct 
 static int cpuset_cgroup_cpuinfo_show(struct seq_file *sf, void *v)
 {
 	struct cpuset *cs = css_cs(seq_css(sf));
-	return cpuset_cgroup_cpuinfo_show_comm(sf, v, cs);
+	return cpuset_cgroup_cpuinfo_show_comm(sf, v, cs, INT_MAX);
 }
 
 #endif
