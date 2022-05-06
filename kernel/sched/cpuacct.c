@@ -296,9 +296,8 @@ static int cpuacct_stats_show(struct seq_file *sf, void *v)
 	return 0;
 }
 
-static int cpuacct_uptime_show(struct seq_file *sf, void *v)
+static int cpuacct_uptime_show_comm(struct seq_file *sf, void *v, struct cpuacct *ca)
 {
-	struct cpuacct *ca = css_ca(seq_css(sf));
 	struct timespec64 uptime, idle, curr;
 	u64 idletime = 0;
 	u32 cpu, rem;
@@ -317,6 +316,12 @@ static int cpuacct_uptime_show(struct seq_file *sf, void *v)
 			(unsigned long) idle.tv_sec,
 			(idle.tv_nsec / (NSEC_PER_SEC / 100)));
 	return 0;
+}
+
+static int cpuacct_uptime_show(struct seq_file *sf, void *v)
+{
+	struct cpuacct *ca = css_ca(seq_css(sf));
+	return cpuacct_uptime_show_comm(sf, v, ca);
 }
 
 static struct cftype files[] = {
