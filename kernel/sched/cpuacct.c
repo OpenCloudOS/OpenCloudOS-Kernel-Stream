@@ -318,6 +318,14 @@ static int cpuacct_uptime_show_comm(struct seq_file *sf, void *v, struct cpuacct
 	return 0;
 }
 
+#ifdef CONFIG_CGROUPFS
+int cpuacct_cgroupfs_uptime_show(struct seq_file *m, void *v)
+{
+	struct cpuacct *ca = task_ca(current);
+	return cpuacct_uptime_show_comm(m, v, ca);
+}
+#endif
+
 static int cpuacct_uptime_show(struct seq_file *sf, void *v)
 {
 	struct cpuacct *ca = css_ca(seq_css(sf));
