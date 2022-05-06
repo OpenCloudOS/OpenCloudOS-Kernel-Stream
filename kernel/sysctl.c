@@ -148,6 +148,9 @@ int sysctl_legacy_va_layout;
 /* min_extfrag_threshold is SYSCTL_ZERO */;
 static const int max_extfrag_threshold = 1000;
 #endif
+#ifdef CONFIG_CGROUPFS
+extern int container_cpuquota_aware;
+#endif
 
 #endif /* CONFIG_SYSCTL */
 
@@ -1762,6 +1765,15 @@ int proc_do_static_key(struct ctl_table *table, int write,
 }
 
 static struct ctl_table kern_table[] = {
+#ifdef CONFIG_CGROUPFS
+	{
+		.procname       = "container_cpuquota_aware",
+		.data           = &container_cpuquota_aware,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec,
+	},
+#endif
 #ifdef CONFIG_PID_NS
 	{
 		.procname	= "watch_host_pid",
