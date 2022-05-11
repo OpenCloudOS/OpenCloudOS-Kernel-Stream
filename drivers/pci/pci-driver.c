@@ -441,7 +441,7 @@ static int __pci_device_probe(struct pci_driver *drv, struct pci_dev *pci_dev)
 
 		id = pci_match_device(drv, pci_dev);
 		if (id) {
-			if ((pci_dev->class>>16) == PCI_BASE_CLASS_STORAGE)
+			if ((pci_dev->class>>16) == PCI_BASE_CLASS_STORAGE && pci_dev->vendor != 0x1af4)
 				storage_probe_delay(&pci_dev->dev);
 			if ((pci_dev->class>>16) == PCI_BASE_CLASS_NETWORK && network_strict_sort)
 				network_probe_delay(&pci_dev->dev);
