@@ -28,6 +28,8 @@ struct pci_dynid {
 	struct pci_device_id id;
 };
 
+static int network_strict_sort;
+
 /**
  * pci_add_dynid - add a new PCI device ID to this driver and re-probe devices
  * @drv: target pci driver
@@ -395,6 +397,32 @@ out:
 	return error;
 }
 
+#define STORAGE_PROBE_DELAY	(5*HZ)
+static void
+storage_probe_delay(struct device *dev) {
+	static long lastprobe;
+	long delta = lastprobe + STORAGE_PROBE_DELAY - jiffies;
+	if (lastprobe && delta > 0 && delta < STORAGE_PROBE_DELAY) {
+		dev_info(dev, "probe delay %ld ms\n", delta * 1000 / HZ);
+		while (delta > 0)
+			delta = schedule_timeout_interruptible(delta);
+	}
+	lastprobe = jiffies;
+}
+
+#define NETWORK_PROBE_DELAY	(5*HZ)
+static void
+network_probe_delay(struct device *dev) {
+	static long lastprobe;
+	long delta = lastprobe + NETWORK_PROBE_DELAY - jiffies;
+	if (lastprobe && delta > 0 && delta < NETWORK_PROBE_DELAY) {
+		dev_info(dev, "probe delay %ld ms\n", delta * 1000 / HZ);
+		while (delta > 0)
+			delta = schedule_timeout_interruptible(delta);
+	}
+	lastprobe = jiffies;
+}
+
 /**
  * __pci_device_probe - check if a driver wants to claim a specific PCI device
  * @drv: driver to call to check if it wants the PCI device
@@ -412,8 +440,13 @@ static int __pci_device_probe(struct pci_driver *drv, struct pci_dev *pci_dev)
 		error = -ENODEV;
 
 		id = pci_match_device(drv, pci_dev);
-		if (id)
+		if (id) {
+			if ((pci_dev->class>>16) == PCI_BASE_CLASS_STORAGE)
+				storage_probe_delay(&pci_dev->dev);
+			if ((pci_dev->class>>16) == PCI_BASE_CLASS_NETWORK && network_strict_sort)
+				network_probe_delay(&pci_dev->dev);
 			error = pci_call_probe(drv, pci_dev, id);
+		}
 	}
 	return error;
 }
@@ -1681,3 +1714,10 @@ static int __init pci_driver_init(void)
 	return 0;
 }
 postcore_initcall(pci_driver_init);
+
+static int parse_network_strict_sort(char *arg)
+{
+	network_strict_sort = 1;
+	return 0;
+}
+early_param("network-strict-sort", parse_network_strict_sort);
