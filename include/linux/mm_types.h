@@ -470,6 +470,11 @@ struct vm_area_struct {
 	struct mempolicy *vm_policy;	/* NUMA policy for the VMA */
 #endif
 	struct vm_userfaultfd_ctx vm_userfaultfd_ctx;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } __randomize_layout;
 
 struct kioctx_table;
@@ -656,6 +661,12 @@ struct mm_struct {
 		u32 pasid;
 #endif
 	} __randomize_layout;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
+	KABI_RESERVE(5);
 
 	/*
 	 * The mm_cpumask needs to be at the end of mm_struct, because it

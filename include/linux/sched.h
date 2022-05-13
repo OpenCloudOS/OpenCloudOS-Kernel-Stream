@@ -36,6 +36,8 @@
 #include <linux/kcsan.h>
 #include <asm/kmap_size.h>
 
+#include <linux/kabi.h>
+
 /* task_struct member predeclarations (sorted alphabetically): */
 struct audit_context;
 struct backing_dev_info;
@@ -491,6 +493,9 @@ struct sched_avg {
 	unsigned long			runnable_avg;
 	unsigned long			util_avg;
 	struct util_est			util_est;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 } ____cacheline_aligned;
 
 struct sched_statistics {
@@ -569,6 +574,11 @@ struct sched_entity {
 	 */
 	struct sched_avg		avg;
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 struct sched_rt_entity {
@@ -587,6 +597,8 @@ struct sched_rt_entity {
 	/* rq "owned" by this entity/group: */
 	struct rt_rq			*my_q;
 #endif
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 } __randomize_layout;
 
 struct sched_dl_entity {
@@ -660,6 +672,10 @@ struct sched_dl_entity {
 	 */
 	struct sched_dl_entity *pi_se;
 #endif
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 #ifdef CONFIG_UCLAMP_TASK

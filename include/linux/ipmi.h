@@ -70,6 +70,9 @@ struct ipmi_recv_msg {
 	 * the size or existence of this, since it may change.
 	 */
 	unsigned char   msg_data[IPMI_MAX_MSG_LENGTH];
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 /* Allocate and free the receive message. */
@@ -105,6 +108,9 @@ struct ipmi_user_hndl {
 	 * if it is not usable.
 	 */
 	void (*shutdown)(void *handler_data);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 /* Create a new user of the IPMI layer on the given interface number. */
