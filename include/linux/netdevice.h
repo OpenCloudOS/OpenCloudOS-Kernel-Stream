@@ -1597,7 +1597,10 @@ struct net_device_ops {
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);
 	KABI_RESERVE(4);
-
+	KABI_RESERVE(5);
+	KABI_RESERVE(6);
+	KABI_RESERVE(7);
+	KABI_RESERVE(8);
 };
 
 #define DEV_MIB_MAX	__DEV_MIB_MAX
@@ -2338,6 +2341,10 @@ struct net_device {
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);
 	KABI_RESERVE(4);
+	KABI_RESERVE(5);
+	KABI_RESERVE(6);
+	KABI_RESERVE(7);
+	KABI_RESERVE(8);
 };
 #define to_net_dev(d) container_of(d, struct net_device, dev)
 

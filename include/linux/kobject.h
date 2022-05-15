@@ -77,9 +77,6 @@ struct kobject {
 	unsigned int state_add_uevent_sent:1;
 	unsigned int state_remove_uevent_sent:1;
 	unsigned int uevent_suppress:1;
-
-	KABI_RESERVE(1);
-	KABI_RESERVE(2);
 };
 
 extern __printf(2, 3)
@@ -129,6 +126,7 @@ struct kobj_type {
 	void (*get_ownership)(struct kobject *kobj, kuid_t *uid, kgid_t *gid);
 
 	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct kobj_uevent_env {

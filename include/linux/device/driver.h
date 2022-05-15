@@ -20,6 +20,8 @@
 #include <linux/device/bus.h>
 #include <linux/module.h>
 
+#include <linux/kabi.h>
+
 /**
  * enum probe_type - device driver probe type to try
  *	Device drivers may opt in for special handling of their
@@ -119,6 +121,11 @@ struct device_driver {
 	void (*coredump) (struct device *dev);
 
 	struct driver_private *p;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 
