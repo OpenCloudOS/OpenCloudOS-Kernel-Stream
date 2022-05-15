@@ -26,8 +26,14 @@ struct cpuacct {
 	/* cpuusage holds pointer to a u64-type object on every CPU */
 	u64 __percpu	*cpuusage;
 	struct kernel_cpustat __percpu	*cpustat;
+
 	struct timespec64 uptime;
 	u64 idletime;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 static inline struct cpuacct *css_ca(struct cgroup_subsys_state *css)

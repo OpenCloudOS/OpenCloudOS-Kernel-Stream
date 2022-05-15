@@ -381,6 +381,9 @@ struct address_space_operations {
 	int (*swap_activate)(struct swap_info_struct *sis, struct file *file,
 				sector_t *span);
 	void (*swap_deactivate)(struct file *file);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 extern const struct address_space_operations empty_aops;
@@ -696,6 +699,9 @@ struct inode {
 #ifdef CONFIG_FS_VERITY
 	struct fsverity_info	*i_verity_info;
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 
 	void			*i_private; /* fs or device private pointer */
 } __randomize_layout;
@@ -1032,6 +1038,9 @@ struct file_lock;
 struct file_lock_operations {
 	void (*fl_copy_lock)(struct file_lock *, struct file_lock *);
 	void (*fl_release_private)(struct file_lock *);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct lock_manager_operations {
@@ -1043,6 +1052,9 @@ struct lock_manager_operations {
 	int (*lm_change)(struct file_lock *, int, struct list_head *);
 	void (*lm_setup)(struct file_lock *, void **);
 	bool (*lm_breaker_owns_lease)(struct file_lock *);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct lock_manager {
@@ -2001,6 +2013,11 @@ struct file_operations {
 				   struct file *file_out, loff_t pos_out,
 				   loff_t len, unsigned int remap_flags);
 	int (*fadvise)(struct file *, loff_t, loff_t, int);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } __randomize_layout;
 
 struct inode_operations {
@@ -2042,6 +2059,12 @@ struct inode_operations {
 	int (*fileattr_set)(struct user_namespace *mnt_userns,
 			    struct dentry *dentry, struct fileattr *fa);
 	int (*fileattr_get)(struct dentry *dentry, struct fileattr *fa);
+
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } ____cacheline_aligned;
 
 static inline ssize_t call_read_iter(struct file *file, struct kiocb *kio,
@@ -2416,6 +2439,9 @@ struct file_system_type {
 	struct lock_class_key i_mutex_key;
 	struct lock_class_key invalidate_lock_key;
 	struct lock_class_key i_mutex_dir_key;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 #define MODULE_ALIAS_FS(NAME) MODULE_ALIAS("fs-" NAME)

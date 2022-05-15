@@ -174,6 +174,11 @@ struct gendisk {
 	struct badblocks *bb;
 	struct lockdep_map lockdep_map;
 	u64 diskseq;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 static inline bool disk_live(struct gendisk *disk)

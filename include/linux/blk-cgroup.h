@@ -82,6 +82,11 @@ struct blkcg {
 	unsigned int			dkstats_on;
 	struct list_head		dkstats_list;
 	struct blkcg_dkstats		*dkstats_hint;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 struct blkg_iostat {

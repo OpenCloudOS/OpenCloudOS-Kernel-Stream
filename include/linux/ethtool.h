@@ -756,6 +756,15 @@ struct ethtool_ops {
 	int	(*set_module_power_mode)(struct net_device *dev,
 					 const struct ethtool_module_power_mode_params *params,
 					 struct netlink_ext_ack *extack);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
+	KABI_RESERVE(5);
+	KABI_RESERVE(6);
+	KABI_RESERVE(7);
+	KABI_RESERVE(8);
 };
 
 int ethtool_check_ops(const struct ethtool_ops *ops);

@@ -27,6 +27,11 @@ typedef struct cgroupfs_entry {
 	const struct file_operations *e_fops;
 	const struct dentry_operations *e_dops;
 	void *private;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } cgroupfs_entry_t;
 
 cgroupfs_entry_t *cgroupfs_alloc_private(const char *name,

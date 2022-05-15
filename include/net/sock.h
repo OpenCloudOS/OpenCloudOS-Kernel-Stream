@@ -69,6 +69,7 @@
 #include <linux/net_tstamp.h>
 #include <net/l3mdev.h>
 #include <uapi/linux/socket.h>
+#include <linux/kabi.h>
 
 /*
  * This structure really needs to be cleaned up.
@@ -542,6 +543,11 @@ struct sock {
 #endif
 	struct rcu_head		sk_rcu;
 	netns_tracker		ns_tracker;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 enum sk_pacing {
@@ -1291,6 +1297,11 @@ struct proto {
 	atomic_t		socks;
 #endif
 	int			(*diag_destroy)(struct sock *sk, int err);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } __randomize_layout;
 
 int proto_register(struct proto *prot, int alloc_slab);

@@ -294,6 +294,9 @@ struct header_ops {
 				const unsigned char *haddr);
 	bool	(*validate)(const char *ll_header, unsigned int len);
 	__be16	(*parse_protocol)(const struct sk_buff *skb);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 /* These flag bits are private to the generic network queueing
@@ -351,6 +354,12 @@ struct napi_struct {
 	struct hlist_node	napi_hash_node;
 	unsigned int		napi_id;
 	struct task_struct	*thread;
+
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 enum {
@@ -626,6 +635,10 @@ struct netdev_queue {
 #ifdef CONFIG_BQL
 	struct dql		dql;
 #endif
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } ____cacheline_aligned_in_smp;
 
 extern int sysctl_fb_tunnels_only_for_init_net;
@@ -751,6 +764,10 @@ struct netdev_rx_queue {
 #ifdef CONFIG_XDP_SOCKETS
 	struct xsk_buff_pool            *pool;
 #endif
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } ____cacheline_aligned_in_smp;
 
 /*
@@ -1003,6 +1020,10 @@ struct xfrmdev_ops {
 	bool	(*xdo_dev_offload_ok) (struct sk_buff *skb,
 				       struct xfrm_state *x);
 	void	(*xdo_dev_state_advance_esn) (struct xfrm_state *x);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
 };
 #endif
 
@@ -1571,6 +1592,12 @@ struct net_device_ops {
 	struct net_device *	(*ndo_get_peer_dev)(struct net_device *dev);
 	int                     (*ndo_fill_forward_path)(struct net_device_path_ctx *ctx,
                                                          struct net_device_path *path);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
+
 };
 
 #define DEV_MIB_MAX	__DEV_MIB_MAX
@@ -2305,6 +2332,12 @@ struct net_device {
 	netdevice_tracker	watchdog_dev_tracker;
 	netdevice_tracker	dev_registered_tracker;
 	struct rtnl_hw_stats64	*offload_xstats_l3;
+
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 #define to_net_dev(d) container_of(d, struct net_device, dev)
 
@@ -2574,6 +2607,11 @@ struct packet_type {
 	struct net		*af_packet_net;
 	void			*af_packet_priv;
 	struct list_head	list;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 struct offload_callbacks {

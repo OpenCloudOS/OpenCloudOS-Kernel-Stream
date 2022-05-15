@@ -317,6 +317,7 @@ struct dl_bw {
 	raw_spinlock_t		lock;
 	u64			bw;
 	u64			total_bw;
+
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
 };
@@ -874,6 +875,7 @@ struct root_domain {
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 extern void init_defrootdomain(void);
@@ -1815,6 +1817,9 @@ struct sched_group {
 	int			asym_prefer_cpu;	/* CPU of highest priority in group */
 	int			flags;
 
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+
 	/*
 	 * The CPUs this group covers.
 	 *
@@ -2197,6 +2202,9 @@ struct sched_class {
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	void (*task_change_group)(struct task_struct *p, int type);
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 static inline void put_prev_task(struct rq *rq, struct task_struct *prev)

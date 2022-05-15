@@ -187,6 +187,11 @@ struct cgroup_subsys_state {
 	 * fields of the containing structure.
 	 */
 	struct cgroup_subsys_state *parent;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 /*
@@ -485,6 +490,12 @@ struct cgroup {
 
 	/* Used to store internal freezer state */
 	struct cgroup_freezer_state freezer;
+
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 
 	/* ids of the ancestors at each level including self */
 	u64 ancestor_ids[];

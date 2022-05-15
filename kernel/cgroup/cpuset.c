@@ -185,6 +185,11 @@ struct cpuset {
 	/* for cpu load calc */
 	unsigned long calc_load_tasks;
 	unsigned long avenrun[3];
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 /*

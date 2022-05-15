@@ -85,6 +85,9 @@ struct blkcg_policy {
 	blkcg_pol_free_pd_fn		*pd_free_fn;
 	blkcg_pol_reset_pd_stats_fn	*pd_reset_stats_fn;
 	blkcg_pol_stat_pd_fn		*pd_stat_fn;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 extern struct blkcg blkcg_root;
