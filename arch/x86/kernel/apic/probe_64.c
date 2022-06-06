@@ -13,6 +13,22 @@
 
 #include "local.h"
 
+void __init apic_early_probe(void)
+{
+	struct apic **drv;
+
+	for (drv = __apicdrivers; drv < __apicdrivers_end; drv++) {
+		if ((*drv)->early_probe && (*drv)->early_probe()) {
+			if (apic != *drv) {
+				apic = *drv;
+				pr_info("Switched to APIC driver %s.\n",
+					apic->name);
+			}
+			break;
+		}
+	}
+}
+
 /*
  * Check the APIC IDs in bios_cpu_apicid and choose the APIC mode.
  */
