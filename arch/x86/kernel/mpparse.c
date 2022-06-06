@@ -202,8 +202,10 @@ static int __init smp_read_mpc(struct mpc_table *mpc, unsigned early)
 		return 0;
 
 	/* Initialize the lapic mapping */
-	if (!acpi_lapic)
+	if (!acpi_lapic) {
+		apic_early_probe();
 		register_lapic_address(mpc->lapic);
+	}
 
 	if (early)
 		return 1;
