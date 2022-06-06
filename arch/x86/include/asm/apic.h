@@ -307,6 +307,7 @@ struct apic {
 
 	/* Probe, setup and smpboot functions */
 	int	(*probe)(void);
+	int	(*early_probe)(void);
 	int	(*acpi_madt_oem_check)(char *oem_id, char *oem_table_id);
 	int	(*apic_id_valid)(u32 apicid);
 	int	(*apic_id_registered)(void);
@@ -495,6 +496,12 @@ extern void acpi_wake_cpu_handler_update(wakeup_cpu_handler handler);
 extern int default_apic_id_valid(u32 apicid);
 extern int default_acpi_madt_oem_check(char *, char *);
 extern void default_setup_apic_routing(void);
+#ifdef CONFIG_X86_64
+extern void apic_early_probe(void);
+#else
+static inline void apic_early_probe(void) { }
+#endif
+
 
 extern u32 apic_default_calc_apicid(unsigned int cpu);
 extern u32 apic_flat_calc_apicid(unsigned int cpu);

@@ -26,9 +26,14 @@ static DEFINE_PER_CPU(cpumask_var_t, ipi_mask);
 static DEFINE_PER_CPU_READ_MOSTLY(struct cluster_mask *, cluster_masks);
 static struct cluster_mask *cluster_hotplug_mask;
 
-static int x2apic_acpi_madt_oem_check(char *oem_id, char *oem_table_id)
+static int x2apic_early_probe(void)
 {
 	return x2apic_enabled();
+}
+
+static int x2apic_acpi_madt_oem_check(char *oem_id, char *oem_table_id)
+{
+	return x2apic_early_probe();
 }
 
 static void x2apic_send_IPI(int cpu, int vector)
@@ -197,6 +202,7 @@ static struct apic apic_x2apic_cluster __ro_after_init = {
 
 	.name				= "cluster x2apic",
 	.probe				= x2apic_cluster_probe,
+	.early_probe			= x2apic_early_probe,
 	.acpi_madt_oem_check		= x2apic_acpi_madt_oem_check,
 	.apic_id_valid			= x2apic_apic_id_valid,
 	.apic_id_registered		= x2apic_apic_id_registered,

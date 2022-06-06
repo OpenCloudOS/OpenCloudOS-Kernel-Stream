@@ -34,9 +34,14 @@ static bool x2apic_fadt_phys(void)
 	return false;
 }
 
-static int x2apic_acpi_madt_oem_check(char *oem_id, char *oem_table_id)
+static int x2apic_early_probe(void)
 {
 	return x2apic_enabled() && (x2apic_phys || x2apic_fadt_phys());
+}
+
+static int x2apic_acpi_madt_oem_check(char *oem_id, char *oem_table_id)
+{
+	return x2apic_early_probe();
 }
 
 static void x2apic_send_IPI(int cpu, int vector)
@@ -156,6 +161,7 @@ static struct apic apic_x2apic_phys __ro_after_init = {
 
 	.name				= "physical x2apic",
 	.probe				= x2apic_phys_probe,
+	.early_probe			= x2apic_early_probe,
 	.acpi_madt_oem_check		= x2apic_acpi_madt_oem_check,
 	.apic_id_valid			= x2apic_apic_id_valid,
 	.apic_id_registered		= x2apic_apic_id_registered,
