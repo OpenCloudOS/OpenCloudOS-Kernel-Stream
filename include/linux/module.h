@@ -361,6 +361,13 @@ struct klp_modinfo {
 };
 #endif
 
+struct kpatch_modinfo {
+	Elf_Ehdr hdr;
+	Elf_Shdr *sechdrs;
+	char *secstrings;
+	unsigned int symndx;
+};
+
 struct module {
 	enum module_state state;
 
@@ -516,6 +523,11 @@ struct module {
 	struct pi_entry **printk_index_start;
 #endif
 
+#if IS_ENABLED(CONFIG_KPATCH)
+	bool is_kpatch_mod;
+	struct kpatch_modinfo *kpatch_info;
+#endif
+
 #ifdef CONFIG_MODULE_UNLOAD
 	/* What modules depend on me? */
 	struct list_head source_list;
@@ -550,6 +562,8 @@ static inline unsigned long kallsyms_symbol_value(const Elf_Sym *sym)
 }
 #endif
 
+extern struct mutex module_mutex;
+
 /* FIXME: It'd be nice to isolate modules during init, too, so they
    aren't used before they (may) fail.  But presently too much code
    (IDE & SCSI) require entry into the module during init.*/
@@ -583,6 +597,29 @@ static inline bool within_module(unsigned long addr, const struct module *mod)
 {
 	return within_module_init(addr, mod) || within_module_core(addr, mod);
 }
+
+struct symsearch {
+	const struct kernel_symbol *start, *stop;
+	const s32 *crcs;
+	enum mod_license {
+		NOT_GPL_ONLY,
+		GPL_ONLY,
+	} license;
+};
+
+struct find_symbol_arg {
+	/* Input */
+	const char *name;
+	bool gplok;
+	bool warn;
+
+	/* Output */
+	struct module *owner;
+	const s32 *crc;
+	const struct kernel_symbol *sym;
+	enum mod_license license;
+};
+bool find_symbol(struct find_symbol_arg *fsa);
 
 /* Search for module by name: must be in a RCU-sched critical section. */
 struct module *find_module(const char *name);
@@ -673,6 +710,18 @@ static inline bool is_livepatch_module(struct module *mod)
 	return false;
 }
 #endif /* CONFIG_LIVEPATCH */
+
+#if IS_ENABLED(CONFIG_KPATCH)
+static inline bool is_kpatch_module(struct module *mod)
+{
+	return mod->is_kpatch_mod;
+}
+#else /* !CONFIG_KPATCH */
+static inline bool is_kpatch_module(struct module *mod)
+{
+	return false;
+}
+#endif /* CONFIG_KPATCH */
 
 bool is_module_sig_enforced(void);
 void set_module_sig_enforced(void);
@@ -830,6 +879,14 @@ extern int module_sysfs_initialized;
 /* BELOW HERE ALL THESE ARE OBSOLETE AND WILL VANISH */
 
 #define __MODULE_STRING(x) __stringify(x)
+
+#ifdef CONFIG_STRICT_MODULE_RWX
+extern void module_enable_ro(const struct module *mod, bool after_init);
+extern void module_disable_ro(const struct module *mod);
+#else
+static inline void module_enable_ro(const struct module *mod, bool after_init) { }
+static inline void module_disable_ro(const struct module *mod) { }
+#endif
 
 #ifdef CONFIG_GENERIC_BUG
 void module_bug_finalize(const Elf_Ehdr *, const Elf_Shdr *,

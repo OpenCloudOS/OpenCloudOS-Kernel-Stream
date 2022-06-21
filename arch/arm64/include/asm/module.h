@@ -26,7 +26,8 @@ struct mod_arch_specific {
 u64 module_emit_plt_entry(struct module *mod, Elf64_Shdr *sechdrs,
 			  void *loc, const Elf64_Rela *rela,
 			  Elf64_Sym *sym);
-
+u64 module_emit_plt_entry_kpatch(struct module *mod, Elf64_Shdr *sechdrs,
+			  void *loc, unsigned long val);
 u64 module_emit_veneer_for_adrp(struct module *mod, Elf64_Shdr *sechdrs,
 				void *loc, u64 val);
 

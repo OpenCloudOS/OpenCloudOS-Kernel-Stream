@@ -8,6 +8,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/sort.h>
+#include <linux/kpatch.h>
 
 static struct plt_entry __get_adrp_add_pair(u64 dst, u64 pc,
 					    enum aarch64_insn_register reg)
@@ -79,6 +80,34 @@ u64 module_emit_plt_entry(struct module *mod, Elf64_Shdr *sechdrs,
 	int i = pltsec->plt_num_entries;
 	int j = i - 1;
 	u64 val = sym->st_value + rela->r_addend;
+
+	if (is_forbidden_offset_for_adrp(&plt[i].adrp))
+		i++;
+
+	plt[i] = get_plt_entry(val, &plt[i]);
+
+	/*
+	 * Check if the entry we just created is a duplicate. Given that the
+	 * relocations are sorted, this will be the last entry we allocated.
+	 * (if one exists).
+	 */
+	if (j >= 0 && plt_entries_equal(plt + i, plt + j))
+		return (u64)&plt[j];
+
+	pltsec->plt_num_entries += i - j;
+	if (WARN_ON(pltsec->plt_num_entries > pltsec->plt_max_entries))
+		return 0;
+
+	return (u64)&plt[i];
+}
+u64 module_emit_plt_entry_kpatch(struct module *mod, Elf64_Shdr *sechdrs,
+				void *loc, unsigned long val)
+{
+	struct mod_plt_sec *pltsec = !in_init(mod, loc) ? &mod->arch.core :
+							  &mod->arch.init;
+	struct plt_entry *plt = (struct plt_entry *)sechdrs[pltsec->plt_shndx].sh_addr;
+	int i = pltsec->plt_num_entries;
+	int j = i - 1;
 
 	if (is_forbidden_offset_for_adrp(&plt[i].adrp))
 		i++;
@@ -292,6 +321,7 @@ int module_frob_arch_sections(Elf_Ehdr *ehdr, Elf_Shdr *sechdrs,
 {
 	unsigned long core_plts = 0;
 	unsigned long init_plts = 0;
+	unsigned long core_extra_plts = 0;
 	Elf64_Sym *syms = NULL;
 	Elf_Shdr *pltsec, *tramp = NULL;
 	int i;
@@ -326,6 +356,11 @@ int module_frob_arch_sections(Elf_Ehdr *ehdr, Elf_Shdr *sechdrs,
 		int nents, numrels = sechdrs[i].sh_size / sizeof(Elf64_Rela);
 		Elf64_Shdr *dstsec = sechdrs + sechdrs[i].sh_info;
 
+		if (!strcmp(secstrings + sechdrs[i].sh_name, ".kpatch.dynrelas")) {
+			core_extra_plts += sechdrs[i].sh_size / sizeof(struct kpatch_patch_dynrela);
+			continue;
+		}
+
 		if (sechdrs[i].sh_type != SHT_RELA)
 			continue;
 
@@ -350,6 +385,7 @@ int module_frob_arch_sections(Elf_Ehdr *ehdr, Elf_Shdr *sechdrs,
 						sechdrs[i].sh_info, dstsec);
 	}
 
+	core_plts += core_extra_plts;
 	pltsec = sechdrs + mod->arch.core.plt_shndx;
 	pltsec->sh_type = SHT_NOBITS;
 	pltsec->sh_flags = SHF_EXECINSTR | SHF_ALLOC;

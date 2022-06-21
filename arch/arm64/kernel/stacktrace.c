@@ -210,3 +210,78 @@ noinline notrace void arch_stack_walk(stack_trace_consume_fn consume_entry,
 
 	walk_stackframe(task, &frame, consume_entry, cookie);
 }
+
+#ifdef CONFIG_STACKTRACE
+struct stack_trace_data {
+	struct stack_trace_kpatch *trace;
+	unsigned int no_sched_functions;
+	unsigned int skip;
+};
+
+static void notrace walk_stackframe_stacktrace(struct task_struct *tsk, struct stackframe *frame,
+		int (*fn)(struct stackframe *, void *), void *data)
+{
+	while (1) {
+		int ret;
+
+		if (fn(frame, data))
+			break;
+		ret = unwind_frame(tsk, frame);
+		if (ret < 0)
+			break;
+	}
+}
+
+static int save_trace(struct stackframe *frame, void *d)
+{
+	struct stack_trace_data *data = d;
+	struct stack_trace_kpatch *trace = data->trace;
+	unsigned long addr = frame->pc;
+
+	if (data->no_sched_functions && in_sched_functions(addr))
+		return 0;
+	if (data->skip) {
+		data->skip--;
+		return 0;
+	}
+
+	trace->entries[trace->nr_entries++] = addr;
+
+	return trace->nr_entries >= trace->max_entries;
+}
+
+static noinline void __save_stack_trace(struct task_struct *tsk,
+	struct stack_trace_kpatch *trace, unsigned int nosched)
+{
+	struct stack_trace_data data;
+	struct stackframe frame;
+
+	if (!try_get_task_stack(tsk))
+		return;
+
+	data.trace = trace;
+	data.skip = trace->skip;
+	data.no_sched_functions = nosched;
+
+	if (tsk != current) {
+		start_backtrace(&frame, thread_saved_fp(tsk),
+				thread_saved_pc(tsk));
+	} else {
+		/* We don't want this function nor the caller */
+		data.skip += 2;
+		start_backtrace(&frame,
+				(unsigned long)__builtin_frame_address(0),
+				(unsigned long)__save_stack_trace);
+	}
+
+	walk_stackframe_stacktrace(tsk, &frame, save_trace, &data);
+
+	put_task_stack(tsk);
+}
+
+void save_stack_trace_tsk_kpatch(struct task_struct *tsk, struct stack_trace_kpatch *trace)
+{
+	__save_stack_trace(tsk, trace, 1);
+}
+EXPORT_SYMBOL_GPL(save_stack_trace_tsk_kpatch);
+#endif

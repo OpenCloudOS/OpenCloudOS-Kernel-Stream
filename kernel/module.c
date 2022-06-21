@@ -88,7 +88,8 @@
  * 3) module_addr_min/module_addr_max.
  * (delete and add uses RCU list operations).
  */
-static DEFINE_MUTEX(module_mutex);
+DEFINE_MUTEX(module_mutex);
+EXPORT_SYMBOL_GPL(module_mutex);
 static LIST_HEAD(modules);
 
 /* Work queue for freeing init sections in success case */
@@ -422,28 +423,6 @@ extern const s32 __start___kcrctab_gpl[];
 #define symversion(base, idx) ((base != NULL) ? ((base) + (idx)) : NULL)
 #endif
 
-struct symsearch {
-	const struct kernel_symbol *start, *stop;
-	const s32 *crcs;
-	enum mod_license {
-		NOT_GPL_ONLY,
-		GPL_ONLY,
-	} license;
-};
-
-struct find_symbol_arg {
-	/* Input */
-	const char *name;
-	bool gplok;
-	bool warn;
-
-	/* Output */
-	struct module *owner;
-	const s32 *crc;
-	const struct kernel_symbol *sym;
-	enum mod_license license;
-};
-
 static bool check_exported_symbol(const struct symsearch *syms,
 				  struct module *owner,
 				  unsigned int symnum, void *data)
@@ -514,7 +493,7 @@ static bool find_exported_symbol_in_section(const struct symsearch *syms,
  * Find an exported symbol and return it, along with, (optional) crc and
  * (optional) module which owns it.  Needs preempt disabled or module_mutex.
  */
-static bool find_symbol(struct find_symbol_arg *fsa)
+bool find_symbol(struct find_symbol_arg *fsa)
 {
 	static const struct symsearch arr[] = {
 		{ __start___ksymtab, __stop___ksymtab, __start___kcrctab,
@@ -553,6 +532,7 @@ static bool find_symbol(struct find_symbol_arg *fsa)
 	pr_debug("Failed to find symbol %s\n", fsa->name);
 	return false;
 }
+EXPORT_SYMBOL_GPL(find_symbol);
 
 /*
  * Search for module by name: must hold module_mutex (or preempt disabled
@@ -579,6 +559,7 @@ struct module *find_module(const char *name)
 {
 	return find_module_all(name, strlen(name), false);
 }
+EXPORT_SYMBOL_GPL(find_module);
 
 #ifdef CONFIG_SMP
 
@@ -2005,7 +1986,21 @@ static void frob_writable_data(const struct module_layout *layout,
 		   (layout->size - layout->ro_after_init_size) >> PAGE_SHIFT);
 }
 
-static void module_enable_ro(const struct module *mod, bool after_init)
+/* livepatching wants to disable read-only so it can frob module. */
+void module_disable_ro(const struct module *mod)
+{
+	if (!rodata_enabled)
+		return;
+
+	frob_text(&mod->core_layout, set_memory_rw);
+	frob_rodata(&mod->core_layout, set_memory_rw);
+	frob_ro_after_init(&mod->core_layout, set_memory_rw);
+	frob_text(&mod->init_layout, set_memory_rw);
+	frob_rodata(&mod->init_layout, set_memory_rw);
+}
+EXPORT_SYMBOL_GPL(module_disable_ro);
+
+void module_enable_ro(const struct module *mod, bool after_init)
 {
 	if (!rodata_enabled)
 		return;
@@ -2021,6 +2016,7 @@ static void module_enable_ro(const struct module *mod, bool after_init)
 	if (after_init)
 		frob_ro_after_init(&mod->core_layout, set_memory_ro);
 }
+EXPORT_SYMBOL_GPL(module_enable_ro);
 
 static void module_enable_nx(const struct module *mod)
 {
@@ -2133,6 +2129,81 @@ static void free_module_elf(struct module *mod)
 }
 #endif /* CONFIG_LIVEPATCH */
 
+#if IS_ENABLED(CONFIG_KPATCH)
+/*
+ * Persist Elf information about a module. Copy the Elf header,
+ * section header table, section string table, and symtab section
+ * index from info to mod->kpatch_info.
+ */
+static int copy_module_elf_kpatch(struct module *mod, struct load_info *info)
+{
+	unsigned int size, symndx;
+	int ret;
+
+	size = sizeof(*mod->kpatch_info);
+	mod->kpatch_info = kmalloc(size, GFP_KERNEL);
+	if (mod->kpatch_info == NULL)
+		return -ENOMEM;
+
+	/* Elf header */
+	size = sizeof(mod->kpatch_info->hdr);
+	memcpy(&mod->kpatch_info->hdr, info->hdr, size);
+
+	/* Elf section header table */
+	size = sizeof(*info->sechdrs) * info->hdr->e_shnum;
+	mod->kpatch_info->sechdrs = kmemdup(info->sechdrs, size, GFP_KERNEL);
+	if (mod->kpatch_info->sechdrs == NULL) {
+		ret = -ENOMEM;
+		goto free_info;
+	}
+
+	/* Elf section name string table */
+	size = info->sechdrs[info->hdr->e_shstrndx].sh_size;
+	mod->kpatch_info->secstrings = kmemdup(info->secstrings, size, GFP_KERNEL);
+	if (mod->kpatch_info->secstrings == NULL) {
+		ret = -ENOMEM;
+		goto free_sechdrs;
+	}
+
+	/* Elf symbol section index */
+	symndx = info->index.sym;
+	mod->kpatch_info->symndx = symndx;
+
+	/*
+	 * For livepatch modules, core_kallsyms.symtab is a complete
+	 * copy of the original symbol table. Adjust sh_addr to point
+	 * to core_kallsyms.symtab since the copy of the symtab in module
+	 * init memory is freed at the end of do_init_module().
+	 */
+	mod->kpatch_info->sechdrs[symndx].sh_addr = \
+		(unsigned long) mod->core_kallsyms.symtab;
+
+	return 0;
+
+free_sechdrs:
+	kfree(mod->kpatch_info->sechdrs);
+free_info:
+	kfree(mod->kpatch_info);
+	return ret;
+}
+
+static void free_module_elf_kpatch(struct module *mod)
+{
+	kfree(mod->kpatch_info->sechdrs);
+	kfree(mod->kpatch_info->secstrings);
+	kfree(mod->kpatch_info);
+}
+#else /* !CONFIG_KPATCH */
+static int copy_module_elf_kpatch(struct module *mod, struct load_info *info)
+{
+	return 0;
+}
+
+static void free_module_elf_kpatch(struct module *mod)
+{
+}
+#endif /* CONFIG_KPATCH */
+
 void __weak module_memfree(void *module_region)
 {
 	/*
@@ -2182,6 +2253,9 @@ static void free_module(struct module *mod)
 
 	if (is_livepatch_module(mod))
 		free_module_elf(mod);
+
+	if (is_kpatch_module(mod))
+		free_module_elf_kpatch(mod);
 
 	/* Now we can delete it from the lists */
 	mutex_lock(&module_mutex);
@@ -3136,6 +3210,27 @@ static int check_modinfo_livepatch(struct module *mod, struct load_info *info)
 }
 #endif /* CONFIG_LIVEPATCH */
 
+#if IS_ENABLED(CONFIG_KPATCH)
+static int check_modinfo_kpatch(struct module *mod, struct load_info *info)
+{
+	if (get_modinfo(info, "kpatch"))
+		mod->is_kpatch_mod = true;
+
+	return 0;
+}
+#else /* !CONFIG_KPATCH */
+static int check_modinfo_kpatch(struct module *mod, struct load_info *info)
+{
+	if (get_modinfo(info, "kpatch")) {
+		pr_err("%s: module is marked as kpatch module, but kpatch support is disabled",
+			mod->name);
+		return -ENOEXEC;
+	}
+
+	return 0;
+}
+#endif /* CONFIG_KPATCH */
+
 static void check_modinfo_retpoline(struct module *mod, struct load_info *info)
 {
 	if (retpoline_module_ok(get_modinfo(info, "retpoline")))
@@ -3306,6 +3401,10 @@ static int check_modinfo(struct module *mod, struct load_info *info, int flags)
 	}
 
 	err = check_modinfo_livepatch(mod, info);
+	if (err)
+		return err;
+
+	err = check_modinfo_kpatch(mod, info);
 	if (err)
 		return err;
 
@@ -4116,6 +4215,12 @@ static int load_module(struct load_info *info, const char __user *uargs,
 			goto sysfs_cleanup;
 	}
 
+	if (is_kpatch_module(mod)) {
+		err = copy_module_elf_kpatch(mod, info);
+		if (err < 0)
+		goto livepatch_cleanup;
+	}
+
 	/* Get rid of temporary copy. */
 	free_copy(info, flags);
 
@@ -4123,6 +4228,9 @@ static int load_module(struct load_info *info, const char __user *uargs,
 	trace_module_load(mod);
 
 	return do_init_module(mod);
+ livepatch_cleanup:
+	if (is_livepatch_module(mod))
+		free_module_elf(mod);
 
  sysfs_cleanup:
 	mod_sysfs_teardown(mod);
@@ -4475,7 +4583,6 @@ unsigned long module_kallsyms_lookup_name(const char *name)
 	return ret;
 }
 
-#ifdef CONFIG_LIVEPATCH
 int module_kallsyms_on_each_symbol(int (*fn)(void *, const char *,
 					     struct module *, unsigned long),
 				   void *data)
@@ -4509,7 +4616,7 @@ out:
 	mutex_unlock(&module_mutex);
 	return ret;
 }
-#endif /* CONFIG_LIVEPATCH */
+EXPORT_SYMBOL_GPL(module_kallsyms_on_each_symbol);
 #endif /* CONFIG_KALLSYMS */
 
 static void cfi_init(struct module *mod)
