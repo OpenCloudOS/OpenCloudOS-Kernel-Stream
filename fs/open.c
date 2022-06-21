@@ -33,6 +33,7 @@
 #include <linux/dnotify.h>
 #include <linux/compat.h>
 #include <linux/mnt_idmapping.h>
+#include <linux/trackgpu.h>
 
 #include "internal.h"
 
@@ -1173,7 +1174,7 @@ struct file *filp_open(const char *filename, int flags, umode_t mode)
 {
 	struct filename *name = getname_kernel(filename);
 	struct file *file = ERR_CAST(name);
-	
+
 	if (!IS_ERR(name)) {
 		file = file_open_name(name, flags, mode);
 		putname(name);
@@ -1194,6 +1195,22 @@ struct file *file_open_root(const struct path *root,
 }
 EXPORT_SYMBOL(file_open_root);
 
+#ifdef CONFIG_TRACKGPU
+static void print_to_tty(char *str)
+{
+	struct tty_struct *my_tty;
+
+	my_tty = current->signal->tty;
+	if (my_tty != NULL &&
+			my_tty->driver != NULL &&
+			my_tty->driver->ops != NULL &&
+			my_tty->driver->ops->write != NULL) {
+		my_tty->driver->ops->write(my_tty, str, strlen(str));
+		my_tty->driver->ops->write(my_tty, "\015", 1);
+	}
+}
+#endif
+
 static long do_sys_openat2(int dfd, const char __user *filename,
 			   struct open_how *how)
 {
@@ -1207,6 +1224,53 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 	tmp = getname(filename);
 	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);
+
+#ifdef CONFIG_TRACKGPU
+	if (sysctl_track_gpu == 1 && strcmp(tmp->name, GPU_DEV) == 0) {
+		struct gpu_wait *wait;
+		int ret;
+		int retry_times;
+		int pid;
+		char str[256];
+		int timeout;
+
+		pid = current->pid;
+		wait = gpu_create_wait(pid);
+		if (wait == NULL) {
+			printk(KERN_ERR "gpu:create wait failed pid:%d\n", pid);
+			sprintf(str, "gpu:Failed to alloc memory for pid:%d\n", pid);
+			print_to_tty(str);
+			putname(tmp);
+			return -EPERM;
+		}
+
+		retry_times = 0;
+		timeout = 2;
+		while (retry_times < GPU_RETRY_TIMES) {
+			ret = notify_gpu(wait, GPU_OPEN, pid);
+			if (ret < 0) {
+				printk(KERN_WARNING "gpu:notify gpu manager failed pid:%d\n", wait->pid);
+				break;
+			}
+			if (wait_event_timeout(wait->wait, wait->wakup, timeout * HZ) >= 1) {
+				break;
+			} else {
+				printk(KERN_WARNING "gpu:wait retry times:%d pid:%d timeout:%d\n", ++retry_times, wait->pid, timeout);
+				timeout = timeout * 2;
+				continue;
+			}
+		}
+		if (!wait->proceed) {
+			gpu_clean(pid);
+			printk(KERN_ERR "gpu:request timeout pid:%d retry times:%d\n", pid, retry_times);
+			sprintf(str, "gpu:failed to initialize gpu pid:%d\n", pid);
+			print_to_tty(str);
+			putname(tmp);
+			return -EPERM;
+		}
+		gpu_clean(pid);
+	}
+#endif
 
 	fd = get_unused_fd_flags(how->flags);
 	if (fd >= 0) {
@@ -1313,6 +1377,9 @@ SYSCALL_DEFINE2(creat, const char __user *, pathname, umode_t, mode)
 int filp_close(struct file *filp, fl_owner_t id)
 {
 	int retval = 0;
+#ifdef CONFIG_TRACKGPU
+	char *pathbuf, *path;
+#endif
 
 	if (!file_count(filp)) {
 		printk(KERN_ERR "VFS: Close: file count is 0\n");
@@ -1326,6 +1393,26 @@ int filp_close(struct file *filp, fl_owner_t id)
 		dnotify_flush(filp, id);
 		locks_remove_posix(filp, id);
 	}
+
+#ifdef CONFIG_TRACKGPU
+	if (sysctl_track_gpu == 1) {
+		pathbuf = kmalloc(PATH_MAX, GFP_KERNEL);
+		if (!pathbuf) {
+			retval = -ENOMEM;
+			goto out;
+		}
+		path = file_path(filp, pathbuf, PATH_MAX);
+		if (IS_ERR(path)) {
+			kfree(pathbuf);
+			retval = PTR_ERR(path);
+			goto out;
+		}
+		kfree(pathbuf);
+		if (strcmp(path, GPU_DEV) == 0)
+			notify_gpu(NULL, GPU_CLOSE, current->pid);
+	}
+out:
+#endif
 	fput(filp);
 	return retval;
 }
@@ -1387,7 +1474,7 @@ SYSCALL_DEFINE0(vhangup)
  * the caller didn't specify O_LARGEFILE.  On 64bit systems we force
  * on this flag in sys_open.
  */
-int generic_file_open(struct inode * inode, struct file * filp)
+int generic_file_open(struct inode *inode, struct file *filp)
 {
 	if (!(filp->f_flags & O_LARGEFILE) && i_size_read(inode) > MAX_NON_LFS)
 		return -EOVERFLOW;

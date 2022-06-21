@@ -9,3 +9,10 @@ config NETATOP
 	depends on NETFILTER
 	help
 		netatop module from TKernel
+
+config TRACKGPU
+	bool 'trackgpu support'
+	default n
+	depends on NETFILTER
+	help
+		trackgpu module from TKernel

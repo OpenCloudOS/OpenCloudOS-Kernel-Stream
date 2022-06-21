@@ -68,6 +68,7 @@
 #include <linux/latencytop.h>
 #include <linux/pid.h>
 #include <linux/delayacct.h>
+#include <linux/trackgpu.h>
 
 #include "../lib/kstrtox.h"
 
@@ -2935,6 +2936,17 @@ static struct ctl_table vm_table[] = {
 		.maxlen		= sizeof(sysctl_unprivileged_userfaultfd),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+#endif
+#ifdef CONFIG_TRACKGPU
+	{
+		.procname       = "track_gpu",
+		.data           = &sysctl_track_gpu,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
 	},
