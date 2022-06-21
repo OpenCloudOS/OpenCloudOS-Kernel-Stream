@@ -429,7 +429,7 @@ void tcp_init_sock(struct sock *sk)
 	 * algorithms that we must have the following bandaid to talk
 	 * efficiently to them.  -DaveM
 	 */
-	tcp_snd_cwnd_set(tp, min_t(__u32, TCP_INIT_CWND, sysctl_tcp_init_cwnd));
+	tcp_snd_cwnd_set(tp, sysctl_tcp_init_cwnd);
 
 	/* There's a bubble in the pipe until at least the first ACK. */
 	tp->app_limited = ~0U;
@@ -4637,7 +4637,7 @@ void __init tcp_init(void)
 		alloc_large_system_hash("TCP established",
 					sizeof(struct inet_ehash_bucket),
 					thash_entries,
-					(totalram_pages >= 128 * 1024) ?
+					((unsigned long)totalram_pages >= 128 * 1024) ?
 					13 : 15,
 					0,
 					NULL,
