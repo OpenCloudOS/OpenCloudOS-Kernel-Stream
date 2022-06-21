@@ -569,7 +569,6 @@ BuildConfig() {
 	sed -i -e "s/^CONFIG_MODULE_SIG_ALL=.*/# CONFIG_MODULE_SIG_ALL is not set/" .config
 	sed -i -e "s/^CONFIG_MODULE_SIG_FORCE=.*/# CONFIG_MODULE_SIG_FORCE is not set/" .config
 	sed -i -e "s/^CONFIG_MODULE_SIG=.*/# CONFIG_MODULE_SIG is not set/" .config
-	sed -i -e "/^CONFIG_MODULE_SIG_.*/d" .config
 	%endif
 
 	popd
