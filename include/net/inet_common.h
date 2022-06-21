@@ -4,7 +4,7 @@
 
 #include <linux/indirect_call_wrapper.h>
 
-extern const struct proto_ops inet_stream_ops;
+extern struct proto_ops inet_stream_ops;
 extern const struct proto_ops inet_dgram_ops;
 
 /*
