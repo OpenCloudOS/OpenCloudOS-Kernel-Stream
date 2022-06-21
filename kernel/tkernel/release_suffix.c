@@ -43,12 +43,12 @@ static ssize_t release_suffix_proc_write(struct file *file, const char __user *u
 
 }
 
-static const struct file_operations release_suffix_proc_fops = {
-	.open		= release_suffix_proc_open,
-	.read		= seq_read,
-	.write		= release_suffix_proc_write,
-	.llseek		= seq_lseek,
-	.release	= single_release,
+static const struct proc_ops release_suffix_proc_fops = {
+	.proc_open		= release_suffix_proc_open,
+	.proc_read		= seq_read,
+	.proc_write		= release_suffix_proc_write,
+	.proc_lseek		= seq_lseek,
+	.proc_release	= single_release,
 };
 
 static int __init proc_release_suffix_init(void)
