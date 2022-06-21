@@ -815,23 +815,29 @@ InstKernelDevel() {
 	mkdir -p arch/$Arch
 	cp -a $_KernSrc/arch/$Arch/include arch/$Arch/
 	cp -a $_KernBuild/arch/$Arch/include arch/$Arch/
+
 	if [ -d $_KernBuild/arch/$Arch/scripts ]; then
 		cp -a $_KernBuild/arch/$Arch/scripts arch/$Arch/ || :
-	fi
-	if [ -f $_KernBuild/arch/$Arch/*lds ]; then
-		cp -a $_KernBuild/arch/$Arch/*lds arch/$Arch/ || :
-	fi
-	if [ -f $_KernBuild/arch/$Arch/kernel/module.lds ]; then
-		mkdir -p arch/$Arch/kernel/
-		cp -a $_KernBuild/arch/$Arch/kernel/module.lds arch/$Arch/kernel/
 	fi
 
 	# Kernel module build dependency
 	if [ -f $_KernBuild/tools/objtool/objtool ]; then
 		cp -a $_KernBuild/tools/objtool/objtool tools/objtool/ || :
 	fi
+
 	if [ -f $_KernBuild/tools/objtool/fixdep ]; then
 		cp -a $_KernBuild/tools/objtool/fixdep tools/objtool/ || :
+	fi
+
+	cp -a $_KernSrc/arch/$Arch/*lds arch/$Arch/ &>/dev/null || :
+	cp -a $_KernBuild/arch/$Arch/*lds arch/$Arch/ &>/dev/null || :
+
+	mkdir -p arch/$Arch/kernel
+	if [ -f $_KernSrc/arch/$Arch/kernel/module.lds ]; then
+		cp -a $_KernSrc/arch/$Arch/kernel/module.lds arch/$Arch/kernel/
+	fi
+	if [ -f $_KernBuild/arch/$Arch/kernel/module.lds ]; then
+		cp -a $_KernBuild/arch/$Arch/kernel/module.lds arch/$Arch/kernel/
 	fi
 
 	# Symlink include/asm-$Arch for better compatibility with some old system
