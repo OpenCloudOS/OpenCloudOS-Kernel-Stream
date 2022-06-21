@@ -4731,6 +4731,8 @@ static void tcp_ofo_queue(struct sock *sk)
 
 		if (unlikely(!after(TCP_SKB_CB(skb)->end_seq, tp->rcv_nxt))) {
 			tcp_drop(sk, skb);
+			NET_INC_DROPSTATS(sock_net(sk),
+					  LINUX_MIB_TCPOFODUPDROP);
 			continue;
 		}
 
@@ -5010,6 +5012,7 @@ static void tcp_data_queue(struct sock *sk, struct sk_buff *skb)
 	}
 
 	if (TCP_SKB_CB(skb)->seq == TCP_SKB_CB(skb)->end_seq) {
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPDQNODATADROP);
 		__kfree_skb(skb);
 		return;
 	}
@@ -5077,6 +5080,7 @@ queue_and_out:
 		tcp_dsack_set(sk, TCP_SKB_CB(skb)->seq, TCP_SKB_CB(skb)->end_seq);
 
 out_of_window:
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPOOWDROP);
 		tcp_enter_quickack_mode(sk, TCP_MAX_QUICKACKS);
 		inet_csk_schedule_ack(sk);
 drop:
@@ -5626,6 +5630,8 @@ static void tcp_check_urg(struct sock *sk, const struct tcphdr *th)
 		if (skb && !before(tp->copied_seq, TCP_SKB_CB(skb)->end_seq)) {
 			__skb_unlink(skb, &sk->sk_receive_queue);
 			__kfree_skb(skb);
+			NET_INC_DROPSTATS(sock_net(sk),
+					  LINUX_MIB_TCPURGDROP);
 		}
 	}
 
@@ -5721,6 +5727,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 		} else if (tcp_reset_check(sk, skb)) {
 			goto reset;
 		}
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPCHECKSEQDROP);
 		goto discard;
 	}
 
@@ -5765,6 +5772,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 		    sk->sk_state == TCP_ESTABLISHED)
 			tcp_fastopen_active_disable(sk);
 		tcp_send_challenge_ack(sk);
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPCHECKRSTDROP);
 		goto discard;
 	}
 
@@ -5979,8 +5987,10 @@ slow_path:
 		return;
 
 step5:
-	if (tcp_ack(sk, skb, FLAG_SLOWPATH | FLAG_UPDATE_TS_RECENT) < 0)
+	if (tcp_ack(sk, skb, FLAG_SLOWPATH | FLAG_UPDATE_TS_RECENT) < 0) {
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPINVALIDACKDROP);
 		goto discard;
+	}
 
 	tcp_rcv_rtt_measure_ts(sk, skb);
 
@@ -6211,8 +6221,11 @@ static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 		 *    See note below!
 		 *                                        --ANK(990513)
 		 */
-		if (!th->syn)
+		if (!th->syn) {
+			NET_INC_DROPSTATS(sock_net(sk),
+					LINUX_MIB_TCPNOSYNDROP);
 			goto discard_and_undo;
+		}
 
 		/* rfc793:
 		 *   "If the SYN bit is on ...
@@ -6293,6 +6306,8 @@ static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 
 discard:
 			tcp_drop(sk, skb);
+			NET_INC_DROPSTATS(sock_net(sk),
+					  LINUX_MIB_TCPRCVSTATEPROCDROP);
 			return 0;
 		} else {
 			tcp_send_ack(sk);
@@ -6309,13 +6324,16 @@ discard:
 		 *      Otherwise (no ACK) drop the segment and return."
 		 */
 
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPRSTDROP);
 		goto discard_and_undo;
 	}
 
 	/* PAWS check. */
 	if (tp->rx_opt.ts_recent_stamp && tp->rx_opt.saw_tstamp &&
-	    tcp_paws_reject(&tp->rx_opt, 0))
+	    tcp_paws_reject(&tp->rx_opt, 0)) {
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPPAWSDROP);
 		goto discard_and_undo;
+	}
 
 	if (th->syn) {
 		/* We see SYN without ACK. It is attempt of
@@ -6489,8 +6507,10 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 			goto discard;
 	}
 
-	if (!th->ack && !th->rst && !th->syn)
+	if (!th->ack && !th->rst && !th->syn) {
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPNOACKDROP);
 		goto discard;
+	}
 
 	if (!tcp_validate_incoming(sk, skb, th, 0))
 		return 0;
