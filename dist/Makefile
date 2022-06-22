@@ -139,13 +139,14 @@ dist-config: dist-configs
 	cp $(RPM_SOURCEDIR)/$(CONFIG).$(BUILD_ARCH).config $(TOPDIR)/.config
 	@printf "\033[0;32mDefault kernel config copied as $(TOPDIR)/.config\033[0m\n"
 
-# TODO: Remove always-rebuild - currently these targets depend on git worktree or variables,
+# TODO: Build from a unclean tree is not working yet
 # which can't be detected by make.
-.PHONY: always-rebuild
-$(TESTPATCH): always-rebuild
-	@git diff --no-renames HEAD ":(exclude)$(DISTDIR)" > $(TESTPATCH)
-	@[ -s "$(TESTPATCH)" ] && echo "Building from a unclean tree" || :
+# $(TESTPATCH): always-rebuild
+# 	@git diff --no-renames HEAD -- ":(exclude)$(DISTDIR)" > $(TESTPATCH)
+# 	@[ -s "$(TESTPATCH)" ] && echo "Building from a unclean tree" || :
 
+# TODO: Remove always-rebuild - currently these targets depend on git worktree or variables,
+.PHONY: always-rebuild
 $(SPECFILE): always-rebuild
 	@echo "Generating kernel RPM spec: $(SPECFILE)"
 	@$(DISTDIR)/scripts/gen-spec.sh \
@@ -158,7 +159,7 @@ $(SPECFILE): always-rebuild
 dist-specfile: $(SPECFILE) $(TOPDIR)/.config
 	@echo "$(SPECFILE)"
 
-dist-sources: dist-configs $(TARFILE) $(DISTSOURCES) $(DISTKABIS) $(SPECFILE) $(TESTPATCH)
+dist-sources: dist-configs $(TARFILE) $(DISTSOURCES) $(DISTKABIS) $(SPECFILE)
 	@cp $(DISTSOURCES) $(DISTKABIS) $(RPM_SOURCEDIR)
 
 define DO_RPMBUILD
