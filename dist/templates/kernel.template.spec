@@ -1011,17 +1011,7 @@ done
 %pre core
 system_arch=$(uname -m)
 if [ %{_target_cpu} != $system_arch ]; then
-	echo "ERROR: This kernel is built for %{_target_cpu}. but your system is $system_arch."
-	exit 1
-fi
-
-for cmd in kernel-install new-kernel-pkg false; do
-	command -v $cmd > /dev/null && break
-done
-
-if [ "$cmd" == "false" ]; then
-	echo "ERROR: Failed to find a supported kernel install handler."
-	exit 1
+	echo "WARN: This kernel is built for %{_target_cpu}. but your system is $system_arch." > /dev/stderr
 fi
 
 %posttrans core
@@ -1029,12 +1019,15 @@ fi
 if command -v weak-modules > /dev/null; then
 	weak-modules --add-kernel %{kernel_unamer} || exit $?
 fi
+
 # Boot entry and depmod files
 if command -v kernel-install > /dev/null; then
 	kernel-install add %{kernel_unamer} /lib/modules/%{kernel_unamer}/vmlinuz
 elif command -v new-kernel-pkg > /dev/null; then
 	new-kernel-pkg --package kernel --install %{kernel_unamer} --kernel-args="crashkernel=512M-12G:128M,12G-64G:256M,64G-128G:512M,128G-:768M" --make-default || exit $?
 	new-kernel-pkg --package kernel --mkinitrd --dracut --depmod --update %{kernel_unamer} || exit $?
+else
+	echo "NOTICE: No available kernel install handler found. Please make sure boot loader and initramfs are properly configured after the installation." > /dev/stderr
 fi
 
 %preun core
@@ -1043,7 +1036,10 @@ if command -v kernel-install > /dev/null; then
 	kernel-install remove %{kernel_unamer} /lib/modules/%{kernel_unamer}/vmlinuz || exit $?
 elif command -v new-kernel-pkg > /dev/null; then
 	/sbin/new-kernel-pkg --rminitrd --dracut --remove %{kernel_unamer}
+else
+	echo "NOTICE: No available kernel uninstall handler found. Please make sure boot loader and initramfs are properly cleared after the uninstallation." > /dev/stderr
 fi
+
 # Weak modules
 if command -v weak-modules > /dev/null; then
 	weak-modules --remove-kernel %{kernel_unamer} || exit $?
