@@ -155,7 +155,7 @@ check_commit() {
 
 	if ! echo "$commit_body" | grep -iq "^checkpatch:.*\bno\b"; then
 		local patch_err
-		patch_err=$(echo "$patch_content" | scripts/checkpatch.pl --terse | grep -v "$ignore_line" | grep "ERROR: ")
+		patch_err=$(echo "$patch_content" | "$TOPDIR/scripts/checkpatch.pl" --terse | grep -v "$ignore_line" | grep "ERROR: ")
 
 		if [[ -n "$patch_err" ]]; then
 			echo "ERROR: scripts/checkpatch.pl reported following error:"
@@ -180,11 +180,17 @@ check_commit() {
 	fi
 
 	upstream_commit=$(echo "$commit_body" | sed -nE "s/^(Upstream commit:|Upstream: commit) (\S+)/\2/pg")
+	upstream_status=$(echo "$commit_body" | sed -nE "s/^(Upstream status:|Upstream:) (\S+)/\2/pg")
 	commits_cnt=$(echo "$upstream_commit" | wc -w)
 
 	if [[ $commit_summary == $VENDOR:* ]]; then
-		if ! echo "$commit_body" | grep -Eq "(Upstream status|Upstream):"; then
-			echo "ERROR: It seems this is a downstream commit, please add Upstream status: <wip/pending/downstream-only...>"
+		if [[ -z "$upstream_status" ]]; then
+			echo "ERROR: It seems this is a downstream commit."
+			echo "    Please add following mark in the commit message:"
+			echo '    ```'
+			echo '    Upstream status: <no/pending/downstream-only...>'
+			echo '    ```'
+			echo "    to explain this is a downstream commit."
 			echo
 			ret=$(( ret + 1 ))
 		fi
@@ -194,42 +200,75 @@ check_commit() {
 			echo
 			ret=$(( ret + 1 ))
 		fi
-
-		# No more check for downstream commit
-		return $ret
 	fi
 
 	# This is an upstream commit
-	if [[ $commits_cnt -ne 1 ]]; then
-		echo "ERROR: It seems this is a upstream commit, please add one *and only one* upstream commit indicator per commit, in following format:"
-		echo '    ```'
-		echo "    Upstream commit: <commit id>"
-		echo '    ```'
-		echo "    If this is a downstream commit, please add \"$VENDOR:\" header in commit summary."
-		echo
-		ret=$(( ret + 1 ))
+	if [[ $commits_cnt -eq 0 ]]; then
+		if [[ $VENDOR_ONLY ]] && [[ $commit_summary != $VENDOR:* ]]; then
+			echo "ERROR: '$VENDOR:' is missing in the commit summary, and no 'Upstream commit:' mark is found."
+			echo "    If this is a downstream commit, please add '$VENDOR': in commit summary, and add this mark in commit message:"
+			echo
+			ret=$(( ret + 1 ))
+		fi
+
+		if [[ -z "$upstream_status" ]]; then
+			echo "ERROR: No upstream mark found."
+			echo "    If this is a downstream commit, please add this mark:"
+			echo '    ```'
+			echo '    Upstream status: <no/pending/downstream-only...>'
+			echo '    ```'
+			echo "    to explain this is a downstream commit."
+			echo
+			echo "    If this is a backported upstream commit, please add one and only one mark:"
+			echo '    ```'
+			echo "    Upstream commit: <commit id>"
+			echo '    ```'
+			echo "    to indicate which commit is being backported."
+			echo
+			ret=$(( ret + 1 ))
+		elif [[ "$upstream_status" =~ ^[a-f0-9]{7,}$ ]]; then
+			echo "ERROR: It seems you pasted a plain commit id after 'Upstream:' or 'Upstream status:' mark."
+			echo "    Please use this format instead:"
+			echo '    ```'
+			echo "    Upstream commit: <commit id>"
+			echo '    ```'
+			echo "    If this is a actually downstream commit, please use less confusing words"
+			echo "    for the 'Upstream status:' mark."
+			echo
+			ret=$(( ret + 1 ))
+		fi
 	else
-		if ! is_valid_commit "$upstream_commit"; then
-			echo "ERROR: $upstream_commit is not an valid commit!"
+		if [[ $commits_cnt -ne 1 ]]; then
+			echo "ERROR: It seems this is a upstream commit, please add one *and only one* upstream commit indicator per commit, in following format:"
+			echo '    ```'
+			echo "    Upstream commit: <commit id>"
+			echo '    ```'
+			echo "    If this is a downstream commit, please add \"$VENDOR:\" header in commit summary."
 			echo
 			ret=$(( ret + 1 ))
 		else
-			if ! is_valid_upstream_commit "$upstream_commit" > /dev/null; then
-				echo "ERROR: $upstream_commit is not an valid upstream commit!"
+			if ! is_valid_commit "$upstream_commit"; then
+				echo "ERROR: $upstream_commit is not an valid commit!"
 				echo
 				ret=$(( ret + 1 ))
+			else
+				if ! is_valid_upstream_commit "$upstream_commit" > /dev/null; then
+					echo "ERROR: $upstream_commit is not an valid upstream commit!"
+					echo
+					ret=$(( ret + 1 ))
+				fi
 			fi
 		fi
-	fi
 
-	conflict_cnt=$(echo "$commit_body" | grep -c "^Conflict: ")
-	if [ "$conflict_cnt" -ne 1 ]; then
-		echo "ERROR: This is an upstream commit, please add one (and only one) conflict indicator in following format:"
-		echo '    ```'
-		echo "        Conflict: <none/refactored/resolved...>"
-		echo '    ```'
-		echo
-		ret=$(( ret + 1 ))
+		conflict_cnt=$(echo "$commit_body" | grep -c "^Conflict: ")
+		if [ "$conflict_cnt" -ne 1 ]; then
+			echo "ERROR: This is an upstream commit, please add one (and only one) conflict indicator in following format:"
+			echo '    ```'
+			echo "        Conflict: <none/refactored/minor/resolved...>"
+			echo '    ```'
+			echo
+			ret=$(( ret + 1 ))
+		fi
 	fi
 
 	if [[ $VENDOR_ONLY ]] && [[ $author_email != *@$VENDOR.com ]]; then
