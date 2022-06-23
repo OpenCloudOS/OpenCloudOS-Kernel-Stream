@@ -219,24 +219,27 @@ License: GPLv2
 URL: %{rpm_url}
 Vendor: ${rpm_vendor}
 
-# Kernel requirements
-Provides: kernel = %{version}-%{release}
-Provides: %{rpm_name} = %{version}-%{release}
-Requires: %{rpm_name}-core = %{version}-%{release}
-Requires: %{rpm_name}-modules = %{version}-%{release}
-Requires(pre): linux-firmware
-Requires(post): coreutils
-Requires(post): systemd >= 203-2
-Requires(preun): systemd >= 203-2
-
-Requires(post): /usr/bin/kernel-install
-Requires(preun): /usr/bin/kernel-install
-
 # We can't let RPM do the dependencies automatic because it'll then pick up
 # a correct but undesirable perl dependency from the module headers which
 # isn't required for the kernel proper to function
 AutoReq: no
 AutoProv: yes
+
+# Kernel requirements
+Provides: kernel = %{version}-%{release}
+Provides: %{rpm_name} = %{version}-%{release}
+Requires: %{rpm_name}-core = %{version}-%{release}
+Requires: %{rpm_name}-modules = %{version}-%{release}
+Recommends: linux-firmware
+Requires(pre): coreutils
+Requires(post): coreutils kmod
+Requires(preun): coreutils kmod
+Requires(post): /usr/bin/kernel-install
+Requires(preun): /usr/bin/kernel-install
+# Kernel install hooks & initramfs
+Requires(post): systemd-udev dracut
+Requires(preun): systemd-udev
+
 %description
 This is the meta package of %{?rpm_vendor:%{rpm_vendor} }Linux kernel, the core of operating system.
 
@@ -261,6 +264,8 @@ Provides: kernel-modules = %{version}-%{release}
 Requires: %{rpm_name}-core = %{version}-%{release}
 AutoReq: no
 AutoProv: yes
+Requires(pre): kmod
+Requires(postun): kmod
 %description modules
 This package provides commonly used kernel modules for the %{?2:%{2}-}core kernel package.
 
@@ -1019,7 +1024,6 @@ fi
 if command -v weak-modules > /dev/null; then
 	weak-modules --add-kernel %{kernel_unamer} || exit $?
 fi
-
 # Boot entry and depmod files
 if command -v kernel-install > /dev/null; then
 	kernel-install add %{kernel_unamer} /lib/modules/%{kernel_unamer}/vmlinuz
@@ -1029,6 +1033,8 @@ elif command -v new-kernel-pkg > /dev/null; then
 else
 	echo "NOTICE: No available kernel install handler found. Please make sure boot loader and initramfs are properly configured after the installation." > /dev/stderr
 fi
+# Just in case kernel-install didn't depmod
+depmod -A %{kernel_unamer}
 
 %preun core
 # Boot entry and depmod files
@@ -1047,10 +1053,10 @@ fi
 
 ### Module package
 %post modules
-/sbin/depmod -a %{kernel_unamer}
+depmod -a %{kernel_unamer}
 
 %postun modules
-/sbin/depmod -a %{kernel_unamer}
+depmod -a %{kernel_unamer}
 
 ### Devel package
 %post devel
