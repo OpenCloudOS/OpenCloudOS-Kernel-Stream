@@ -183,7 +183,14 @@ _get_rel_info_from_tag() {
 		# still consider it a valid release tag since release candidate mark may get dropped.
 		# But this really should look at the Makefile corresponding to that tag commit
 		:
+	elif [ "$kextraversion" -eq "$kextraversion" ] &>/dev/null; then
+		case $rel in
+			# Extra version is release number, ok
+			$kextraversion | "$kextraversion."* | "$kextraversion-"* ) ;;
+			* ) return 1; ;;
+		esac
 	else
+		# Remove RC liked tag, append them as suffix later.
 		case $rel in
 			# Plain version tag, eg. 5.17-rc3
 			$kextraversion )
@@ -202,7 +209,7 @@ _get_rel_info_from_tag() {
 	fi
 
 	if [[ $rel ]]; then
-		echo "$rel"
+		echo "${rel/-/.}"
 	fi
 }
 
