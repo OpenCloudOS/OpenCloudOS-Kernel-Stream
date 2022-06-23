@@ -261,6 +261,7 @@ input and output, etc.
 Summary: %{rpm_vendor} Kernel modules to match the %{rpm_name}-core kernel
 Provides: installonlypkg(kernel-module)
 Provides: kernel-modules = %{version}-%{release}
+Provides: kernel-modules-extra = %{version}-%{release}
 Requires: %{rpm_name}-core = %{version}-%{release}
 AutoReq: no
 AutoProv: yes
