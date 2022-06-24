@@ -575,6 +575,9 @@ BuildConfig() {
 	sed -i -e "s/^CONFIG_MODULE_SIG_ALL=.*/# CONFIG_MODULE_SIG_ALL is not set/" .config
 	sed -i -e "s/^CONFIG_MODULE_SIG_FORCE=.*/# CONFIG_MODULE_SIG_FORCE is not set/" .config
 	sed -i -e "s/^CONFIG_MODULE_SIG=.*/# CONFIG_MODULE_SIG is not set/" .config
+	# Lockdown can't work without module sign
+	sed -i -e "s/^CONFIG_SECURITY_LOCKDOWN_LSM=.*/# CONFIG_SECURITY_LOCKDOWN_LSM is not set/" .config
+	sed -i -e "s/^CONFIG_SECURITY_LOCKDOWN_LSM_EARLY=.*/# CONFIG_SECURITY_LOCKDOWN_LSM_EARLY is not set/" .config
 	%endif
 
 	popd
