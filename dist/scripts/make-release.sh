@@ -37,8 +37,6 @@ Release Version: $RELEASE_VERSION
 Release Author: $AUTHOR
 Changelog:
 $CHANGELOG
-
-(Press 'q' to exit preview.)
 EOF
 }
 
@@ -60,7 +58,11 @@ parse_info() {
 while :; do
 	_res="?"
 	while :; do
-		print_info | less
+		{
+			print_info
+			echo
+			echo "(Press 'q' to exit preview.)"
+		} | less
 		echo "Is this OK? (y/n/q/e, Y: Do the release, N/Q: quit, E: edit)"
 		read -r -n1 _res
 		case $_res in
@@ -73,7 +75,9 @@ while :; do
 				cat "$DISTDIR/templates/changelog" >> "$DISTDIR/templates/changelog.new"
 				mv "$DISTDIR/templates/changelog.new" "$DISTDIR/templates/changelog"
 				git -C "$TOPDIR" add "$DISTPATH/templates/changelog"
-				git -C "$TOPDIR" commit -m "$DISTPATH: release: $RELEASE_VERSION
+				git -C "$TOPDIR" commit -m "$DISTPATH: release $RELEASE_VERSION
+
+Upstream: no
 
 Signed-off-by: $AUTHOR"
 				git -C "$TOPDIR" tag "$TAG_VERSION"
