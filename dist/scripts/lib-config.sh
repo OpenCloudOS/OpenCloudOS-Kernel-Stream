@@ -73,8 +73,10 @@ get_all_depends() {
 	while read -r _dep; do
 		if ! [[ "$_dep" ]]; then
 			continue
+		elif [[ "$_dep" =~ y|n|m ]]; then
+			_deps+=( "$_dep" )
 		elif [[ "$_dep" =~ [a-zA-Z0-9] ]]; then
-			_deps+=( "$_dep=$(get_config_val "$_dep" "$2")" )
+			_deps+=( "$_dep[=$(get_config_val "$_dep" "$2")]" )
 		else
 			_deps+=( "$_dep" )
 		fi
@@ -83,6 +85,7 @@ get_all_depends() {
 		-e 's/([^\)])$/\1)/' \
 		-e '2,$s/^/\&\&/' \
 		-e 's/(\|\||&&|=|!=|<|<=|>|>=|!|\(|\)|([[:alnum:]_-]+))/\n\1\n/g')"
+	# The regex above simply tokenize the Kconfig expression
 
 	echo "${_deps[@]}"
 
