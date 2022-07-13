@@ -1,2 +1,11 @@
+* Wed Jul 13 2022 Kairui Song <kasong@tencent.com> - 5.18.5-2207.1.1.ocks
+- dist: configs: enable DAMON
+- dist: improve make check-diff-configs output
+- dist: spec: add "Provides: kernel-modules-extra"
+- dist: be compatible with tk/oc tags
+- dist: template: clean up scriplet and requirements
+- dist: relax pre install checks
+- dist: remove test patch generation for now
+
 * Wed Jun 22 2022 Kairui Song <kasong@tencent.com> - 5.18.5-2207.1.0.ocks
 - Initial release
