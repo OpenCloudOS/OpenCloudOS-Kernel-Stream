@@ -36,11 +36,15 @@ while [[ $# -gt 0 ]]; do
 			shift 2
 			;;
 		--set-default-disabled )
-			DEFAULT_DISALBED=" $2 $DEFAULT_DISALBED"
+			for param in $2; do
+				DEFAULT_DISALBED=" $param $DEFAULT_DISALBED"
+			done
 			shift 2
 			;;
 		--set-default-enabled )
-			DEFAULT_DISALBED="${DEFAULT_DISALBED/ $2 /}"
+			for param in $2; do
+				DEFAULT_DISALBED="${DEFAULT_DISALBED/ $param /}"
+			done
 			shift 2
 			;;
 		* )

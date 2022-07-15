@@ -88,20 +88,21 @@ RPM_SRCRPMDIR := $(RPM_TOPDIR)/SRPMS
 RPM_BUILDROOTDIR := $(RPM_TOPDIR)/BUILDROOT
 
 ### RPM build options
+# All params enabled by default (except kABI check, see below), DEFAULT_ENABLED overrides DEFAULT_DISABLE.
+DEFAULT_DISABLED=
+DEFAULT_ENABLED=
+
+## A few shortcut for commonly used params:
 # Disable KABI check by default
 KABI=0
 ifeq ($(KABI), 0)
-override RPMFLAGS := --without kabichk $(RPMFLAGS)
-else
-override RPMFLAGS := --with kabichk $(RPMFLAGS)
+override DEFAULT_DISABLED := kabichk $(DEFAULT_DISABLED)
 endif
 
 # Enabled module sign by default
 MODSIGN=1
 ifeq ($(MODSIGN), 0)
-override RPMFLAGS := --without modsign $(RPMFLAGS)
-else
-override RPMFLAGS := --with modsign $(RPMFLAGS)
+override DEFAULT_DISABLED := modsign $(DEFAULT_DISABLED)
 endif
 
 # Allow to skip RPM dependency check
@@ -154,7 +155,10 @@ $(SPECFILE): always-rebuild
 		--build-arch "$(SRPM_ARCH)" \
 		--kernel-config "$(CONFIG)" \
 		--kernel-variant "$(VARIANT)" \
+		--set-default-disabled "$(DEFAULT_DISABLED)" \
+		--set-default-enabled "$(DEFAULT_ENABLED)" \
 		> $(SPECFILE)
+	@grep -A2 "# == Package options ==" $(SPECFILE) | cut -c3-
 
 dist-specfile: $(SPECFILE) $(TOPDIR)/.config
 	@echo "$(SPECFILE)"
