@@ -25,35 +25,26 @@
 # upstream
 %global _lto_cflags %{nil}
 
-###### Kernel packaging params #################################################
+###### Kernel packaging options #################################################
 # Since we need to generate kernel, kernel-subpackages, perf, bpftools, from
 # this one single code tree, following build switches are very helpful.
 #
-# The following build options are enabled by default, but may become disabled
-# by later checks. These can also be disabled by using
-# --without <opt> in the rpmbuild command, or by forcing these values to 0.
+# The following build options can be enabled or disabled with --with/--without
+# in the rpmbuild command. But may by disabled by later checks#
 #
-# kernel-core
-%define with_core	%{?_without_up: 0}		%{?!_without_up: 1}
-# kernel-doc
-%define with_doc	%{?_without_doc: 0}		%{?!_without_doc: 1}
-# kernel-headers
-%define with_headers	%{?_without_headers: 0}		%{?!_without_headers: 1}
-# perf
-%define with_perf	%{?_without_perf: 0}		%{?!_without_perf: 1}
-# tools
-%define with_tools	%{?_without_tools: 0}		%{?!_without_tools: 1}
-# bpf tool
-%define with_bpftool	%{?_without_bpftool: 0}		%{?!_without_bpftool: 1}
-# kernel-debuginfo
-%define with_debuginfo	%{?_without_debuginfo: 0}	%{?!_without_debuginfo: 1}
-# internal samples and selftests
-%define with_selftests	%{?_without_selftests: 0}	%{?!_without_selftests: 1}
-# Control whether we perform a compat. check against published ABI.
-%define with_modsign	%{?_without_modsign: 0}		%{?!_without_modsign: 1}
-# Control whether we perform a compat. check against published ABI.
-%define with_kabichk	%{?_with_kabichk: 1}		%{?!_with_kabichk: 0}
-# Cross compile requested?
+# This section defines following options:
+# with_core: kernel core pkg
+# with_doc: kernel doc pkg
+# with_headers: kernel headers pkg
+# with_perf: perf tools pkg
+# with_tools: kernel tools pkg
+# with_bpftool: bpftool pkg
+# with_debuginfo: debuginfo for all packages
+# with_modsign: if mod should be signed
+# with_kabichk: if kabi check is needed at the end of build
+{{PKGPARAMSPEC}}
+
+# Only use with cross build, don't touch it unless you know what you are doing
 %define with_crossbuild	%{?_with_crossbuild: 1}		%{?!_with_crossbuild: 0}
 
 ###### Kernel signing params #################################################

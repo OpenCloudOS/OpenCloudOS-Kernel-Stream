@@ -16,6 +16,7 @@ gen-spec.sh [OPTION]
 EOF
 }
 
+DEFAULT_DISALBED=" kabichk "
 while [[ $# -gt 0 ]]; do
 	case $1 in
 		--kernel-config )
@@ -32,6 +33,14 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--commit )
 			COMMIT=$2
+			shift 2
+			;;
+		--set-default-disabled )
+			DEFAULT_DISALBED=" $2 $DEFAULT_DISALBED"
+			shift 2
+			;;
+		--set-default-enabled )
+			DEFAULT_DISALBED="${DEFAULT_DISALBED/ $2 /}"
 			shift 2
 			;;
 		* )
@@ -160,12 +169,49 @@ _gen_changelog_spec() {
 	cat "$DISTDIR/templates/changelog"
 }
 
+_gen_pkgopt_spec() {
+	local enabled_opts disabled_opts opts_output
+	for opt in \
+		core \
+		doc \
+		headers \
+		perf \
+		tools \
+		bpftool \
+		debuginfo \
+		modsign \
+		kabichk
+	do
+		case $DEFAULT_DISALBED in
+			*" $opt "* )
+				disabled_opts="$disabled_opts $opt"
+				opts_output="$opts_output
+%define with_$opt	%{?_with_$opt: 1}	%{?!_with_$opt: 0}"
+				;;
+			* )
+				enabled_opts="$enabled_opts $opt"
+				opts_output="$opts_output
+%define with_$opt	%{?_without_$opt: 0}	%{?!_without_$opt: 1}"
+		esac
+	done
+
+	# Marker for dist build system, a little bit ugly, maybe find a better way to present this info later
+	echo ""
+	echo "# === Package options ==="
+	echo "# Eanbled by default: $enabled_opts"
+	echo "# Disabled by default: $disabled_opts"
+	echo "$opts_output"
+}
+
 gen_spec() {
 	local _line
 	local _spec
 
 	while IFS='' read -r _line; do
 		case $_line in
+			"{{PKGPARAMSPEC}}"* )
+				_spec+="$(_gen_pkgopt_spec)"
+				;;
 			"{{ARCHSPEC}}"* )
 				_spec+="$(_gen_arch_spec)"
 				;;
