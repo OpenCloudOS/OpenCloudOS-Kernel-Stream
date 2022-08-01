@@ -1037,6 +1037,15 @@ fi
 # Just in case kernel-install didn't depmod
 depmod -A %{kernel_unamer}
 
+# XXX: Workaround for TLinux 2.x, TLinux 2.x has broken SELinux rule, enabling SELinux will cause boot failure.
+%if "%{dist}" != ".tl2"
+if command -v grubby > /dev/null; then
+	grubby --update-kernel /boot/vmlinuz-%{kernel_unamer} --args selinux=0
+else
+	echo "NOTICE: TL2 detected, but grubby is missing, please set selinux=0 for new installed kernel manually, or it may fail to boot due to broken SELinux rule." > /dev/stderr
+fi
+%endif
+
 %preun core
 # Boot entry and depmod files
 if command -v kernel-install > /dev/null; then
