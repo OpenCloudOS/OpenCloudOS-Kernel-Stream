@@ -118,6 +118,13 @@ else
 RPMCROSSFLAGS = --without crossbuild
 endif
 
+# For re-distribute to another distro
+ifneq ($(DISTRO),)
+override RPMFLAGS := --define "dist .$(DISTRO)" $(RPMFLAGS)
+$(info "NOTE: DISTRO is set, building for another distro $(DISTRO)")
+$(info "      You shoudn't do this unless you know what you are doing.")
+endif
+
 # Always make sure workdir exists
 $(shell mkdir -p $(WORKDIRS))
 
