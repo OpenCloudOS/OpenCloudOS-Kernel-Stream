@@ -25,7 +25,7 @@ netdrvs="appletalk can dsa hamradio ieee802154 irda ppp slip usb wireless"
 
 ethdrvs="3com adaptec alteon amd aquantia arc atheros broadcom cadence calxeda chelsio cisco dec dlink emulex icplus marvell mellanox micrel myricom neterion nvidia oki-semi packetengines qlogic rdc renesas sfc silan sis smsc stmicro sun tehuti ti wiznet xircom"
 
-inputdrvs="gameport tablet touchscreen"
+inputdrvs="gameport tablet touchscreen joystick"
 
 hiddrvs="surface-hid"
 
