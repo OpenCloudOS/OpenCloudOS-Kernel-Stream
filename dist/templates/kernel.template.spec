@@ -564,7 +564,8 @@ BuildConfig() {
 	sed -i -e "s/^CONFIG_SECURITY_LOCKDOWN_LSM=.*/# CONFIG_SECURITY_LOCKDOWN_LSM is not set/" .config
 	sed -i -e "s/^CONFIG_SECURITY_LOCKDOWN_LSM_EARLY=.*/# CONFIG_SECURITY_LOCKDOWN_LSM_EARLY is not set/" .config
 	%endif
-
+	# Don't use kernel's builtin module compression, imcompatible with debuginfo packaging and signing
+	sed -i -e "s/^\(CONFIG_DECOMPRESS_.*\)=y/# \1 is not set/" .config
 	popd
 }
 
