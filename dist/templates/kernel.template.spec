@@ -723,6 +723,8 @@ InstKernelBasic() {
 	%endif
 
 	%ifarch riscv64
+	mkdir dtb
+	cp $_KernBuild/arch/riscv/boot/dts/*/*.dtb dtb/
 	install -m 644 $_KernBuild/arch/riscv/boot/Image vmlinuz
 	%endif
 

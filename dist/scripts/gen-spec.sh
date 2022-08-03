@@ -222,7 +222,7 @@ gen_spec() {
 				_spec+="$(_gen_kerver_spec)"
 				;;
 			"{{ARCHSOURCESPEC}}"* )
-				_spec+="$(_gen_config_source)"
+				_spec+="$(_gen_arch_source)"
 				;;
 			"{{CONFBUILDSPEC}}"* )
 				_spec+="$(_gen_config_build)"
