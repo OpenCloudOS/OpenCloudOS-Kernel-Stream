@@ -9,7 +9,8 @@
 . "$(dirname "$(realpath "$0")")/lib.sh"
 
 CONFIG_PATH=${CONFIG_PATH:-$DISTDIR/configs}
-CONFIG_ARCH=( x86_64 aarch64 )
+# shellcheck disable=SC2206
+CONFIG_ARCH=( $SPEC_ARCH )
 CONFIG_SPECS=( "$CONFIG_PATH"/[0-9][0-9]* )
 CONFIG_OUTDIR=$SOURCEDIR
 CONFIG_CACHE=$DISTDIR/workdir/config_cache

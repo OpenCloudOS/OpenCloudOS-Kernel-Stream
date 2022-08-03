@@ -73,6 +73,7 @@ get_dist_makefile_var() {
 [ "$DISTPATH" ] || DISTPATH=$(get_dist_makefile_var DISTPATH)
 [ "$DISTDIR" ] || DISTDIR=$TOPDIR/$DISTPATH
 [ "$SOURCEDIR" ] || SOURCEDIR=$DISTDIR/rpm/SOURCES
+[ "$SPEC_ARCH" ] || VENDOR=$(get_dist_makefile_var SPEC_ARCH)
 
 if ! [ -s "$TOPDIR/Makefile" ]; then
 	echo "Dist tools can only be run within a valid Linux Kernel git workspace." >&2
@@ -97,6 +98,9 @@ get_native_arch () {
 # with different name due to historical reasons.
 get_kernel_arch () {
 	case $1 in
+		riscv64 )
+			echo "riscv"
+			;;
 		arm64 | aarch64 )
 			echo "arm64"
 			;;
@@ -115,6 +119,9 @@ get_kernel_arch () {
 # source code base sub path in arch/
 get_kernel_src_arch () {
 	case $1 in
+		riscv64 )
+			echo "riscv"
+			;;
 		arm64 | aarch64 )
 			echo "arm64"
 			;;

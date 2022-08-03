@@ -114,9 +114,6 @@
 %global debuginfo_dir /usr/lib/debug
 
 ###### Build time config #######################################################
-# Currently only x86_64 and aarch64 are supported
-ExclusiveArch: x86_64 aarch64
-
 # Disable kernel building for non-supported arch, allow building userspace package
 %ifarch %nobuildarches noarch
 %global with_core 0
@@ -180,20 +177,17 @@ Source0: %{kernel_tarname}.tar
 ### Build time scripts
 # Script used to assist kernel building
 Source10: filter-modules.sh
-Source12: filter-aarch64.sh
-Source11: filter-x86_64.sh
 
 Source20: module-signer.sh
 Source21: module-keygen.sh
 
 Source30: check-kabi
 
-### Kernel configs and kABI
-# Start from Source1000 to Source1499, for kernel config
-{{CONFSOURCESPEC}}
-
-# Start from Source1500 to Source1999, for kabi
-{{KABISOURCESPEC}}
+### Arch speficied kernel configs and kABI
+# Start from Source1000 to Source1199, for kernel config
+# Start from Source1200 to Source1399, for kabi
+# Start from Source1400 to Source1599, for filter-<arch>.sh
+{{ARCHSOURCESPEC}}
 
 ### Userspace tools
 # Start from Source2000 to Source2999, for userspace tools
@@ -726,13 +720,17 @@ InstKernelBasic() {
 	# NOTE: If we need to sign the vmlinuz, this is the place to do it.
 	%ifarch aarch64
 	install -m 644 $_KernBuild/arch/arm64/boot/Image vmlinuz
-	install -m 644 $_KernBuild/arch/arm64/boot/Image %{buildroot}/boot/vmlinuz-$KernUnameR
+	%endif
+
+	%ifarch riscv64
+	install -m 644 $_KernBuild/arch/riscv/boot/Image vmlinuz
 	%endif
 
 	%ifarch x86_64
 	install -m 644 $_KernBuild/arch/x86/boot/bzImage vmlinuz
-	install -m 644 $_KernBuild/arch/x86/boot/bzImage %{buildroot}/boot/vmlinuz-$KernUnameR
 	%endif
+
+	install -m 644 vmlinuz %{buildroot}/boot/vmlinuz-$KernUnameR
 
 	sha512hmac %{buildroot}/boot/vmlinuz-$KernUnameR | sed -e "s,%{buildroot},," > .vmlinuz.hmac
 	cp .vmlinuz.hmac %{buildroot}/boot/.vmlinuz-$KernUnameR.hmac

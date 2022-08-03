@@ -28,8 +28,8 @@ NATIVE_ARCH := $(shell uname -m | sed -e 's/amd64/x86_64/;s/arm64/aarch64/;s/*86
 ###### Build parameters, change them with `make <PARAM>=<VALUE>` ######
 # When building binary package, which arch to build against
 ARCH := $(NATIVE_ARCH)
-# When building SRPM, which ARCH to be covered
-SPEC_ARCH := x86_64 aarch64
+# ARCH to be covered by spec file
+SPEC_ARCH := x86_64 aarch64 riscv64
 # Kernel variant, will be appended to kernel release string as suffix
 # to indicate this is a variant kernel (eg. debug; minimal;)
 VARIANT :=
