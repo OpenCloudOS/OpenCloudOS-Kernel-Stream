@@ -1006,6 +1006,7 @@ done
 ###### RPM scriptslets #########################################################
 ### Core package
 # Pre
+%if %{with_core}
 %pre core
 system_arch=$(uname -m)
 if [ %{_target_cpu} != $system_arch ]; then
@@ -1062,6 +1063,7 @@ if [ "$HARDLINK" != "no" -a -x /usr/bin/hardlink -a ! -e /run/ostree-booted ]; t
 		hardlink /usr/src/kernels/*/$f $f > /dev/null
 	done)
 fi
+%endif
 
 ### kernel-tools package
 %if %{with_tools}
