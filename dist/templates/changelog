@@ -1,3 +1,9 @@
+* Mon Aug 08 2022 Kairui Song <kasong@tencent.com> - 5.18.15-2207.2.0.ocks
+- Rebase to 5.18.15
+- Fix multiple issues related to distro integration
+- Add support for cross-building for RISC-V 64
+- Add board support for StarFive VisionFive
+
 * Wed Jul 13 2022 Kairui Song <kasong@tencent.com> - 5.18.5-2207.1.1.ocks
 - dist: configs: enable DAMON
 - dist: improve make check-diff-configs output
