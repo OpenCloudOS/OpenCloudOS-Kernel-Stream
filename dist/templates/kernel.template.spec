@@ -215,7 +215,7 @@ Provides: kernel = %{version}-%{release}
 Provides: %{rpm_name} = %{version}-%{release}
 Requires: %{rpm_name}-core = %{version}-%{release}
 Requires: %{rpm_name}-modules = %{version}-%{release}
-Recommends: linux-firmware
+Requires: linux-firmware
 Requires(pre): coreutils
 Requires(post): coreutils kmod
 Requires(preun): coreutils kmod
