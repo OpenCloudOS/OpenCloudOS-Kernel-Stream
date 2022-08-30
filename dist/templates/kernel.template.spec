@@ -1008,9 +1008,12 @@ done
 # Pre
 %if %{with_core}
 %pre core
-system_arch=$(uname -m)
-if [ %{_target_cpu} != $system_arch ]; then
-	echo "WARN: This kernel is built for %{_target_cpu}. but your system is $system_arch." > /dev/stderr
+# Best effort try to avoid installing with wrong arch
+if command -v uname > /dev/null; then
+	system_arch=$(uname -m)
+	if [ %{_target_cpu} != $system_arch ]; then
+		echo "WARN: This kernel is built for %{_target_cpu}. but your system is $system_arch." > /dev/stderr
+	fi
 fi
 
 %posttrans core
