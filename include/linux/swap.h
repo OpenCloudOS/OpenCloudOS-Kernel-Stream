@@ -534,6 +534,8 @@ static inline void put_swap_device(struct swap_info_struct *si)
 	percpu_ref_put(&si->users);
 }
 
+extern swp_entry_t get_cached_swap_page_of_type(int type);
+
 #else /* CONFIG_SWAP */
 static inline struct swap_info_struct *swp_swap_info(swp_entry_t entry)
 {

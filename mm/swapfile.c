@@ -1128,6 +1128,38 @@ noswap:
 	return n_ret;
 }
 
+/* Similiar to get_swap_page_of_type, but get_swap_page_of_type init the
+ * swap_map as 1 for suspend routine, this init swap_map as SWAP_HAS_CACHE
+ * for mm routine, and follows clustering for better performance. */
+swp_entry_t get_cached_swap_page_of_type(int type)
+{
+	struct swap_info_struct *si;
+	swp_entry_t entry = {0};
+	int ret;
+
+	si = swap_type_to_swap_info(type);
+	if (!si) {
+		pr_warn("Invalid swap device %d\n", type);
+		return entry;
+	}
+
+	spin_lock(&si->lock);
+	if (!si->highest_bit || !(si->flags & SWP_WRITEOK)) {
+		/* not ready to write or full */
+		goto out;
+	}
+	atomic_long_dec(&nr_swap_pages);
+	ret = scan_swap_map_slots(si, SWAP_HAS_CACHE, 1, &entry);
+	if (!ret) {
+		atomic_long_inc(&nr_swap_pages);
+		pr_debug("Failed to alloc swap entry from device %d\n", si->type);
+	}
+
+out:
+	spin_unlock(&si->lock);
+	return entry;
+}
+
 static struct swap_info_struct *_swap_info_get(swp_entry_t entry)
 {
 	struct swap_info_struct *p;
