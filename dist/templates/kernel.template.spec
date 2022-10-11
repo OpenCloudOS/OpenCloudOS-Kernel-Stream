@@ -261,6 +261,8 @@ Summary: Development package for building kernel modules to match the %{version}
 Release: %{release}
 Provides: installonlypkg(kernel-devel)
 Provides: kernel-devel = %{version}-%{release}
+Provides: kernel-devel-%{_target_cpu} = %{version}-%{release}
+Provides: kernel-devel-uname-r = %{version}-%{release}
 AutoReqprov: no
 %description devel
 This package provides kernel headers and makefiles sufficient to build modules
