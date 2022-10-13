@@ -215,7 +215,7 @@ dist-clean:
 	done; :;
 
 BUILDDEPS=$(shell rpmspec -q --buildrequires $(SPECFILE) | cut -d ' ' -f 1)
-MISSINGDEPS=$(shell echo "$(BUILDDEPS)" | xargs -n1 echo | while read _d; do rpm -q --whatprovides "$$_d" >/dev/null || echo "$$_d"; done)
+MISSINGDEPS=$(shell echo "$(BUILDDEPS)" | xargs -n1 echo | while read -r _d; do rpm -q --whatprovides "$$_d" >/dev/null || echo "$$_d"; done)
 dist-check-buildrequires: $(SPECFILE)
 	@if [ -n "$(MISSINGDEPS)" ]; then \
 		echo "Error: Build dependency packages missing, please install: $(MISSINGDEPS)"; \
@@ -229,7 +229,7 @@ dist-install-buildrequires: $(SPECFILE)
 		echo "Missing dependency packages: $(MISSINGDEPS)..."; \
 		if [ -x /usr/bin/yum ]; then \
 		echo "Trying to install..."; \
-		echo "$(MISSINGDEPS)" | xargs yum install -y && exit 0; \
+		echo "$(MISSINGDEPS)" | sudo xargs yum install -y && exit 0; \
 		else \
 		echo "Yum is not available for current user."; \
 		fi; \
