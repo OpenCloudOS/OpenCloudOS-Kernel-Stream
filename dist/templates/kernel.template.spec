@@ -1210,9 +1210,7 @@ fi
 %{_bindir}/iio_generic_buffer
 %{_bindir}/lsiio
 %{_bindir}/lsgpio
-%{_bindir}/gpio-hammer
-%{_bindir}/gpio-event-mon
-%{_bindir}/gpio-watch
+%{_bindir}/gpio-*
 %{_bindir}/page_owner_sort
 %{_bindir}/slabinfo
 
@@ -1238,18 +1236,8 @@ fi
 %defattr(-,root,root)
 %{_sbindir}/bpftool
 %{_sysconfdir}/bash_completion.d/bpftool
-%{_mandir}/man8/bpftool-cgroup.8.gz
-%{_mandir}/man8/bpftool-gen.8.gz
-%{_mandir}/man8/bpftool-iter.8.gz
-%{_mandir}/man8/bpftool-link.8.gz
-%{_mandir}/man8/bpftool-map.8.gz
-%{_mandir}/man8/bpftool-prog.8.gz
-%{_mandir}/man8/bpftool-perf.8.gz
 %{_mandir}/man8/bpftool.8.gz
-%{_mandir}/man8/bpftool-net.8.gz
-%{_mandir}/man8/bpftool-feature.8.gz
-%{_mandir}/man8/bpftool-btf.8.gz
-%{_mandir}/man8/bpftool-struct_ops.8.gz
+%{_mandir}/man8/bpftool-*.8.gz
 
 %if %{with_debuginfo}
 %files -f bpftool-debuginfo.list -n bpftool-debuginfo
