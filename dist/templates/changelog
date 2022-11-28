@@ -1,3 +1,7 @@
+* Mon Nov 28 2022 Kairui Song <kasong@tencent.com> - 5.18.19-1.ocks
+- Rebase to 5.18.19
+- Fix multiple issues with distro integration
+
 * Mon Aug 08 2022 Kairui Song <kasong@tencent.com> - 5.18.15-2207.2.0.ocks
 - Rebase to 5.18.15
 - Fix multiple issues related to distro integration
