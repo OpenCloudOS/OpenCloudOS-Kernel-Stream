@@ -875,6 +875,7 @@ static struct ctl_table ceph_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_douintvec_minmax,
 	},
+	{}
 };
 
 static struct ctl_table ceph_dir_table[] = {
