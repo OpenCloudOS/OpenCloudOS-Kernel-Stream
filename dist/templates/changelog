@@ -1,4 +1,10 @@
-* Mon Nov 28 2022 Kairui Song <kasong@tencent.com> - 5.18.19-1.ocks
+* Thu Dec  8 2022 Kairui Song <kasong@tencent.com> - 5.18.19-2207.4.0.ocks
+- x86/mpparse, kexec: switch apic driver early when x2apic is pre-enabled
+- x86, apic: add a more generic early_probe
+- ceph: fix memory out of bound on module load
+- dist: prefer user specified tag if a commit have multiple commit
+
+* Mon Nov 28 2022 Kairui Song <kasong@tencent.com> - 5.18.19-2207.3.0.ocks
 - Rebase to 5.18.19
 - Fix multiple issues with distro integration
 
