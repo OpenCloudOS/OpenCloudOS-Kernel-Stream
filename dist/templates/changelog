@@ -1,3 +1,6 @@
+* Fri Dec 16 2022 Kairui Song <kasong@tencent.com> - 5.18.19-2207.4.2.stream
+- dist: update build time dependency
+
 * Fri Dec 16 2022 Kairui Song <kasong@tencent.com> - 5.18.19-2207.4.1.stream
 - dist: change KDIST
 
