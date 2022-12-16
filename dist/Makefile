@@ -15,7 +15,7 @@ $(error Can't detect Makefile, aborting)
 endif
 
 ### Downstream marker, update this when forking to another downstream
-KDIST = ocks
+KDIST = stream
 
 ### Vendor mark
 VENDOR = opencloudos
