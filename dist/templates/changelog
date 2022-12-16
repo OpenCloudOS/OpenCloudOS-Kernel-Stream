@@ -1,3 +1,6 @@
+* Fri Dec 16 2022 Kairui Song <kasong@tencent.com> - 5.18.19-2207.4.1.stream
+- dist: change KDIST
+
 * Thu Dec  8 2022 Kairui Song <kasong@tencent.com> - 5.18.19-2207.4.0.ocks
 - x86/mpparse, kexec: switch apic driver early when x2apic is pre-enabled
 - x86, apic: add a more generic early_probe
