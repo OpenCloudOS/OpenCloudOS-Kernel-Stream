@@ -24,6 +24,9 @@ struct rdma_cgroup {
 	 * that belongs to this cgroup.
 	 */
 	struct list_head		rpools;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct rdmacg_device {

@@ -870,6 +870,9 @@ struct zone {
 	/* Zone statistics */
 	atomic_long_t		vm_stat[NR_VM_ZONE_STAT_ITEMS];
 	atomic_long_t		vm_numa_event[NR_VM_NUMA_EVENT_ITEMS];
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 } ____cacheline_internodealigned_in_smp;
 
 enum pgdat_flags {
@@ -1229,6 +1232,9 @@ typedef struct pglist_data {
 #ifdef CONFIG_NUMA
 	struct memory_tier __rcu *memtier;
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 } pg_data_t;
 
 #define node_present_pages(nid)	(NODE_DATA(nid)->node_present_pages)

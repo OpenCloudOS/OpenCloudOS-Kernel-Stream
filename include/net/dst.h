@@ -19,6 +19,7 @@
 #include <net/neighbour.h>
 #include <asm/processor.h>
 #include <linux/indirect_call_wrapper.h>
+#include <linux/kabi.h>
 
 struct sk_buff;
 
@@ -78,6 +79,9 @@ struct dst_entry {
 	atomic_t		__refcnt;	/* 32-bit offset 64 */
 #endif
 	netdevice_tracker	dev_tracker;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct dst_metrics {

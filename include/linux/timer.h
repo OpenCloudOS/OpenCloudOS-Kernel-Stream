@@ -26,6 +26,7 @@ struct timer_list {
 
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
+	KABI_RESERVE(3);
 };
 
 #ifdef CONFIG_LOCKDEP

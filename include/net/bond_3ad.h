@@ -241,6 +241,11 @@ typedef struct port {
 	struct port *next_port_in_aggregator;	/* Next port on the linked list of the parent aggregator */
 	u32 transaction_id;		/* continuous number for identification of Marker PDU's; */
 	struct lacpdu lacpdu;		/* the lacpdu that will be sent for this port */
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } port_t;
 
 /* system structure */

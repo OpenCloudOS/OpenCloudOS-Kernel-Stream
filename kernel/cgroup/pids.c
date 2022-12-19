@@ -54,6 +54,11 @@ struct pids_cgroup {
 
 	/* Number of times fork failed because limit was hit. */
 	atomic64_t			events_limit;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 static struct pids_cgroup *css_pids(struct cgroup_subsys_state *css)

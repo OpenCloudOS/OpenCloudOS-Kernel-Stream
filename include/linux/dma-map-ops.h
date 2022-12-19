@@ -9,6 +9,8 @@
 #include <linux/dma-mapping.h>
 #include <linux/pgtable.h>
 
+#include <linux/kabi.h>
+
 struct cma;
 
 /*
@@ -81,6 +83,11 @@ struct dma_map_ops {
 	size_t (*max_mapping_size)(struct device *dev);
 	size_t (*opt_mapping_size)(void);
 	unsigned long (*get_merge_boundary)(struct device *dev);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 #ifdef CONFIG_DMA_OPS
