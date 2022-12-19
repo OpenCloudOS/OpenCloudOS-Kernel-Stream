@@ -6990,6 +6990,7 @@ static int shrink_all_zones(unsigned long nr_pages, int pass,
 					}
 					nr_to_scan -= batch;
 				}
+				cond_resched();
 			}
 		}
 		pagecache_reclaim_unlock_zone(zone);
