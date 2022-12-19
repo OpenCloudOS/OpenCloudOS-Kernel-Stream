@@ -2219,6 +2219,7 @@ struct inode_operations {
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);
 	KABI_RESERVE(4);
+	KABI_RESERVE(5);
 } ____cacheline_aligned;
 
 static inline ssize_t call_read_iter(struct file *file, struct kiocb *kio,
@@ -2297,6 +2298,9 @@ struct super_operations {
 				  struct shrink_control *);
 	long (*free_cached_objects)(struct super_block *,
 				    struct shrink_control *);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 /*
