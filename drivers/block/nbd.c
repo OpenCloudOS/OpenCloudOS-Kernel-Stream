@@ -335,7 +335,8 @@ static int nbd_set_size(struct nbd_device *nbd, loff_t bytesize,
 		nbd->disk->queue->limits.discard_granularity = blksize;
 		blk_queue_max_discard_sectors(nbd->disk->queue, UINT_MAX);
 	}
-	blk_queue_logical_block_size(nbd->disk->queue, blksize);
+	if (!nbd->disk->queue->limits.nbd_ignore_blksize_set)
+		blk_queue_logical_block_size(nbd->disk->queue, blksize);
 	blk_queue_physical_block_size(nbd->disk->queue, blksize);
 
 	if (max_part)
@@ -1576,6 +1577,8 @@ static int nbd_open(struct block_device *bdev, fmode_t mode)
 			goto out;
 		}
 		nbd->config = config;
+		if (nbd->disk->queue->limits.nbd_ignore_blksize_set)
+			nbd->config->blksize_bits = 512;
 		refcount_set(&nbd->config_refs, 1);
 		refcount_inc(&nbd->refs);
 		mutex_unlock(&nbd->config_lock);
@@ -1990,6 +1993,8 @@ again:
 		return PTR_ERR(config);
 	}
 	nbd->config = config;
+	if (nbd->disk->queue->limits.nbd_ignore_blksize_set)
+		nbd->config->blksize_bits = 512;
 	refcount_set(&nbd->config_refs, 1);
 	set_bit(NBD_RT_BOUND, &config->runtime_flags);
 
