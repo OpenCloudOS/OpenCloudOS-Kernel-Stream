@@ -4745,6 +4745,8 @@ static void tcp_ofo_queue(struct sock *sk)
 
 		if (unlikely(!after(TCP_SKB_CB(skb)->end_seq, tp->rcv_nxt))) {
 			tcp_drop_reason(sk, skb, SKB_DROP_REASON_TCP_OFO_DROP);
+			NET_INC_DROPSTATS(sock_net(sk),
+					  LINUX_MIB_TCPOFODUPDROP);
 			continue;
 		}
 
@@ -5024,6 +5026,7 @@ static void tcp_data_queue(struct sock *sk, struct sk_buff *skb)
 	}
 
 	if (TCP_SKB_CB(skb)->seq == TCP_SKB_CB(skb)->end_seq) {
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPDQNODATADROP);
 		__kfree_skb(skb);
 		return;
 	}
@@ -5091,6 +5094,7 @@ queue_and_out:
 		tcp_dsack_set(sk, TCP_SKB_CB(skb)->seq, TCP_SKB_CB(skb)->end_seq);
 
 out_of_window:
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPOOWDROP);
 		tcp_enter_quickack_mode(sk, TCP_MAX_QUICKACKS);
 		inet_csk_schedule_ack(sk);
 drop:
@@ -5640,6 +5644,8 @@ static void tcp_check_urg(struct sock *sk, const struct tcphdr *th)
 		if (skb && !before(tp->copied_seq, TCP_SKB_CB(skb)->end_seq)) {
 			__skb_unlink(skb, &sk->sk_receive_queue);
 			__kfree_skb(skb);
+			NET_INC_DROPSTATS(sock_net(sk),
+					  LINUX_MIB_TCPURGDROP);
 		}
 	}
 
@@ -5737,6 +5743,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 			goto reset;
 		}
 		SKB_DR_SET(reason, TCP_INVALID_SEQUENCE);
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPCHECKSEQDROP);
 		goto discard;
 	}
 
@@ -5780,6 +5787,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 			tcp_fastopen_active_disable(sk);
 		tcp_send_challenge_ack(sk);
 		SKB_DR_SET(reason, TCP_RESET);
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPCHECKRSTDROP);
 		goto discard;
 	}
 
@@ -5999,8 +6007,10 @@ step5:
 	reason = tcp_ack(sk, skb, FLAG_SLOWPATH | FLAG_UPDATE_TS_RECENT);
 	if ((int)reason < 0) {
 		reason = -reason;
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPINVALIDACKDROP);
 		goto discard;
 	}
+
 	tcp_rcv_rtt_measure_ts(sk, skb);
 
 	/* Process urgent data. */
@@ -6223,6 +6233,8 @@ static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 			tcp_reset(sk, skb);
 consume:
 			__kfree_skb(skb);
+			NET_INC_DROPSTATS(sock_net(sk),
+					  LINUX_MIB_TCPRCVSTATEPROCDROP);
 			return 0;
 		}
 
@@ -6235,8 +6247,11 @@ consume:
 		 */
 		if (!th->syn) {
 			SKB_DR_SET(reason, TCP_FLAGS);
+			NET_INC_DROPSTATS(sock_net(sk),
+					LINUX_MIB_TCPNOSYNDROP);
 			goto discard_and_undo;
 		}
+
 		/* rfc793:
 		 *   "If the SYN bit is on ...
 		 *    are acceptable then ...
@@ -6328,6 +6343,7 @@ consume:
 		 *      Otherwise (no ACK) drop the segment and return."
 		 */
 		SKB_DR_SET(reason, TCP_RESET);
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPRSTDROP);
 		goto discard_and_undo;
 	}
 
@@ -6335,8 +6351,10 @@ consume:
 	if (tp->rx_opt.ts_recent_stamp && tp->rx_opt.saw_tstamp &&
 	    tcp_paws_reject(&tp->rx_opt, 0)) {
 		SKB_DR_SET(reason, TCP_RFC7323_PAWS);
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPPAWSDROP);
 		goto discard_and_undo;
 	}
+
 	if (th->syn) {
 		/* We see SYN without ACK. It is attempt of
 		 * simultaneous connect with crossed SYNs.
@@ -6396,6 +6414,8 @@ discard_and_undo:
 	tcp_clear_options(&tp->rx_opt);
 	tp->rx_opt.mss_clamp = saved_clamp;
 	tcp_drop_reason(sk, skb, reason);
+	NET_INC_DROPSTATS(sock_net(sk),
+					  LINUX_MIB_TCPRCVSTATEPROCDROP);
 	return 0;
 
 reset_and_undo:
@@ -6520,8 +6540,10 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 
 	if (!th->ack && !th->rst && !th->syn) {
 		SKB_DR_SET(reason, TCP_FLAGS);
+		NET_INC_DROPSTATS(sock_net(sk), LINUX_MIB_TCPNOACKDROP);
 		goto discard;
 	}
+
 	if (!tcp_validate_incoming(sk, skb, th, 0))
 		return 0;
 

@@ -1683,6 +1683,8 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 		if (nsk != sk) {
 			if (tcp_child_process(sk, nsk, skb)) {
 				rsk = nsk;
+				NET_INC_DROPSTATS(sock_net(sk),
+						  LINUX_MIB_TCPCHILDPROCDROP);
 				goto reset;
 			}
 			return 0;
@@ -1692,6 +1694,8 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 
 	if (tcp_rcv_state_process(sk, skb)) {
 		rsk = sk;
+		NET_INC_DROPSTATS(sock_net(sk),
+				  LINUX_MIB_TCPRCVSTATEPROCDROP);
 		goto reset;
 	}
 	return 0;
@@ -1940,8 +1944,10 @@ int tcp_v4_rcv(struct sk_buff *skb)
 	/* Count it even if it's bad */
 	__TCP_INC_STATS(net, TCP_MIB_INSEGS);
 
-	if (!pskb_may_pull(skb, sizeof(struct tcphdr)))
+	if (!pskb_may_pull(skb, sizeof(struct tcphdr))) {
+		__NET_INC_DROPSTATS(net, LINUX_MIB_TCPBADPKTDROP);
 		goto discard_it;
+	}
 
 	th = (const struct tcphdr *)skb->data;
 
@@ -1949,8 +1955,10 @@ int tcp_v4_rcv(struct sk_buff *skb)
 		drop_reason = SKB_DROP_REASON_PKT_TOO_SMALL;
 		goto bad_packet;
 	}
-	if (!pskb_may_pull(skb, th->doff * 4))
+	if (!pskb_may_pull(skb, th->doff * 4)) {
+		__NET_INC_DROPSTATS(net, LINUX_MIB_TCPBADPKTDROP);
 		goto discard_it;
+	}
 
 	/* An explanation is required here, I think.
 	 * Packet length and doff are validated by header prediction,
@@ -1988,6 +1996,7 @@ process:
 		if (unlikely(drop_reason)) {
 			sk_drops_add(sk, skb);
 			reqsk_put(req);
+			__NET_INC_DROPSTATS(net, LINUX_MIB_TCPMD5DROP);
 			goto discard_it;
 		}
 		if (tcp_checksum_complete(skb)) {
@@ -2057,18 +2066,22 @@ process:
 
 	if (!xfrm4_policy_check(sk, XFRM_POLICY_IN, skb)) {
 		drop_reason = SKB_DROP_REASON_XFRM_POLICY;
+		__NET_INC_DROPSTATS(net, LINUX_MIB_TCPXFRMDROP);
 		goto discard_and_relse;
 	}
 
 	drop_reason = tcp_inbound_md5_hash(sk, skb, &iph->saddr,
 					   &iph->daddr, AF_INET, dif, sdif);
-	if (drop_reason)
+	if (drop_reason) {
+		__NET_INC_DROPSTATS(net, LINUX_MIB_TCPMD5DROP);
 		goto discard_and_relse;
+	}
 
 	nf_reset_ct(skb);
 
 	if (tcp_filter(sk, skb)) {
 		drop_reason = SKB_DROP_REASON_SOCKET_FILTER;
+		__NET_INC_DROPSTATS(net, LINUX_MIB_TCPFILTERDROP);
 		goto discard_and_relse;
 	}
 	th = (const struct tcphdr *)skb->data;
@@ -2102,6 +2115,7 @@ put_and_return:
 	return ret;
 
 no_tcp_socket:
+	__NET_INC_DROPSTATS(net, LINUX_MIB_TCPNOSOCKETDROP);
 	drop_reason = SKB_DROP_REASON_NO_SOCKET;
 	if (!xfrm4_policy_check(NULL, XFRM_POLICY_IN, skb))
 		goto discard_it;
@@ -2135,6 +2149,7 @@ do_time_wait:
 	if (!xfrm4_policy_check(NULL, XFRM_POLICY_IN, skb)) {
 		drop_reason = SKB_DROP_REASON_XFRM_POLICY;
 		inet_twsk_put(inet_twsk(sk));
+		__NET_INC_DROPSTATS(net, LINUX_MIB_TCPXFRMDROP);
 		goto discard_it;
 	}
 
@@ -2172,6 +2187,7 @@ do_time_wait:
 		goto discard_it;
 	case TCP_TW_SUCCESS:;
 	}
+	__NET_INC_DROPSTATS(net, LINUX_MIB_TCPTWDROP);
 	goto discard_it;
 }
 
