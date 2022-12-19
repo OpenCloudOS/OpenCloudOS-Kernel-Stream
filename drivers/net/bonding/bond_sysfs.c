@@ -753,6 +753,46 @@ static ssize_t bonding_show_ad_user_port_key(struct device *d,
 static DEVICE_ATTR(ad_user_port_key, 0644,
 		   bonding_show_ad_user_port_key, bonding_sysfs_store_option);
 
+static ssize_t bonding_show_broadcast_arp(struct device *d,
+					  struct device_attribute *attr, char *buf)
+{
+	struct bonding *bond = to_bond(d);
+
+	return sprintf(buf, "%d\n", bond->params.broadcast_arp);
+}
+
+static ssize_t bonding_store_broadcast_arp(struct device *d,
+					   struct device_attribute *attr,
+					   const char *buf, size_t count)
+{
+	int new_value, ret = count;
+	struct bonding *bond = to_bond(d);
+
+	if (sscanf(buf, "%d", &new_value) != 1) {
+		pr_err("%s: no broadcast arp value specified.\n",
+				bond->dev->name);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	if (new_value != 0 && new_value != 1) {
+		pr_err("%s: Invalid broadcast arp value %d not in range 0-1; rejected.\n",
+				bond->dev->name, new_value);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	pr_info("%s: Setting broadcast arp to %d.\n",
+			bond->dev->name, new_value);
+	bond->params.broadcast_arp = new_value;
+
+out:
+	return ret;
+}
+
+static DEVICE_ATTR(broadcast_arp, S_IRUGO | S_IWUSR,
+				   bonding_show_broadcast_arp, bonding_store_broadcast_arp);
+
 static struct attribute *per_bond_attrs[] = {
 	&dev_attr_slaves.attr,
 	&dev_attr_mode.attr,
@@ -792,6 +832,7 @@ static struct attribute *per_bond_attrs[] = {
 	&dev_attr_ad_actor_system.attr,
 	&dev_attr_ad_user_port_key.attr,
 	&dev_attr_arp_missed_max.attr,
+	&dev_attr_broadcast_arp.attr,
 	NULL,
 };
 
