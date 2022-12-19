@@ -564,6 +564,14 @@ static struct ctl_table ipv4_table[] = {
 		.extra1		= SYSCTL_ZERO,
 	},
 	{
+		.procname	= "tcp_init_cwnd",
+		.data		= &sysctl_tcp_init_cwnd,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+		.extra1 	= SYSCTL_ONE,
+	},
+	{
 		.procname	= "udp_mem",
 		.data		= &sysctl_udp_mem,
 		.maxlen		= sizeof(sysctl_udp_mem),

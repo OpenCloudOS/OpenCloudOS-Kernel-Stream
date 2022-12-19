@@ -431,7 +431,7 @@ void tcp_init_sock(struct sock *sk)
 	 * algorithms that we must have the following bandaid to talk
 	 * efficiently to them.  -DaveM
 	 */
-	tcp_snd_cwnd_set(tp, TCP_INIT_CWND);
+	tcp_snd_cwnd_set(tp, sysctl_tcp_init_cwnd);
 
 	/* There's a bubble in the pipe until at least the first ACK. */
 	tp->app_limited = ~0U;

@@ -85,6 +85,7 @@ int sysctl_tcp_max_orphans __read_mostly = NR_FILE;
 int sysctl_tcp_tw_ignore_syn_tsval_zero __read_mostly = 1;
 int sysctl_tcp_loss_init_cwnd = 1;
 int sysctl_tcp_no_delay_ack;
+int sysctl_tcp_init_cwnd = TCP_INIT_CWND;
 
 #define FLAG_DATA		0x01 /* Incoming frame contained data.		*/
 #define FLAG_WIN_UPDATE		0x02 /* Incoming ACK was a window update.	*/
@@ -982,7 +983,7 @@ __u32 tcp_init_cwnd(const struct tcp_sock *tp, const struct dst_entry *dst)
 	__u32 cwnd = (dst ? dst_metric(dst, RTAX_INITCWND) : 0);
 
 	if (!cwnd)
-		cwnd = TCP_INIT_CWND;
+		cwnd = sysctl_tcp_init_cwnd;
 	return min_t(__u32, cwnd, tp->snd_cwnd_clamp);
 }
 
