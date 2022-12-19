@@ -5166,6 +5166,8 @@ static struct slave *bond_xdp_xmit_3ad_xor_slave_get(struct bonding *bond,
 	return slaves->arr[hash % count];
 }
 
+static netdev_tx_t bond_xmit_broadcast(struct sk_buff *skb,
+				       struct net_device *bond_dev);
 /* Use this Xmit function for 3AD as well as XOR modes. The current
  * usable slave array is formed in the control path. The xmit function
  * just calculates hash and sends the packet out.
@@ -5176,6 +5178,10 @@ static netdev_tx_t bond_3ad_xor_xmit(struct sk_buff *skb,
 	struct bonding *bond = netdev_priv(dev);
 	struct bond_up_slave *slaves;
 	struct slave *slave;
+
+	/* Broadcast arp to all slaves. */
+	if (bond->params.broadcast_arp && ntohs(skb->protocol) == ETH_P_ARP)
+		return bond_xmit_broadcast(skb, dev);
 
 	slaves = rcu_dereference(bond->usable_slaves);
 	slave = bond_xmit_3ad_xor_slave_get(bond, skb, slaves);
