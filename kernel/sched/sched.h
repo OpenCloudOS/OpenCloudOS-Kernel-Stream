@@ -282,6 +282,9 @@ struct rt_bandwidth {
 	u64			rt_runtime;
 	struct hrtimer		rt_period_timer;
 	unsigned int		rt_period_active;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 void __dl_clear_params(struct task_struct *p);
@@ -290,6 +293,9 @@ struct dl_bandwidth {
 	raw_spinlock_t		dl_runtime_lock;
 	u64			dl_runtime;
 	u64			dl_period;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 static inline int dl_bandwidth_enabled(void)
@@ -319,6 +325,8 @@ struct dl_bw {
 	raw_spinlock_t		lock;
 	u64			bw;
 	u64			total_bw;
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 extern void init_dl_bw(struct dl_bw *dl_b);
@@ -363,6 +371,9 @@ struct cfs_bandwidth {
 	u64			throttled_time;
 	u64			burst_time;
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 /* Task group related information */
@@ -418,6 +429,8 @@ struct task_group {
 	struct uclamp_se	uclamp[UCLAMP_CNT];
 #endif
 
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -647,6 +660,11 @@ struct cfs_rq {
 	struct list_head	throttled_list;
 #endif /* CONFIG_CFS_BANDWIDTH */
 #endif /* CONFIG_FAIR_GROUP_SCHED */
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 static inline int rt_bandwidth_enabled(void)
@@ -693,6 +711,9 @@ struct rt_rq {
 	struct rq		*rq;
 	struct task_group	*tg;
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 static inline bool rt_rq_is_runnable(struct rt_rq *rt_rq)
@@ -755,6 +776,9 @@ struct dl_rq {
 	 * by the GRUB algorithm.
 	 */
 	u64			bw_ratio;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -881,6 +905,10 @@ struct root_domain {
 	 * CPUs of the rd. Protected by RCU.
 	 */
 	struct perf_domain __rcu *pd;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
 };
 
 extern void init_defrootdomain(void);
@@ -1150,6 +1178,11 @@ struct rq {
 	unsigned int		core_forceidle_occupation;
 	u64			core_forceidle_start;
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED

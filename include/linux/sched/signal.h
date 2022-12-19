@@ -245,6 +245,16 @@ struct signal_struct {
 						 * and may have inconsistent
 						 * permissions.
 						 */
+
+	/*
+	 * signal_struct is always dynamically allocated at process
+	 * creation time and not embedded directly into other structure.
+	 * So it is also safe to extend the size of the structure.
+	 */
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } __randomize_layout;
 
 /*
