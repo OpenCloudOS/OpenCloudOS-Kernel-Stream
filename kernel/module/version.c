@@ -76,14 +76,57 @@ int check_modstruct_version(const struct load_info *info,
 	return check_version(info, "module_layout", mod, fsa.crc);
 }
 
-/* First part is kernel version, which we ignore if module has crcs. */
+/*
+ * Kernel module magic looks like this:
+ * vermagic: 5.18.0-2207.3.0.tks SMP preempt mod_unload modversions.
+ * We check the major version (5.18.0) and first digit of release number.
+ * NOTE: if first digit of release number is 0, it's a test build,
+ * must do a full check.
+ */
 int same_magic(const char *amagic, const char *bmagic,
 	       bool has_crcs)
 {
+	int l1, l2, l3, l4, l5, l6;
 	if (has_crcs) {
-		amagic += strcspn(amagic, " ");
-		bmagic += strcspn(bmagic, " ");
+		l1 = strcspn(amagic, " ");
+		l2 = strcspn(bmagic, " ");
+		l3 = strcspn(amagic, "-");
+		l4 = strcspn(bmagic, "-");
+
+		if (l3 > l1 || l4 > l2)
+			goto check_all;
+
+		if (l3 != l4 || memcmp(amagic, bmagic, l3))
+			return false;
+
+		amagic += l3;
+		bmagic += l4;
+
+		l1 = strcspn(amagic, " ");
+		l2 = strcspn(bmagic, " ");
+		l3 = strcspn(amagic, ".");
+		l4 = strcspn(bmagic, ".");
+
+		if (l3 > l1 || l4 > l2)
+			goto check_all;
+
+		if (amagic[0] == '0' || bmagic[0] == '0')
+			goto check_all;
+
+		l5 = l3 + 1 + strcspn(amagic + l3 + 1, ".");
+		l6 = l4 + 1 + strcspn(bmagic + l4 + 1, ".");
+
+		if (l5 > l1 || l6 > l2)
+			goto check_all;
+
+		if (l5 != l6 || memcmp(amagic, bmagic, l5))
+			return false;
+
+		amagic += l1;
+		bmagic += l2;
 	}
+
+check_all:
 	return strcmp(amagic, bmagic) == 0;
 }
 
