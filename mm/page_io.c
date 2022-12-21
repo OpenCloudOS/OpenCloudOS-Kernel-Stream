@@ -207,6 +207,7 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 out:
 	return ret;
 }
+EXPORT_SYMBOL(swap_writepage);
 
 static inline void count_swpout_vm_event(struct page *page)
 {
