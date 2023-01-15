@@ -381,24 +381,27 @@ _get_rel_info_from_tag() {
 }
 
 _search_for_release_tag() {
-	local tag=$1
-	local repo=$2
+	local gitref=$1; shift
+	local tag
 
 	# Look back for 5 commits for a valid tag
 	local limit=5
-	while :; do
+	while [[ $limit -gt 0 ]]; do
+		# Check if any tag is eligible as a release tag
+		for tag in $(git "$@" tag --points-at "$gitref"); do
+			if _get_rel_info_from_tag "$tag" > /dev/null; then
+				echo "$tag"
+				return 0
+			fi
+		done
+
+		# Find a previous tagged commit
+		gitref=$(git "$@" describe --tags --abbrev=0 "$gitref^" 2>/dev/null)
 		limit=$((limit - 1))
-
-		if [[ $limit -le 0 ]] || ! tag=$(git -C "$repo" describe --tags --abbrev=0 "$tag" 2>/dev/null); then
-			warn "No valid tag found that are eligible for versioning, please fix your repo and tag it properly."
-			return 1
-		fi
-
-		if _get_rel_info_from_tag "$tag" > /dev/null; then
-			echo "$tag"
-			return 0
-		fi
 	done
+
+	warn "No valid tag found that are eligible for versioning, please fix your repo and tag it properly."
+	return 1
 }
 
 # Get release info from git tag
@@ -449,7 +452,7 @@ get_kernel_git_version()
 		release_tag=$last_tag
 	else
 		warn "Latest git tag '$last_tag' is not a release tag, it does't match Makefile version '$KVERSION.$KPATCHLEVEL.$KSUBLEVEL-$KEXTRAVERSION'"
-		if release_tag=$(_search_for_release_tag "$last_tag" "$repo"); then
+		if release_tag=$(_search_for_release_tag "$last_tag" -C "$repo"); then
 			warn "Found release tag '$release_tag'."
 		fi
 	fi
@@ -499,7 +502,7 @@ get_kernel_git_version()
 			fi
 
 			# If current tag is release tag, previous release tag should be another one
-			KERNEL_PREV_RELREASE_TAG=$(_search_for_release_tag ${release_tag}^ "$repo")
+			KERNEL_PREV_RELREASE_TAG=$(_search_for_release_tag ${release_tag}^ -C "$repo")
 
 		elif [[ "$last_tag" == "$git_desc" ]]; then
 			# It's tagged, but the tag is not a release tag
