@@ -269,7 +269,7 @@ against the %{version}-%{release} kernel package.
 ### Kernel debuginfo package
 %package debuginfo
 Summary: Debug information for package %{rpm_name}
-Requires: %{rpm_name}-debuginfo-common-%{_target_cpu}
+Requires: %{rpm_name}-debuginfo-common
 Provides: installonlypkg(kernel)
 Provides: kernel-debuginfo = %{version}-%{release}
 AutoReqProv: no
@@ -293,11 +293,11 @@ This is required to use SystemTap with %{rpm_name}.
 
 %if %{with_debuginfo}
 ### Common debuginfo package
-%package debuginfo-common-%{_target_cpu}
+%package debuginfo-common
 Summary: Kernel source files used by %{rpm_name}-debuginfo packages
 Provides: installonlypkg(kernel)
 Provides: kernel-debuginfo-common = %{version}-%{release}
-%description debuginfo-common-%{_target_cpu}
+%description debuginfo-common
 This package is required by %{rpm_name}-debuginfo subpackages.
 It provides the kernel source files common to all builds.
 # No need to define extra debuginfo search rule here, use debugfiles.list
@@ -330,7 +330,7 @@ of the Linux kernel.
 
 %package -n perf-debuginfo
 Summary: Debug information for package perf
-Requires: %{rpm_name}-debuginfo-common-%{_target_cpu} = %{version}-%{release}
+Requires: %{rpm_name}-debuginfo-common = %{version}-%{release}
 AutoReqProv: no
 %description -n perf-debuginfo
 This package provides debug information for the perf package.
@@ -339,7 +339,7 @@ This package provides debug information for the perf package.
 # symlinks because of the trailing nonmatching alternation and
 # the leading .*, because of find-debuginfo.sh's buggy handling
 # of matching the pattern against the symlinks file.
-%global _find_debuginfo_opts %{_find_debuginfo_opts} -p '.*%{_bindir}/perf(.*\.debug)?|.*%{_libexecdir}/perf-core/.*|.*%{_libdir}/libperf-jvmti.so(.*\.debug)?|XXX' -o perf-debuginfo.list
+%global _find_debuginfo_opts %{_find_debuginfo_opts} -p '.*%{_bindir}/perf(.*\.debug)?|.*%{_libexecdir}/perf-core/.*|.*%{_libdir}/libperf-jvmti.so(.*\.debug)?|.*%{_libdir}/traceevent/(.*\.debug)?|XXX' -o perf-debuginfo.list
 
 %package -n python3-perf
 Summary: Python bindings for apps which will manipulate perf events
@@ -350,7 +350,7 @@ to manipulate perf events.
 
 %package -n python3-perf-debuginfo
 Summary: Debug information for package perf python bindings
-Requires: %{rpm_name}-debuginfo-common-%{_target_cpu} = %{version}-%{release}
+Requires: %{rpm_name}-debuginfo-common = %{version}-%{release}
 AutoReqProv: no
 %description -n python3-perf-debuginfo
 This package provides debug information for the perf python bindings.
@@ -401,7 +401,7 @@ the kernel source.
 
 %package -n kernel-tools-debuginfo
 Summary: Debug information for package kernel-tools
-Requires: %{rpm_name}-debuginfo-common-%{_target_cpu} = %{version}-%{release}
+Requires: %{rpm_name}-debuginfo-common = %{version}-%{release}
 AutoReqProv: no
 %description -n kernel-tools-debuginfo
 This package provides debug information for package kernel-tools.
@@ -424,7 +424,7 @@ manipulation of eBPF programs and maps.
 
 %package -n bpftool-debuginfo
 Summary: Debug information for package bpftool
-Requires: %{rpm_name}-debuginfo-common-%{_target_cpu} = %{version}-%{release}
+Requires: %{rpm_name}-debuginfo-common = %{version}-%{release}
 AutoReqProv: no
 %description -n bpftool-debuginfo
 This package provides debug information for the bpftool package.
@@ -1175,7 +1175,7 @@ fi
 %endif
 
 %if %{with_debuginfo}
-%files debuginfo-common-%{_target_cpu} -f debugfiles.list
+%files debuginfo-common -f debugfiles.list
 %defattr(-,root,root)
 %endif
 
