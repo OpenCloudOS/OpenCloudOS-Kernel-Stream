@@ -191,6 +191,14 @@ config ZSMALLOC_STAT
 	  information to userspace via debugfs.
 	  If unsure, say N.
 
+config PAGECACHE_LIMIT
+	bool "Page cache limit"
+	help
+	  This options allow user to set a limit for the page cache.
+	  For details, see Documentation/mm/pagecache-limit.
+
+	  If unsure, say N.
+
 menu "SLAB allocator options"
 
 choice
