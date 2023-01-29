@@ -109,6 +109,7 @@ static struct pid_namespace *create_pid_namespace(struct user_namespace *user_ns
 	ns->user_ns = get_user_ns(user_ns);
 	ns->ucounts = ucounts;
 	ns->pid_allocated = PIDNS_ADDING;
+	ns->max_map_count = parent_pid_ns->max_map_count;
 
 	return ns;
 
