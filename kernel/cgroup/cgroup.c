@@ -164,7 +164,12 @@ static struct static_key_true *cgroup_subsys_on_dfl_key[] = {
 static DEFINE_PER_CPU(struct cgroup_rstat_cpu, cgrp_dfl_root_rstat_cpu);
 
 /* the default hierarchy */
-struct cgroup_root cgrp_dfl_root = { .cgrp.rstat_cpu = &cgrp_dfl_root_rstat_cpu };
+struct cgroup_root cgrp_dfl_root = {
+	.cgrp.rstat_cpu = &cgrp_dfl_root_rstat_cpu,
+#ifdef CONFIG_PSI
+	.cgrp.psi = &psi_system,
+#endif
+};
 EXPORT_SYMBOL_GPL(cgrp_dfl_root);
 
 /*
