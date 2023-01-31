@@ -2079,6 +2079,7 @@ int cgroup_setup_root(struct cgroup_root *root, u16 ss_mask)
 	root_cgrp->kn = kernfs_root_to_node(root->kf_root);
 	WARN_ON_ONCE(cgroup_ino(root_cgrp) != 1);
 	root_cgrp->ancestors[0] = root_cgrp;
+	root_cgrp->psi = &psi_system;
 
 	ret = css_populate_dir(&root_cgrp->self);
 	if (ret)
