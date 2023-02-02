@@ -5336,6 +5336,21 @@ static int mem_cgroup_vmstat_read(struct seq_file *m, void *vv)
 	return mem_cgroup_vmstat_read_comm(m, vv, memcg);
 }
 
+static ssize_t memory_reclaim(struct kernfs_open_file *of, char *buf,
+			      size_t nbytes, loff_t off);
+static u64 memory_current_read(struct cgroup_subsys_state *css,
+			       struct cftype *cft);
+static int memory_low_show(struct seq_file *m, void *v);
+static ssize_t memory_low_write(struct kernfs_open_file *of,
+				char *buf, size_t nbytes, loff_t off);
+static int memory_high_show(struct seq_file *m, void *v);
+static ssize_t memory_high_write(struct kernfs_open_file *of,
+				 char *buf, size_t nbytes, loff_t off);
+static int memory_max_show(struct seq_file *m, void *v);
+static ssize_t memory_max_write(struct kernfs_open_file *of,
+				char *buf, size_t nbytes, loff_t off);
+static int memory_events_show(struct seq_file *m, void *v);
+
 static struct cftype mem_cgroup_legacy_files[] = {
 	{
 		.name = "usage_in_bytes",
@@ -5484,6 +5499,38 @@ static struct cftype mem_cgroup_legacy_files[] = {
 		.release = cgroup_pressure_release,
 	},
 #endif /* CONFIG_PSI */
+	{
+		.name = "current",
+		.read_u64 = memory_current_read,
+	},
+	{
+		.name = "low",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = memory_low_show,
+		.write = memory_low_write,
+	},
+	{
+		.name = "high",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = memory_high_show,
+		.write = memory_high_write,
+	},
+	{
+		.name = "max",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = memory_max_show,
+		.write = memory_max_write,
+	},
+	{
+		.name = "events",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = memory_events_show,
+	},
+	{
+		.name = "reclaim",
+		.flags = CFTYPE_NS_DELEGATABLE,
+		.write = memory_reclaim,
+	},
 	{ },	/* terminate */
 };
 
