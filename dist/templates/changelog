@@ -1,3 +1,13 @@
+* Thu Feb  2 2023 Kairui Song <kasong@tencent.com> - 5.18.19-2207.4.3.stream
+- dist: update debuginfo-common package
+- dist: add workaround for cross-dist build for TL2
+- dist: fix for KDIST override
+- dist: fix a few issues with multiple tag on same commit
+- dist: move wmi back to core
+- dist: fix make dependency
+- dist: make dist-new-release more robust and helpful
+- dist: fix two corner cases for versioning
+
 * Fri Dec 16 2022 Kairui Song <kasong@tencent.com> - 5.18.19-2207.4.2.stream
 - dist: update build time dependency
 
