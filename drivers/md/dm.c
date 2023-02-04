@@ -31,6 +31,8 @@
 #include <linux/blk-crypto.h>
 #include <linux/blk-crypto-profile.h>
 
+#include "../../block/blk-cgroup.h"
+
 #define DM_MSG_PREFIX "core"
 
 /*
@@ -499,6 +501,9 @@ static void dm_io_acct(struct dm_io *io, bool end)
 	struct bio *bio = io->orig_bio;
 	unsigned int sectors;
 
+	struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
+	int rw = bio_data_dir(bio);
+
 	/*
 	 * If REQ_PREFLUSH set, don't account payload, it will be
 	 * submitted (and accounted) after this flush completes.
@@ -515,6 +520,11 @@ static void dm_io_acct(struct dm_io *io, bool end)
 				   start_time);
 	else
 		bdev_end_io_acct(bio->bi_bdev, bio_op(bio), start_time);
+
+	part_stat_lock_rcu();
+	blkcg_part_stat_add(blkcg, dm_disk(md)->part0, nsecs[rw],
+			jiffies_to_nsecs(jiffies - io->start_time));
+	part_stat_unlock_rcu();
 
 	if (static_branch_unlikely(&stats_enabled) &&
 	    unlikely(dm_stats_used(&md->stats))) {
@@ -1806,7 +1816,16 @@ static void dm_submit_bio(struct bio *bio)
 	struct dm_table *map;
 	blk_opf_t bio_opf = bio->bi_opf;
 
+	struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
+	int rw = bio_data_dir(bio);
+
 	map = dm_get_live_table_bio(md, &srcu_idx, bio_opf);
+
+	part_stat_lock_rcu();
+	blkcg_part_stat_inc(blkcg, dm_disk(md)->part0, ios[rw]);
+	blkcg_part_stat_add(blkcg, dm_disk(md)->part0, sectors[rw],
+			bio_sectors(bio));
+	part_stat_unlock_rcu();
 
 	/* If suspended, or map not yet available, queue this IO for later */
 	if (unlikely(test_bit(DMF_BLOCK_IO_FOR_SUSPEND, &md->flags)) ||
