@@ -69,6 +69,7 @@
 #include "md.h"
 #include "md-bitmap.h"
 #include "md-cluster.h"
+#include "../../block/blk-cgroup.h"
 
 /* pers_list is a list of registered personalities protected by pers_lock. */
 static LIST_HEAD(pers_list);
@@ -403,6 +404,8 @@ static void md_submit_bio(struct bio *bio)
 {
 	const int rw = bio_data_dir(bio);
 	struct mddev *mddev = bio->bi_bdev->bd_disk->private_data;
+	struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
+	unsigned int sectors;
 
 	if (mddev == NULL || mddev->pers == NULL) {
 		bio_io_error(bio);
@@ -425,10 +428,16 @@ static void md_submit_bio(struct bio *bio)
 		return;
 	}
 
+	sectors = bio_sectors(bio);
 	/* bio could be mergeable after passing to underlayer */
 	bio->bi_opf &= ~REQ_NOMERGE;
 
 	md_handle_request(mddev, bio);
+
+	part_stat_lock_rcu();
+	blkcg_part_stat_inc(blkcg, mddev->gendisk->part0, ios[rw]);
+	blkcg_part_stat_add(blkcg, mddev->gendisk->part0, sectors[rw], sectors);
+	part_stat_unlock_rcu();
 }
 
 /* mddev_suspend makes sure no new requests are submitted
