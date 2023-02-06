@@ -17,6 +17,7 @@
 #include "blk-mq-sched.h"
 #include "blk-rq-qos.h"
 #include "blk-throttle.h"
+#include "blk-cgroup.h"
 
 static inline void bio_get_first_bvec(struct bio *bio, struct bio_vec *bv)
 {
@@ -925,6 +926,24 @@ enum elv_merge blk_try_merge(struct request *rq, struct bio *bio)
 	return ELEVATOR_NO_MERGE;
 }
 
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
+static void blkcg_stat_acct(struct blkcg *blkcg, struct request *req, int new_io)
+{
+	struct block_device *part = req->part;
+	int rw = rq_data_dir(req), cpu;
+
+	if (!new_io) {
+		cpu = part_stat_lock_rcu();
+		blkcg_part_stat_inc(blkcg, cpu, part, merges[rw]);
+		part_stat_unlock_rcu();
+	}
+}
+#else
+static inline void blkcg_stat_acct(struct blkcg *blkcg, struct request *req, int new_io)
+{
+}
+#endif /* CONFIG_BLK_CGROUP_DISKSTATS */
+
 static void blk_account_io_merge_bio(struct request *req)
 {
 	if (!blk_do_io_stat(req))
@@ -962,6 +981,7 @@ static enum bio_merge_status bio_attempt_back_merge(struct request *req,
 	bio_crypt_free_ctx(bio);
 
 	blk_account_io_merge_bio(req);
+	blkcg_stat_acct(css_to_blkcg(bio_blkcg_css(bio)), req, 0);
 	return BIO_MERGE_OK;
 }
 
@@ -988,6 +1008,7 @@ static enum bio_merge_status bio_attempt_front_merge(struct request *req,
 	bio_crypt_do_front_merge(req, bio);
 
 	blk_account_io_merge_bio(req);
+	blkcg_stat_acct(css_to_blkcg(bio_blkcg_css(bio)), req, 0);
 	return BIO_MERGE_OK;
 }
 
@@ -1010,6 +1031,7 @@ static enum bio_merge_status bio_attempt_discard_merge(struct request_queue *q,
 	req->nr_phys_segments = segments + 1;
 
 	blk_account_io_merge_bio(req);
+	blkcg_stat_acct(css_to_blkcg(bio_blkcg_css(bio)), req, 0);
 	return BIO_MERGE_OK;
 no_merge:
 	req_set_nomerge(q, req);

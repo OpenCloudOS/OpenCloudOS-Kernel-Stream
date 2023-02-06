@@ -104,6 +104,11 @@ struct blkcg {
 	struct list_head		cgwb_list;
 #endif
 
+	/* disk_stats for per blkcg */
+	unsigned int			dkstats_on;
+	struct list_head		dkstats_list;
+	struct blkcg_dkstats		*dkstats_hint;
+
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);
@@ -114,6 +119,63 @@ static inline struct blkcg *css_to_blkcg(struct cgroup_subsys_state *css)
 {
 	return css ? container_of(css, struct blkcg, css) : NULL;
 }
+
+struct blkcg_dkstats {
+#ifdef	CONFIG_SMP
+	struct disk_stats __percpu 	*dkstats;
+	struct list_head		alloc_node;
+#else
+	struct disk_stats		dkstats;
+#endif
+	struct block_device		*part;
+	struct list_head		list_node;
+	struct rcu_head			rcu_head;
+};
+
+struct disk_stats *blkcg_dkstats_find(struct blkcg *blkcg, int cpu,
+				      struct block_device *bdev, int *alloc);
+struct disk_stats *blkcg_dkstats_find_create(struct blkcg *blkcg,
+				      int cpu, struct block_device *bdev);
+
+#define blkcg_part_stat_add(blkcg, cpu, part, field, addnd) do {	\
+	struct disk_stats *ds;						\
+	ds = blkcg_dkstats_find_create((blkcg), (cpu), (part));		\
+	if (ds)								\
+		ds->field += (addnd);					\
+} while (0)
+
+#define blkcg_part_stat_dec(blkcg, cpu, gendiskp, field)	\
+	blkcg_part_stat_add(blkcg, cpu, gendiskp, field, -1)
+#define blkcg_part_stat_inc(blkcg, cpu, gendiskp, field)	\
+	blkcg_part_stat_add(blkcg, cpu, gendiskp, field, 1)
+#define blkcg_part_stat_sub(blkcg, cpu, gendiskp, field, subnd) \
+	blkcg_part_stat_add(blkcg, cpu, gendiskp, field, -subnd)
+
+#ifdef CONFIG_SMP
+#define blkcg_part_stat_read(blkcg, part, field)			\
+({									\
+	typeof((part)->bd_stats->field) res = 0;			\
+	unsigned int cpu;						\
+	for_each_possible_cpu(cpu) {					\
+		struct disk_stats *ds;					\
+		ds = blkcg_dkstats_find(blkcg, cpu, part, NULL);	\
+		if (!ds)						\
+			break;						\
+		res += ds->field;					\
+	}								\
+	res;								\
+})
+#else
+#define blkcg_part_stat_read(blkcg, part, field)			\
+({									\
+	typeof((part)->bd_stats->field) res = 0;			\
+	struct disk_stats *ds;						\
+	ds = blkcg_dkstats_find(blkcg, cpu, part, NULL);		\
+	if (ds)								\
+		res = ds->field;					\
+	res;								\
+})
+#endif
 
 /*
  * A blkcg_gq (blkg) is association between a block cgroup (blkcg) and a
@@ -487,6 +549,12 @@ struct blkcg_policy {
 
 struct blkcg {
 };
+
+#define blkcg_part_stat_add(blkcg, cpu, part, field, addnd) do {} while (0)
+#define blkcg_part_stat_dec(blkcg, cpu, gendiskp, field) do {} while (0)
+#define blkcg_part_stat_inc(blkcg, cpu, gendiskp, field) do {} while (0)
+#define blkcg_part_stat_sub(blkcg, cpu, gendiskp, field, subnd) do {} while (0)
+#define blkcg_part_stat_read(blkcg, part, field) do {} while (0)
 
 static inline struct blkcg_gq *blkg_lookup(struct blkcg *blkcg, void *key) { return NULL; }
 static inline int blkcg_init_disk(struct gendisk *disk) { return 0; }
