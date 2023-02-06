@@ -166,6 +166,12 @@ config BLK_CGROUP_IOPRIO
 	scheduler and block devices process requests. Only some I/O schedulers
 	and some block devices support I/O priorities.
 
+config BLK_CGROUP_DISKSTATS
+	bool "Block layer diststats support"
+	depends on BLK_CGROUP
+	help
+	  Enable the per block group diskstats support.
+
 config BLK_DEBUG_FS
 	bool "Block layer debugging information in debugfs"
 	default y

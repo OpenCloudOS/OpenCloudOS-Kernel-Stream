@@ -41,6 +41,7 @@
 #include "blk-mq-sched.h"
 #include "blk-rq-qos.h"
 #include "blk-ioprio.h"
+#include "blk-cgroup.h"
 
 static DEFINE_PER_CPU(struct llist_head, blk_cpu_done);
 static DEFINE_PER_CPU(call_single_data_t, blk_cpu_csd);
@@ -861,6 +862,43 @@ static void blk_complete_request(struct request *req)
 	}
 }
 
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
+static void blkcg_account_io_completion(struct request *req, struct bio *bio,
+					unsigned int bytes)
+{
+	if (blk_do_io_stat(req)) {
+		const int rw = bio_data_dir(bio);
+		struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
+		struct block_device *part;
+
+		part_stat_lock_rcu();
+		part = req->part;
+		blkcg_part_stat_add(blkcg, part, sectors[rw], bytes >> 9);
+		part_stat_unlock_rcu();
+	}
+}
+
+static void blkcg_account_io_done(struct request *req, struct bio *bio)
+{
+	/*
+	 * Account IO completion.  flush_rq isn't accounted as a
+	 * normal IO on queueing nor completion.  Accounting the
+	 * containing request is enough.
+	 */
+	if (blk_do_io_stat(req) && !(req->cmd_flags & RQF_FLUSH_SEQ)) {
+		unsigned long duration = ktime_get_ns() - req->start_time_ns;
+		const int rw = rq_data_dir(req);
+		struct block_device *part = req->part;
+		struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
+
+		part_stat_lock_rcu();
+		blkcg_part_stat_inc(blkcg, part, ios[rw]);
+		blkcg_part_stat_add(blkcg, part, nsecs[rw], duration);
+		part_stat_unlock_rcu();
+	}
+}
+#endif /* CONFIG_BLK_CGROUP_DISKSTATS */
+
 /**
  * blk_update_request - Complete multiple bytes without completing the request
  * @req:      the request being processed
@@ -919,6 +957,12 @@ bool blk_update_request(struct request *req, blk_status_t error,
 	while (req->bio) {
 		struct bio *bio = req->bio;
 		unsigned bio_bytes = min(bio->bi_iter.bi_size, nr_bytes);
+
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
+		blkcg_account_io_completion(req, bio, bio_bytes);
+		if (req->bio == req->biotail)
+			blkcg_account_io_done(req, bio);
+#endif /* CONFIG_BLK_CGROUP_DISKSTATS */
 
 		if (bio_bytes == bio->bi_iter.bi_size)
 			req->bio = bio->bi_next;

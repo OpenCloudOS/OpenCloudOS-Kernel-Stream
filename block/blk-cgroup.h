@@ -114,6 +114,11 @@ struct blkcg {
 #ifdef CONFIG_CGROUP_WRITEBACK
 	struct list_head		cgwb_list;
 #endif
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
+	unsigned int			dkstats_on;
+	struct list_head		dkstats_list;
+	struct blkcg_dkstats		*dkstats_hint;
+#endif
 
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
@@ -125,6 +130,77 @@ static inline struct blkcg *css_to_blkcg(struct cgroup_subsys_state *css)
 {
 	return css ? container_of(css, struct blkcg, css) : NULL;
 }
+
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
+/*
+ * Only used by CONFIG_BLK_CGROUP_DISKSTATS
+ */
+#define part_stat_lock_rcu()	({ rcu_read_lock(); part_stat_lock(); })
+#define part_stat_unlock_rcu()	do { preempt_enable(); rcu_read_unlock(); } while (0)
+
+struct blkcg_dkstats {
+	struct disk_stats __percpu 	*dkstats;
+#ifdef CONFIG_SMP
+/*
+ * !GFP_NOWAIT can't alloc inside IO path, and with SMP
+ * the struct disk_stats may get too large to be handled by
+ * !GFP_NOWAIT, so offload the allocation to a worker.
+ */
+#define BLK_CGROUP_DISKSTATS_DEFER_ALLOC
+	struct list_head		alloc_node;
+#endif
+	struct block_device		*part;
+	struct list_head		list_node;
+	struct rcu_head			rcu_head;
+};
+
+static inline int blkcg_do_io_stat(struct blkcg *blkcg)
+{
+	return blkcg->dkstats_on;
+}
+
+struct disk_stats *blkcg_dkstats_find(struct blkcg *blkcg,
+				      struct block_device *bdev, int *alloc);
+struct disk_stats *blkcg_dkstats_find_create(struct blkcg *blkcg,
+				      struct block_device *bdev);
+
+#define blkcg_part_stat_add(blkcg, part, field, addnd) do {		\
+	if (blkcg_do_io_stat(blkcg)) {					\
+		struct disk_stats *ds;					\
+		ds = blkcg_dkstats_find_create((blkcg), (part));	\
+		if (ds)							\
+			__this_cpu_add(ds->field, (addnd));		\
+	}								\
+} while (0)
+
+#define blkcg_part_stat_dec(blkcg, gendiskp, field) \
+	blkcg_part_stat_add(blkcg, gendiskp, field, -1)
+#define blkcg_part_stat_inc(blkcg, gendiskp, field) \
+	blkcg_part_stat_add(blkcg, gendiskp, field, 1)
+#define blkcg_part_stat_sub(blkcg, gendiskp, field, subnd) \
+	blkcg_part_stat_add(blkcg, gendiskp, field, -subnd)
+#define blkcg_part_stat_read(blkcg, part, field)			\
+({									\
+	typeof((part)->bd_stats->field) res = 0;			\
+	if (blkcg_do_io_stat(blkcg)) {					\
+		struct disk_stats *ds;					\
+		ds = blkcg_dkstats_find(blkcg, part, NULL);		\
+		if (ds) {						\
+			unsigned int _cpu;				\
+			for_each_possible_cpu(_cpu)			\
+				res += per_cpu_ptr(ds, _cpu)->field;	\
+		}							\
+	}								\
+	res;								\
+})
+#else
+#define part_stat_lock_rcu()
+#define part_stat_unlock_rcu()
+#define blkcg_part_stat_dec(blkcg, gendiskp, field)
+#define blkcg_part_stat_inc(blkcg, gendiskp, field)
+#define blkcg_part_stat_sub(blkcg, gendiskp, field, subnd)
+#define blkcg_part_stat_read(blkcg, part, field)
+#endif /* CONFIG_BLK_CGROUP_DISKSTATS */
 
 /*
  * A blkcg_gq (blkg) is association between a block cgroup (blkcg) and a
@@ -486,6 +562,12 @@ struct blkcg_policy {
 
 struct blkcg {
 };
+
+#define blkcg_part_stat_add(blkcg, cpu, part, field, addnd) do {} while (0)
+#define blkcg_part_stat_dec(blkcg, cpu, gendiskp, field) do {} while (0)
+#define blkcg_part_stat_inc(blkcg, cpu, gendiskp, field) do {} while (0)
+#define blkcg_part_stat_sub(blkcg, cpu, gendiskp, field, subnd) do {} while (0)
+#define blkcg_part_stat_read(blkcg, part, field) do {} while (0)
 
 static inline struct blkcg_gq *blkg_lookup(struct blkcg *blkcg, void *key) { return NULL; }
 static inline int blkcg_init_disk(struct gendisk *disk) { return 0; }
