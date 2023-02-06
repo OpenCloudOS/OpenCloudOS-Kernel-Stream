@@ -52,6 +52,10 @@ SYSTEM_MAP=$(realpath "$4")
 MODULEPKG=$5
 MODULE_DIR=lib/modules/$KERNEL_UNAMER
 
+# Some distro will hide /sbin for non-root user but we need depmod to work.
+# depmod can work well without root permission in dry-run mode.
+PATH=$PATH:/usr/sbin:/sbin
+
 error() {
 	echo "filter-modules.sh: $*" >&2
 }
