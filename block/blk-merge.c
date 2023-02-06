@@ -930,11 +930,11 @@ enum elv_merge blk_try_merge(struct request *rq, struct bio *bio)
 static void blkcg_stat_acct(struct blkcg *blkcg, struct request *req, int new_io)
 {
 	struct block_device *part = req->part;
-	int rw = rq_data_dir(req), cpu;
+	int rw = rq_data_dir(req);
 
 	if (!new_io) {
-		cpu = part_stat_lock_rcu();
-		blkcg_part_stat_inc(blkcg, cpu, part, merges[rw]);
+		part_stat_lock_rcu();
+		blkcg_part_stat_inc(blkcg, part, merges[rw]);
 		part_stat_unlock_rcu();
 	}
 }

@@ -843,11 +843,10 @@ static void blkcg_account_io_completion(struct request *req, struct bio *bio,
 		const int rw = bio_data_dir(bio);
 		struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
 		struct block_device *part;
-		int cpu;
 
-		cpu = part_stat_lock_rcu();
+		part_stat_lock_rcu();
 		part = req->part;
-		blkcg_part_stat_add(blkcg, cpu, part, sectors[rw], bytes >> 9);
+		blkcg_part_stat_add(blkcg, part, sectors[rw], bytes >> 9);
 		part_stat_unlock_rcu();
 	}
 }
@@ -864,11 +863,10 @@ static void blkcg_account_io_done(struct request *req, struct bio *bio)
 		const int rw = rq_data_dir(req);
 		struct block_device *part = req->part;
 		struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
-		int cpu;
 
-		cpu = part_stat_lock_rcu();
-		blkcg_part_stat_inc(blkcg, cpu, part, ios[rw]);
-		blkcg_part_stat_add(blkcg, cpu, part, nsecs[rw], duration);
+		part_stat_lock_rcu();
+		blkcg_part_stat_inc(blkcg, part, ios[rw]);
+		blkcg_part_stat_add(blkcg, part, nsecs[rw], duration);
 		part_stat_unlock_rcu();
 	}
 }

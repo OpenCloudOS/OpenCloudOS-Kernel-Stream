@@ -490,7 +490,12 @@ restart:
 }
 
 #ifdef CONFIG_BLK_CGROUP_DISKSTATS
-#ifdef CONFIG_SMP
+/*
+ * !GFP_NOWAIT can't alloc inside IO path, and with SMP
+ * the struct disk_stats may get too large to be handled by
+ * !GFP_NOWAIT, so offload the allocation to a worker.
+ */
+#ifdef BLK_CGROUP_DISKSTATS_DEFER_ALLOC
 static LIST_HEAD(alloc_list);
 static DEFINE_SPINLOCK(alloc_lock);
 static void dkstats_alloc_fn(struct work_struct *work)
@@ -529,7 +534,6 @@ out:
 		goto dkstats_alloc;
 	}
 }
-
 static DECLARE_DELAYED_WORK(dkstats_alloc_work, dkstats_alloc_fn);
 #endif
 
@@ -538,24 +542,25 @@ static struct blkcg_dkstats *blkcg_dkstats_alloc(struct block_device *bdev)
 	struct blkcg_dkstats *ds;
 	unsigned long flags;
 
-	/* inside io path, donot consider GFP_KERNEL */
+	/* inside io path, do not consider GFP_KERNEL */
 	ds = kzalloc(sizeof(struct blkcg_dkstats), GFP_ATOMIC);
 	if (!ds)
 		return NULL;
 
 	ds->part = bdev;
 	INIT_LIST_HEAD(&ds->list_node);
-
-#ifdef CONFIG_SMP
+#ifdef BLK_CGROUP_DISKSTATS_DEFER_ALLOC
 	INIT_LIST_HEAD(&ds->alloc_node);
-
-	/* percpu can't alloc inside IO path */
 	spin_lock_irqsave(&alloc_lock, flags);
 	list_add(&ds->alloc_node, &alloc_list);
 	schedule_delayed_work(&dkstats_alloc_work, 0);
 	spin_unlock_irqrestore(&alloc_lock, flags);
 #else
-	memset(&ds->dkstats, 0, sizeof(ds->dkstats));
+	ds->dkstats = alloc_percpu_gfp(struct iocg_pcpu_stat, GFP_NOWAIT);
+	if (!ds->dkstats) {
+		free(ds);
+		ds = NULL;
+	}
 #endif
 	return ds;
 }
@@ -565,16 +570,15 @@ static void blkcg_dkstats_rcu_free(struct rcu_head *rcu_head)
 	struct blkcg_dkstats *ds;
 	ds = container_of(rcu_head, struct blkcg_dkstats, rcu_head);
 
-#ifdef	CONFIG_SMP
 	if (ds->dkstats)
 		free_percpu(ds->dkstats);
-#endif
+
 	kfree(ds);
 }
 
 static void blkcg_dkstats_free(struct blkcg_dkstats *ds)
 {
-#ifdef CONFIG_SMP
+#ifdef BLK_CGROUP_DISKSTATS_DEFER_ALLOC
 	if (!list_empty(&ds->alloc_node)) {
 		spin_lock(&alloc_lock);
 		list_del_init(&ds->alloc_node);
@@ -610,12 +614,7 @@ static void blkcg_dkstats_free_all(struct gendisk *disk)
 	spin_unlock_irq(&q->queue_lock);
 }
 
-static inline int blkcg_do_io_stat(struct blkcg *blkcg)
-{
-	return blkcg->dkstats_on;
-}
-
-static struct blkcg_dkstats *blkcg_dkstats_find_locked(struct blkcg *blkcg, int cpu, struct block_device *bdev)
+static struct blkcg_dkstats *blkcg_dkstats_find_locked(struct blkcg *blkcg, struct block_device *bdev)
 {
 	struct blkcg_dkstats *ds;
 
@@ -632,15 +631,12 @@ static struct blkcg_dkstats *blkcg_dkstats_find_locked(struct blkcg *blkcg, int 
 	return NULL;
 }
 
-struct disk_stats *blkcg_dkstats_find(struct blkcg *blkcg, int cpu, struct block_device *bdev, int *alloc)
+struct disk_stats *blkcg_dkstats_find(struct blkcg *blkcg, struct block_device *bdev, int *alloc)
 {
 	struct blkcg_dkstats *ds;
 
 	/* blkcg_dkstats list protected by rcu */
 	WARN_ON_ONCE(!rcu_read_lock_held());
-
-	if (!blkcg_do_io_stat(blkcg))
-		return NULL;
 
 	ds = rcu_dereference(blkcg->dkstats_hint);
 	if (ds && ds->part == bdev)
@@ -656,15 +652,12 @@ struct disk_stats *blkcg_dkstats_find(struct blkcg *blkcg, int cpu, struct block
 out:
 	if (alloc)
 		*alloc = 0;
-#ifdef CONFIG_SMP
-	return ds->dkstats ? per_cpu_ptr(ds->dkstats, cpu) : NULL;
-#else
-	return &ds->dkstats;
-#endif
+
+	return ds->dkstats;
 }
 EXPORT_SYMBOL_GPL(blkcg_dkstats_find);
 
-struct disk_stats *blkcg_dkstats_find_create(struct blkcg *blkcg, int cpu, struct block_device *bdev)
+struct disk_stats *blkcg_dkstats_find_create(struct blkcg *blkcg, struct block_device *bdev)
 {
 	struct blkcg_dkstats *ds;
 	struct disk_stats *dk;
@@ -674,27 +667,21 @@ struct disk_stats *blkcg_dkstats_find_create(struct blkcg *blkcg, int cpu, struc
 	/* blkcg_dkstats list protected by rcu */
 	WARN_ON_ONCE(!rcu_read_lock_held());
 
-	if (!blkcg_do_io_stat(blkcg))
-		return NULL;
-
 	/* double lock, singleton here*/
-	dk = blkcg_dkstats_find(blkcg, cpu, bdev, &alloc);
+	dk = blkcg_dkstats_find(blkcg, bdev, &alloc);
 	if (dk || !alloc)
 		return dk;
 
 	spin_lock_irqsave(&blkcg->lock, flags);
-	ds = blkcg_dkstats_find_locked(blkcg, cpu, bdev);
+	ds = blkcg_dkstats_find_locked(blkcg, bdev);
 	if (!ds) {
 		ds = blkcg_dkstats_alloc(bdev);
 		if (!ds)
 			goto out;
 		list_add(&ds->list_node, &blkcg->dkstats_list);
 	}
-#ifdef CONFIG_SMP
-	dk = ds->dkstats ? per_cpu_ptr(ds->dkstats, cpu) : NULL;
-#else
-	dk = &ds->dkstats;
-#endif
+
+	dk = ds->dkstats;
 out:
 	spin_unlock_irqrestore(&blkcg->lock, flags);
 	return dk;
@@ -800,7 +787,6 @@ static int blkcg_dkstats_enable(struct cgroup_subsys_state *css,
 	}
 
 	list_for_each_entry(ds, &blkcg->dkstats_list, list_node) {
-#ifdef CONFIG_SMP
 		if (ds->dkstats) {
 			unsigned int cpu;
 			for_each_possible_cpu(cpu) {
@@ -808,9 +794,6 @@ static int blkcg_dkstats_enable(struct cgroup_subsys_state *css,
 				memset(dk, 0, sizeof(struct disk_stats));
 			}
 		}
-#else
-		memset(&ds->dkstats, 0, sizeof(ds->dkstats));
-#endif
 	}
 	blkcg->dkstats_on = val;
 
@@ -1474,6 +1457,7 @@ void blkcg_unpin_online(struct cgroup_subsys_state *blkcg_css)
  */
 static void blkcg_css_offline(struct cgroup_subsys_state *css)
 {
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 	struct blkcg *blkcg = css_to_blkcg(css);
 	struct blkcg_dkstats *ds, *ns;
 
@@ -1483,6 +1467,7 @@ static void blkcg_css_offline(struct cgroup_subsys_state *css)
 		blkcg_dkstats_free(ds);
 
 	spin_unlock_irq(&blkcg->lock);
+#endif
 
 	/* this prevents anyone from attaching or migrating to this blkcg */
 	wb_blkcg_offline(css);
@@ -1557,7 +1542,9 @@ blkcg_css_alloc(struct cgroup_subsys_state *parent_css)
 	refcount_set(&blkcg->online_pin, 1);
 	INIT_RADIX_TREE(&blkcg->blkg_tree, GFP_NOWAIT | __GFP_NOWARN);
 	INIT_HLIST_HEAD(&blkcg->blkg_list);
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 	INIT_LIST_HEAD(&blkcg->dkstats_list);
+#endif
 #ifdef CONFIG_CGROUP_WRITEBACK
 	INIT_LIST_HEAD(&blkcg->cgwb_list);
 #endif
@@ -1649,7 +1636,9 @@ err_unlock:
 
 void blkcg_exit_disk(struct gendisk *disk)
 {
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 	blkcg_dkstats_free_all(disk);
+#endif
 	blkg_destroy_all(disk);
 	rq_qos_exit(disk->queue);
 	blk_throtl_exit(disk);
