@@ -26,6 +26,7 @@
 #include <linux/uio.h>
 #include <linux/sched/task.h>
 #include <linux/delayacct.h>
+#include <linux/swap_hook.h>
 #include "swap.h"
 
 static void end_swap_bio_write(struct bio *bio)
@@ -203,6 +204,9 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 		folio_end_writeback(folio);
 		goto out;
 	}
+
+	swap_hook_store(&folio->page);
+
 	ret = __swap_writepage(&folio->page, wbc);
 out:
 	return ret;

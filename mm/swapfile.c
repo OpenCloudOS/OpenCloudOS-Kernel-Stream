@@ -41,6 +41,7 @@
 #include <linux/swap_slots.h>
 #include <linux/sort.h>
 #include <linux/completion.h>
+#include <linux/swap_hook.h>
 
 #include <asm/tlbflush.h>
 #include <linux/swapops.h>
@@ -747,6 +748,7 @@ static void swap_range_free(struct swap_info_struct *si, unsigned long offset,
 	while (offset <= end) {
 		arch_swap_invalidate_page(si->type, offset);
 		frontswap_invalidate_page(si->type, offset);
+		swap_hook_invalidate_page(si->type, offset);
 		if (swap_slot_free_notify)
 			swap_slot_free_notify(si->bdev, offset);
 		offset++;
@@ -2553,6 +2555,7 @@ SYSCALL_DEFINE1(swapoff, const char __user *, specialfile)
 	spin_unlock(&swap_lock);
 	arch_swap_invalidate_area(p->type);
 	frontswap_invalidate_area(p->type);
+	swap_hook_invalidate_area(p->type);
 	frontswap_map_set(p, NULL);
 	mutex_unlock(&swapon_mutex);
 	free_percpu(p->percpu_cluster);

@@ -22,6 +22,10 @@ menuconfig SWAP
 	  used to provide more virtual memory than the actual RAM present
 	  in your computer.  If unsure say Y.
 
+config SWAP_HOOK
+	bool "Swap hook framework"
+	depends on SWAP
+
 config ZSWAP
 	bool "Compressed cache for swap pages"
 	depends on SWAP
