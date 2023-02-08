@@ -839,7 +839,6 @@ InstKernelDevel() {
 	rm -rf scripts
 	cp -a $_KernSrc/scripts .
 	cp -a $_KernBuild/scripts .
-	find scripts -iname "*.o" -o -iname "*.cmd" -delete
 
 	# Include files
 	rm -rf include
@@ -886,13 +885,13 @@ InstKernelDevel() {
 	# Symlink include/asm-$Arch for better compatibility with some old system
 	ln -sfr arch/$Arch include/asm-$Arch
 
-	# Delete obj files
-	find include -iname "*.o" -o -iname "*.cmd" -delete
-
 	# Make sure the Makefile and version.h have a matching timestamp so that
 	# external modules can be built
 	touch -r Makefile include/generated/uapi/linux/version.h
 	touch -r .config include/linux/autoconf.h
+
+	# Delete obj files
+	find . -iname "*.o" -o -iname "*.cmd" -delete
 
 	# Done
 	popd
