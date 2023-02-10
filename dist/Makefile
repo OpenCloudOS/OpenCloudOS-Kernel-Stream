@@ -158,7 +158,7 @@ dist-config: dist-configs
 
 # TODO: Remove always-rebuild - currently these targets depend on git worktree or variables,
 .PHONY: always-rebuild
-$(SPECFILE): always-rebuild
+$(SPECFILE): always-rebuild dist-configs
 	@echo "Generating kernel RPM spec: $(SPECFILE)"
 	@$(DISTDIR)/scripts/gen-spec.sh \
 		--gitref "$(GITREF)" \
@@ -169,7 +169,7 @@ $(SPECFILE): always-rebuild
 		> $(SPECFILE)
 	@grep -A2 "# == Package options ==" $(SPECFILE) | cut -c3-
 
-dist-specfile: $(SPECFILE) dist-configs
+dist-specfile: $(SPECFILE)
 	@echo "$(SPECFILE)"
 
 dist-sources: dist-configs $(TARFILE) $(DISTSOURCES) $(DISTKABIS) $(SPECFILE)
