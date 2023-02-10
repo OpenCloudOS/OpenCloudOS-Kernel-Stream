@@ -123,7 +123,9 @@ BuildRequires: make, gcc, binutils, system-rpm-config, hmaccalc, bison, flex, gc
 BuildRequires: bzip2, xz, findutils, gzip, perl-interpreter, perl-Carp, perl-devel
 BuildRequires: net-tools, hostname, bc
 BuildRequires: dwarves
-BuildRequires: python3-devel, openssl-devel, elfutils-devel
+BuildRequires: openssl-devel, elfutils-devel
+# Required by multiple kernel tools
+BuildRequires: python3-devel, python3-setuptools
 BuildRequires: openssl
 BuildRequires: gcc-plugin-devel
 # glibc-static is required for a consistent build environment (specifically
