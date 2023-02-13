@@ -210,6 +210,7 @@ config_sanitizer() {
 			}
 		}' \
 	| LC_ALL=C sort -k 1 \
+	| sed -e 's/[ \t]*$//' \
 	| cut -d ' ' -f 2-
 }
 
