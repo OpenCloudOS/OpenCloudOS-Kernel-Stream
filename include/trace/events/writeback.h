@@ -572,6 +572,42 @@ TRACE_EVENT(global_dirty_state,
 
 #define KBps(x)			((x) << (PAGE_SHIFT - 10))
 
+#ifdef CONFIG_BLK_DEV_THROTTLING
+TRACE_EVENT(blkcg_dirty_ratelimit,
+
+	TP_PROTO(unsigned long bps,
+		 unsigned long dirty_rate,
+		 unsigned long dirty_ratelimit,
+		 unsigned long balanced_dirty_ratelimit),
+
+	TP_ARGS(bps, dirty_rate, dirty_ratelimit, balanced_dirty_ratelimit),
+
+	TP_STRUCT__entry(
+		__field(unsigned long,	kbps)
+		__field(unsigned long,	dirty_rate)
+		__field(unsigned long,	dirty_ratelimit)
+		__field(unsigned long,	balanced_dirty_ratelimit)
+	),
+
+	TP_fast_assign(
+		__entry->kbps = bps >> 10;
+		__entry->dirty_rate = KBps(dirty_rate);
+		__entry->dirty_ratelimit = KBps(dirty_ratelimit);
+		__entry->balanced_dirty_ratelimit =
+					  KBps(balanced_dirty_ratelimit);
+	),
+
+	TP_printk("kbps=%lu dirty_rate=%lu "
+		  "dirty_ratelimit=%lu "
+		  "balanced_dirty_ratelimit=%lu",
+		  __entry->kbps,
+		  __entry->dirty_rate,
+		  __entry->dirty_ratelimit,
+		  __entry->balanced_dirty_ratelimit
+	)
+);
+#endif
+
 TRACE_EVENT(bdi_dirty_ratelimit,
 
 	TP_PROTO(struct bdi_writeback *wb,

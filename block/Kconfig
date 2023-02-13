@@ -111,6 +111,12 @@ config BLK_DEV_THROTTLING_LOW
 
 	Note, this is an experimental interface and could be changed someday.
 
+config BLK_DEV_THROTTLING_CGROUP_V1
+	bool "Block cgroup bio throttling support"
+	depends on BLK_DEV_THROTTLING
+	help
+	  Buffer IO throttle for cgroup v1 base on dirty throttle.
+
 config BLK_WBT
 	bool "Enable support for block device writeback throttling"
 	help

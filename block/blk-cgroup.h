@@ -120,6 +120,14 @@ struct blkcg {
 	struct blkcg_dkstats		*dkstats_hint;
 #endif
 
+#ifdef CONFIG_BLK_DEV_THROTTLING_CGROUP_V1
+	struct percpu_counter           nr_dirtied;
+	unsigned long                   bw_time_stamp;
+	unsigned long                   dirtied_stamp;
+	unsigned long                   dirty_ratelimit;
+	unsigned long long              buffered_write_bps;
+#endif
+
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);
@@ -549,6 +557,34 @@ static inline bool blk_cgroup_mergeable(struct request *rq, struct bio *bio)
 
 void blk_cgroup_bio_start(struct bio *bio);
 void blkcg_add_delay(struct blkcg_gq *blkg, u64 now, u64 delta);
+
+#ifdef CONFIG_BLK_DEV_THROTTLING_CGROUP_V1
+static inline uint64_t blkcg_buffered_write_bps(struct blkcg *blkcg)
+{
+	return blkcg->buffered_write_bps;
+}
+
+static inline unsigned long blkcg_dirty_ratelimit(struct blkcg *blkcg)
+{
+	return blkcg->dirty_ratelimit;
+}
+
+static inline struct blkcg *get_task_blkcg(struct task_struct *tsk)
+{
+	struct cgroup_subsys_state *css;
+
+	rcu_read_lock();
+	do {
+		css = kthread_blkcg();
+		if (!css)
+			css = task_css(tsk, io_cgrp_id);
+	} while (!css_tryget(css));
+	rcu_read_unlock();
+
+	return container_of(css, struct blkcg, css);
+}
+#endif
+
 #else	/* CONFIG_BLK_CGROUP */
 
 struct blkg_policy_data {
