@@ -108,8 +108,8 @@ _gen_kerver_spec() {
 %define kernel_relver $KERNEL_RELVER
 %define kernel_unamer $KERNEL_UNAMER
 %define rpm_name $KERNEL_NAME
-%define rpm_vendor $(get_dist_makefile_var VENDOR_CAPITALIZED)
-%define rpm_url $(get_dist_makefile_var URL)
+%define rpm_vendor $VENDOR_CAPITALIZED
+%define rpm_url $URL
 EOF
 }
 

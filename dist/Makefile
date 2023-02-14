@@ -16,13 +16,11 @@ endif
 
 ### Downstream marker, update this when forking to another downstream
 KDIST = stream
-### NOTE: This export only applies to sub targets, for global commands, export KDIST explicitly in shell.
-export KDIST := $(KDIST)
 
 ### Vendor mark
 VENDOR = opencloudos
 VENDOR_CAPITALIZED = OpenCloudOS
-URL = https://github.com/OpenCloudOS
+URL = https://github.com/OpenCloudOS/OpenCloudOS-Kernel-Stream
 
 ### Get native arch for binary build by default
 NATIVE_ARCH := $(shell uname -m | sed -e 's/amd64/x86_64/;s/arm64/aarch64/;s/*86$$/x86/')
@@ -70,18 +68,7 @@ endif
 TAG := $(COMMIT)
 GITREF := $(TAG)
 
-### Build files
-KFULLVER := $(shell KDIST=$(KDIST) $(DISTDIR)/scripts/get-version.sh $(GITREF) vr)
-CONFIGFILE := $(shell KDIST=$(KDIST) $(DISTDIR)/scripts/ls-config-files.sh $(CONFIG))
-WORKDIRS = $(DISTWORKDIR) $(RPM_TOPDIR) $(RPM_BUILDDIR) $(RPM_RPMDIR) $(RPM_SOURCEDIR) $(RPM_SPECDIR) $(RPM_SRCRPMDIR) $(RPM_BUILDROOTDIR)
-SPECFILE = $(RPM_SOURCEDIR)/kernel.spec
-TARFILE = $(RPM_SOURCEDIR)/kernel-$(KFULLVER).tar
-TESTPATCH = $(RPM_SOURCEDIR)/linux-kernel-test.patch
-ifeq ($(CONFIGFILE),)
-$(error Invalid CONFIG value '$(CONFIG)', no matching config target found)
-endif
-
-### RPM files
+### RPM dir and workdir
 RPM_TOPDIR := $(DISTDIR)/rpm
 RPM_BUILDDIR := $(RPM_TOPDIR)/BUILD
 RPM_RPMDIR := $(RPM_TOPDIR)/RPMS
@@ -89,6 +76,27 @@ RPM_SOURCEDIR := $(RPM_TOPDIR)/SOURCES
 RPM_SPECDIR := $(RPM_TOPDIR)/SPECS
 RPM_SRCRPMDIR := $(RPM_TOPDIR)/SRPMS
 RPM_BUILDROOTDIR := $(RPM_TOPDIR)/BUILDROOT
+WORKDIRS = $(DISTWORKDIR) $(RPM_TOPDIR) $(RPM_BUILDDIR) $(RPM_RPMDIR) $(RPM_SOURCEDIR) $(RPM_SPECDIR) $(RPM_SRCRPMDIR) $(RPM_BUILDROOTDIR)
+
+# Prepare workdir and variables for dist scripts
+$(shell mkdir -p $(WORKDIRS); \
+	{ \
+	echo "KDIST=$(KDIST)"; \
+	echo "VENDOR=$(VENDOR)"; \
+	echo "VENDOR_CAPITALIZED=$(VENDOR_CAPITALIZED)"; \
+	echo "URL=$(URL)"; \
+	} > $(DISTPATH)/.distenv \
+)
+
+### Build files
+KFULLVER := $(shell $(DISTDIR)/scripts/get-version.sh $(GITREF) vr)
+CONFIGFILE := $(shell $(DISTDIR)/scripts/ls-config-files.sh $(CONFIG))
+SPECFILE = $(RPM_SOURCEDIR)/kernel.spec
+TARFILE = $(RPM_SOURCEDIR)/kernel-$(KFULLVER).tar
+TESTPATCH = $(RPM_SOURCEDIR)/linux-kernel-test.patch
+ifeq ($(CONFIGFILE),)
+$(error Invalid CONFIG value '$(CONFIG)', no matching config target found)
+endif
 
 ### RPM build options
 # All params enabled by default (except kABI check, see below), DEFAULT_ENABLED overrides DEFAULT_DISABLE.
@@ -127,9 +135,6 @@ override RPMFLAGS := --define "dist .$(DIST)" $(RPMFLAGS)
 $(info "NOTE: DIST is set, building for another distro $(DIST)")
 $(info "      You shoudn't do this unless you know what you are doing.")
 endif
-
-# Always make sure workdir exists
-$(shell mkdir -p $(WORKDIRS))
 
 default: dist-help
 

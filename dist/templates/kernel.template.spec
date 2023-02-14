@@ -780,6 +780,9 @@ InstKernelBasic() {
 	sha512hmac %{buildroot}/boot/vmlinuz-$KernUnameR | sed -e "s,%{buildroot},," > .vmlinuz.hmac
 	cp .vmlinuz.hmac %{buildroot}/boot/.vmlinuz-$KernUnameR.hmac
 
+	###### Install kernel doc and certs #############################
+	mkdir -p %{buildroot}/boot
+
 	###### kABI checking and packaging #############################
 	# Always create the kABI metadata for use in packaging
 	echo "**** GENERATING kernel ABI metadata ****"

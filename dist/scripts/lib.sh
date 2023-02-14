@@ -28,7 +28,7 @@ echo_red() {
 
 info() {
 	echo_green -n "info: " >&2
-	echo "$@"
+	echo "$@" >&2
 }
 
 warn() {
@@ -91,15 +91,16 @@ cat_repo_file() {
 # $2: optional git ref, if not set current Makefile is used
 # $3: optional git repo
 get_dist_makefile_var() {
-	local _sedexp="/^$1\s*[:?]?=\s*(.*)/{s/^\s*^$1\s*[:?]?=\s*//;h};\${x;p}"
+	local _var=$1
 	local _gitref=$2
+	local _sedexp="/^$_var\s*[:?]?=\s*(.*)/{s/^\s*^$_var\s*[:?]?=\s*//;h};\${x;p}"
 	local _repo=${3:-$TOPDIR}
 	local _val
 
 	_val=$(cat_repo_file "dist/Makefile" "$_gitref" "$_repo" | sed -nE -e "$_sedexp")
 	case $_val in
 		*\$* )
-			die "Can't parse Makefile variable '$1', it references to other variables."
+			die "Can't parse Makefile variable '$_var', it references to other variables."
 			;;
 	esac
 
@@ -108,13 +109,21 @@ get_dist_makefile_var() {
 
 [ "$TOPDIR" ] || TOPDIR=$(git rev-parse --show-toplevel 2>/dev/null)
 [ "$TOPDIR" ] || TOPDIR="$(realpath "$(dirname "$(realpath "$0")")/../..")"
-[ "$VENDOR" ] || VENDOR=$(get_dist_makefile_var VENDOR)
 [ "$DISTPATH" ] || DISTPATH=$(get_dist_makefile_var DISTPATH)
+
+[ -s "$DISTPATH/.distenv" ] && source "$DISTPATH/.distenv"
 [ "$DISTDIR" ] || DISTDIR=$TOPDIR/$DISTPATH
 [ "$SOURCEDIR" ] || SOURCEDIR=$DISTDIR/rpm/SOURCES
 [ "$SPEC_ARCH" ] || SPEC_ARCH=$(get_dist_makefile_var SPEC_ARCH)
-# If KDIST is not set (or it's set to "-" wnich is illegal value for KDIST), read from dist Makefile.
+
+# Meta values, if not set read from dist Makefile. (If set to empty, respect the empty value)
 [ "${KDIST--}" == - ] && KDIST=$(get_dist_makefile_var KDIST)
+[ "${VENDOR--}" == -  ] && VENDOR=$(get_dist_makefile_var VENDOR)
+[ "${URL--}" == -  ] && URL=$(get_dist_makefile_var URL)
+if [ "$(echo "$VENDOR_CAPITALIZED" | tr '[:upper:]' '[:lower:]')" != "$(echo "$VENDOR" | tr '[:upper:]' '[:lower:]')" ]; then
+	VENDOR_CAPITALIZED=$(echo "$VENDOR" | sed 's/./\U&/')
+	info "Overriding VENDOR_CAPITALIZED to '$VENDOR_CAPITALIZED'"
+fi
 
 if ! [ -s "$TOPDIR/Makefile" ]; then
 	echo "Dist tools can only be run within a valid Linux Kernel git workspace." >&2
