@@ -1,2 +1,179 @@
+* Tue Feb 14 2023 Kairui Song <kasong@tencent.com> - 6.1.11-2302.1.0
+- Initial release based on 6.1.11
+- dist: make it possible to override more meta info on build
+- dist: makefile: fix dependency of spec file
+- dist: spec: update build dependency for tools
+- kabi: freeze kABI for aarch64
+- kabi: freeze kabi for x86_64
+- dist: config: enable several new feature configs
+- mm: introduce swap hook
+- swap: expose required symbols for external balancing
+- swapfile: add a helper get_cached_swap_page_of_type
+- mm: memcg: introduce v2's interface v1
+- psi: support cgroup v1 psi accounting
+- psi: expose cgroup v1 interface for psi
+- psi: link legacy root to psi_system
+- sched/psi: simplify cgroup psi retrieving
+- pagecachelimit: limit the pagecache ratio of totalram
+- arm64: fake a reliable stacktrace for livepath
+- arm64: enable livepatch without stable stacktrace
+- arm64: basic infrastructure for livepatch
+- ftrace: arm64: move from REGS to ARGS
+- ftrace: abstract DYNAMIC_FTRACE_WITH_ARGS accesses
+- ftrace: rename ftrace_instruction_pointer_set() -> ftrace_regs_set_instruction_pointer()
+- ftrace: pass fregs to arch_ftrace_set_direct_caller()
+- blkcg: add buffer IO throttle for cgroup v1
+- swap: avoid holding swap reference in swap_cache_get_folio
+- swap: fold swap_ra_clamp_pfn into swap_ra_info
+- swap: avoid a redundant pte map if ra window is 1
+- swapfile: get rid of volatile and avoid redundant read
+- x86/mpparse, kexec: switch apic driver early when x2apic is pre-enabled
+- x86, apic: add a more generic early_probe
+- cgroupfs: support stat based on cpuacct
+- sysfs: add sysfs attribute to hide disk devices
+- dist: config: enable CONFIG_CGROUPFS=y
+- cgroupfs: fix non inited i_ino when inode created
+- cgroupfs: add files inside sys
+- cgroupfs: support for proc and sys
+- cgroupfs: quota aware support
+- cgroupfs: refactor cgroup resource statistics for reuse
+- cpuset: add switch support for cpuset.stat in container
+- cpuset: Compatible with ARM arch
+- cpuset: fixed cpuset.stat process field value exception
+- cpuset: add switch for cpuinfo in container
+- cpuset: add loadavg calc for each container
+- cpuset: add cpuinfo and stat show
+- blkcg/diskstats/dm: add support for blkcg diskstats
+- blkcg/diskstats/md: add support for blkcg diskstats
+- blkcg/diskstats: simplify and rework
+- blkcg/diskstats: add per blkcg diskstats support
+- memcg: meminfo of memcg statistics includes child cgroup
+- memcg: add meminfo and vmstat show
+- tcp: make TCP_RTO_MIN/MAX be tunable
+- tcp: support self define parameter to tune rto of syn/synack packets
+- tcp: add new parameter tcp_inherit_buffsize to control the initial buffer size of new passive connetion
+- taskstats: expose taskstats to all netspace
+- ext4: Add an error info during new_inode
+- ext4: fix soft lockup caused by sbi->s_es_lru
+- ceph: add mds request pid info into debugfs
+- ceph: Add new mount option req_resend
+- ceph: re-send osd requests if timeout
+- nvme: add the hotplug info output about drive letter and BDF
+- nbd: add the nbd_ignore_blksize_set support
+- xfs: add kmem_alloc_by_vmalloc and kmem_alloc_large_dump_stack sysctl
+- xfs: set xfs default error level to 5
+- net: dev ipv4/v6 stat
+- net: add tcp drop stats
+- net: ipv6 neigh tunnel bypass
+- net: add sysctl to control page frag
+- net: add sriov debug info
+- net: increase tcp listen hash
+- net: modify default value of host max_orphan
+- net: namespaceify sysctl_tcp_max_orphans
+- vm: isolate max_map_count by pid namespace
+- cpuacct: get the uptime of container
+- proc: add pid mapping between host and container
+- tcp: add TCP_FULLNAT_REAL setsockopt options for fullnat real ip
+- net: reduce the confliction while multi threads connecting same host
+- tkernel: netatop: add netatop module in kernel/tkernel/
+- ceph: add sysctl to ignore error epoch barrier
+- Backoff the commit allowing timestamps even if SYN packet has tsval=0
+- bonding: add broadcast_arp param to send arp broadcast
+- mounts: add shield mountpoint in container support
+- tkernel: ttools: add ttools module to support ptrace protect
+- ipmi: set kipmid_max_busy_us default to 1
+- ext3: set nobarrier as default
+- tkernel: net: add toa support
+- netfilter: conntrack: add netagent extention slot.
+- block: check whether queue is NULL or not in stats functions
+- netlink: don't modprobe proto audit & selinux
+- tcp: add proc parameter to change init cwnd
+- net: add tcp_no_delay_ack to enable absolute quick ack
+- tcp: add tcp_loss_init_cwnd sysctl to tunnel packet numbers in loss
+- sched: adaptive default skew_tick value
+- network: Default zero bond_devices to support
+- tkernel: initial support and nonpriv_bind
+- mm: increase dirty-ratio from 20 to 40
+- tcp: double the default value of thash_entries
+- ipc/msg: increase defaults for shmmall, shmmax, msgmax and msgmnb
+- sysrq: add ALT+LEFTCTRL to trigger crash dump
+- dist: add extra PATH for filter-modules to call depmod
+- dist: add workaround for cross-dist build for TL2
+- dist: fix for KDIST override
+- dist: fix a few issues with multiple tag on same commit
+- dist: fix make dependency
+- dist: make dist-new-release more robust and helpful
+- dist: fix two corner cases for versioning
+- dist: allow git tag force override uname
+- dist: use historically correct tag to retrive release info
+- dist: update lib-version.sh's comments
+- dist: minor tweaks of versioning style
+- dist: decouple dist from kernel release
+- dist: make better use of LOCALVERSION to for variant kernels
+- dist: allow override KDIST for a one time build
+- dist: make check-tag.sh print more useful info for invalid tag
+- dist: fix a rare corner case when HEAD is tagged multiple time
+- dist: correct installonly usage and meta info
+- dist: move wmi back to core
+- dist: fix filter-modules.sh
+- dist: provide kernel-uname-r package
+- dist: fix initramfs build order with -core and -modules package
+- dist: support retrieving variable from a git commit
+- dist: simplify _get_rel_info_from_tag
+- dist: replace all '-' with '.'
+- dist: support using same build/src path during rpmbuild by default
+- dist: skip btf dump if bpftool doesn't support it
+- dist: add support for loongarch64
+- dist: fix code typo of target dist-install-buildrequires
+- dist: add script option to reset repo metadata
+- dist: update dependency for rpm-config
+- dist: prefer user specified tag if a commit have multiple commit
+- dist: make-release: fix "Warning: Output not to a terminal"
+- dist: use more wildcard for file list
+- dist: simplify the modules filtering script
+- dist: Erase LOCALVERSION on build
+- dist: don't pass BTF perservation param for old find-debuginfo
+- dist: relax build time requirements on python-docutils
+- dist: fix systemd dependency
+- dist: fix remote name in check-commits
+- dist: use sudo for auto build buildrequires install
+- dist: spec: provide kernel-devel-uname-r package
+- dist: spec: fix potential pre hook failure
+- dist: Require linux-firmware
+- dist: support build params for SRPM as well
+- dist: support changing build params default value in template
+- dist: spec: fix initramfs ghost file name
+- dist: spec: fix koji build from scm error
+- dist: config: enable FRAME_POINTER by default
+- dist: always enable mmc module
+- dist: Filter joystick drivers into modules package
+- dist: ensure module compression is disabled on build
+- dist: config: add base config for riscv64
+- dist: riscv64: install dtb files under /lib/modules/<kver>
+- dist: add initial support for riscv64
+- dist: add Param for customizing distro
+- dist: add workaround for TLinux 2.x
+- dist: configs: enabled DAMON
+- dist: improve make check-diff-configs output
+- dist: disable lockdown when modsign is disabled
+- dist: fix problem with make-release
+- dist: spec: add "Provides: kernel-modules-extra"
+- dist: update check-commits.sh
+- dist: be compatible with tk/oc tags
+- dist: template: clean up scriplet and requirements
+- dist: relax pre install checks
+- dist: remove test patch generation for now
+- dist: fix module.lds install
+- dist: don't remove all MODULE_SIG config if modsign is not set
+- kabi: add paddings and optimize (part 3)
+- kabi: add paddings (part 2)
+- kabi: add paddings (part 1)
+- kabi: add kabi.h
+- kabi: modules: better vermagic check on module load
+- dist: update config sanitizer for formatting config
+- dist: config: update config for 6.1
+- dist: config: add default config files
+- dist: initial update
+
 * Mon Mar 14 2022 Kairui Song <kasong@tencent.com> - 5.17.0-0.20220314git47581bb4d9ae.rc7-tks
 - Initial release
