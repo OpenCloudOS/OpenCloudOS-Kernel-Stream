@@ -242,6 +242,35 @@ static bool test_state(unsigned int *tasks, enum psi_states state, bool oncpu)
 	}
 }
 
+/* See comments for psi_group_change_legacy */
+static bool test_state_legacy(unsigned int *tasks, enum psi_states state)
+{
+	switch (state) {
+	case PSI_IO_SOME:
+		return unlikely(tasks[NR_IOWAIT]);
+	case PSI_MEM_SOME:
+		return unlikely(tasks[NR_MEMSTALL]);
+	case PSI_CPU_SOME:
+		return unlikely(tasks[NR_RUNNING] > 1);
+	case PSI_NONIDLE:
+		return tasks[NR_IOWAIT] || tasks[NR_MEMSTALL] ||
+			tasks[NR_RUNNING];
+	default:
+		return false;
+	}
+}
+
+static inline bool psi_use_legacy(void)
+{
+#ifdef CONFIG_CGROUPS
+	return !cgroup_subsys_on_dfl(cpu_cgrp_subsys) &&
+	       !cgroup_subsys_on_dfl(memory_cgrp_subsys) &&
+	       !cgroup_subsys_on_dfl(io_cgrp_subsys);
+#else
+	return false;
+#endif
+}
+
 static void get_recent_times(struct psi_group *group, int cpu,
 			     enum psi_aggregators aggregator, u32 *times,
 			     u32 *pchanged_states)
@@ -853,6 +882,12 @@ static void psi_group_change(struct psi_group *group, int cpu,
 	}
 
 	for (s = 0; s < NR_PSI_STATES; s++) {
+		if (psi_use_legacy()) {
+			if (test_state_legacy(groupc->tasks, s))
+				state_mask |= (1 << s);
+			continue;
+		}
+
 		if (test_state(groupc->tasks, s, state_mask & PSI_ONCPU))
 			state_mask |= (1 << s);
 	}
@@ -879,6 +914,44 @@ static void psi_group_change(struct psi_group *group, int cpu,
 
 	if (wake_clock && !delayed_work_pending(&group->avgs_work))
 		schedule_delayed_work(&group->avgs_work, PSI_FREQ);
+}
+
+/*
+ * Iteration for cgroup V1, we only have SOME PSI support for each cgroup due
+ * to the nature of splitted resource types of cgroup V1 design will bring
+ * large overhead for FULL PSI tracking (eg. every TSK_RUNNING change need to
+ * iterate through three types of cgroups instead of one). So FULL PSI
+ * required flags are not considered.
+ *
+ * So only TSK_IOWAIT, TSK_MEMSTALL, TSK_RUNNING are tracked individually.
+ * Have to process three flags here one by one. This may have up to 3 times
+ * overhead for batch change but have to live with it.
+ */
+static inline void psi_group_change_legacy(struct task_struct *task, int cpu,
+					   u64 now, int clear, int set, bool wake)
+{
+	struct psi_group *group;
+
+	if ((clear | set) & TSK_IOWAIT) {
+		group = cgroup_psi(task_cgroup(task, io_cgrp_subsys.id));
+		do {
+			psi_group_change(group, cpu, clear & TSK_IOWAIT, set & TSK_IOWAIT, now, wake);
+		} while ((group = group->parent));
+	}
+
+	if ((clear | set) & TSK_MEMSTALL) {
+		group = cgroup_psi(task_cgroup(task, memory_cgrp_subsys.id));
+		do {
+			psi_group_change(group, cpu, clear & TSK_MEMSTALL, set & TSK_MEMSTALL, now, wake);
+		} while ((group = group->parent));
+	}
+
+	if ((clear | set) & TSK_RUNNING) {
+		group = cgroup_psi(task_cgroup(task, cpu_cgrp_subsys.id));
+		do {
+			psi_group_change(group, cpu, clear & TSK_RUNNING, set & TSK_RUNNING, now, wake);
+		} while ((group = group->parent));
+	}
 }
 
 static inline struct psi_group *task_psi_group(struct task_struct *task)
@@ -918,6 +991,11 @@ void psi_task_change(struct task_struct *task, int clear, int set)
 
 	now = cpu_clock(cpu);
 
+	if (psi_use_legacy()) {
+		psi_group_change_legacy(task, cpu, now, clear, set, true);
+		return;
+	}
+
 	group = task_psi_group(task);
 	do {
 		psi_group_change(group, cpu, clear, set, now, true);
@@ -930,6 +1008,32 @@ void psi_task_switch(struct task_struct *prev, struct task_struct *next,
 	struct psi_group *group, *common = NULL;
 	int cpu = task_cpu(prev);
 	u64 now = cpu_clock(cpu);
+
+	/*
+	 * psi_dequeue() expects us to handle some flags here
+	 * (see comments about `sleep` below).
+	 * legacy only handle TSK_RUNNING and TSK_IOWAIT;
+	 */
+	if (psi_use_legacy()) {
+		if (sleep && prev->pid) {
+			int clear = TSK_RUNNING, set = 0;
+			bool wake_clock = true;
+
+			if (prev->in_memstall)
+				clear |= TSK_MEMSTALL_RUNNING;
+			if (prev->in_iowait)
+				set |= TSK_IOWAIT;
+
+			if (unlikely((prev->flags & PF_WQ_WORKER) &&
+				     wq_worker_last_func(prev) == psi_avgs_work))
+				wake_clock = false;
+
+			psi_flags_change(prev, clear, set);
+			psi_group_change_legacy(prev, cpu, now, clear, set, wake_clock);
+		}
+
+		return;
+	}
 
 	if (next->pid) {
 		psi_flags_change(next, 0, TSK_ONCPU);
