@@ -802,6 +802,49 @@ static inline struct psi_group *task_psi_group(struct task_struct *task)
 	return &psi_system;
 }
 
+static inline bool psi_iter_use_legacy(void)
+{
+	return !cgroup_subsys_on_dfl(cpu_cgrp_subsys) &&
+		!cgroup_subsys_on_dfl(memory_cgrp_subsys) &&
+		!cgroup_subsys_on_dfl(io_cgrp_subsys);
+}
+
+/*
+ * Iteration for cgroup V1, we only have SOME PSI support due to the nature of
+ * splitted resource types of cgroup V1 design.
+ */
+#define NR_PSI_LEGACY_FLAG_MAX (1 << NR_RUNNING)
+static struct psi_group *task_psi_group_legacy(struct task_struct *task, int sub_flag)
+{
+#ifdef CONFIG_CGROUPS
+	/*
+	 * Only track IO/some, MEM/some, CPU/some, and the three corresponding flags,
+	 * do some build check to ensure IO/MEM/CPU flags are ordered in easy to iterate style
+	 */
+	BUILD_BUG_ON((NR_PSI_LEGACY_FLAG_MAX >> 3) != 0);
+	BUILD_BUG_ON((NR_PSI_LEGACY_FLAG_MAX >> 2) != TSK_IOWAIT);
+	BUILD_BUG_ON((NR_PSI_LEGACY_FLAG_MAX >> 1) != TSK_MEMSTALL);
+	BUILD_BUG_ON((NR_PSI_LEGACY_FLAG_MAX >> 0) != TSK_RUNNING);
+
+	if (static_branch_likely(&psi_cgroups_enabled)) {
+		switch (sub_flag) {
+			case TSK_IOWAIT:
+				return cgroup_psi(task_cgroup(task, io_cgrp_subsys.id));
+			case TSK_MEMSTALL:
+				return cgroup_psi(task_cgroup(task, memory_cgrp_subsys.id));
+			case TSK_RUNNING:
+				return cgroup_psi(task_cgroup(task, cpu_cgrp_subsys.id));
+			default:
+				WARN_ONCE(1, "Unexpected PSI task cgroup v1 iteration flag 0x%x!", sub_flag);
+			case TSK_MEMSTALL_RUNNING:
+			case TSK_ONCPU:
+				return &psi_system;
+		}
+	}
+#endif
+	return &psi_system;
+}
+
 static void psi_flags_change(struct task_struct *task, int clear, int set)
 {
 	if (((task->psi_flags & set) ||
@@ -829,6 +872,28 @@ void psi_task_change(struct task_struct *task, int clear, int set)
 	psi_flags_change(task, clear, set);
 
 	now = cpu_clock(cpu);
+
+	/*
+	 * For cgroup v1, catch all three flags here one by one. This may have up to
+	 * NR_RUNNING times overhead but have to live with it.
+	 */
+	if (psi_iter_use_legacy()) {
+		for (int sub_flag = 1; sub_flag < NR_PSI_LEGACY_FLAG_MAX; sub_flag <<= 1) {
+			if (!((clear | set) & sub_flag))
+				continue;
+
+			group = task_psi_group_legacy(task, sub_flag);
+			do {
+				psi_group_change(group, cpu, clear & sub_flag, set & sub_flag, now, true);
+			} while ((group = group->parent));
+
+			clear &= ~sub_flag;
+			set &= ~sub_flag;
+		}
+
+		if (!(clear | set))
+			return;
+	}
 
 	group = task_psi_group(task);
 	do {
@@ -891,6 +956,18 @@ void psi_task_switch(struct task_struct *prev, struct task_struct *next,
 		}
 
 		psi_flags_change(prev, clear, set);
+
+		/*
+		 * Check the flags code above, only TSK_ONCPU, TSK_MEMSTALL_RUNNING, TSK_IOWAIT
+		 * flags are possible here, and v1 only catch TSK_IOWAIT
+		 */
+		if (psi_iter_use_legacy() && (set & TSK_IOWAIT)) {
+			group = task_psi_group_legacy(prev, TSK_IOWAIT);
+			do {
+				psi_group_change(group, cpu, 0, TSK_IOWAIT, now, wake_clock);
+			} while ((group = group->parent));
+			set &= ~TSK_IOWAIT;
+		}
 
 		group = task_psi_group(prev);
 		do {
