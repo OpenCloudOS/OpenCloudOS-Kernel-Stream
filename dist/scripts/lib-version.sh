@@ -384,8 +384,8 @@ _search_for_release_tag() {
 	local gitref=$1; shift
 	local tag
 
-	# Look back for 5 commits for a valid tag
-	local limit=5
+	# Look back for 10 commits for a valid tag
+	local limit=10
 	while [[ $limit -gt 0 ]]; do
 		# Check if any tag is eligible as a release tag
 		for tag in $(git "$@" tag --points-at "$gitref"); do
@@ -396,7 +396,7 @@ _search_for_release_tag() {
 		done
 
 		# Find a previous tagged commit
-		gitref=$(git "$@" describe --tags --abbrev=0 "$gitref^" 2>/dev/null)
+		gitref=$(git "$@" describe --first-parent --tags --abbrev=0 "$gitref^" 2>/dev/null)
 		limit=$((limit - 1))
 	done
 
@@ -452,7 +452,7 @@ get_kernel_git_version()
 		release_tag=$last_tag
 	else
 		warn "Latest git tag '$last_tag' is not a release tag, it does't match Makefile version '$KVERSION.$KPATCHLEVEL.$KSUBLEVEL-$KEXTRAVERSION'"
-		if release_tag=$(_search_for_release_tag "$last_tag" -C "$repo"); then
+		if release_tag=$(_search_for_release_tag HEAD -C "$repo"); then
 			warn "Found release tag '$release_tag'."
 		fi
 	fi
