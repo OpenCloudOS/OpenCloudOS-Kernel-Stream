@@ -486,6 +486,9 @@ find scripts/ tools/ Documentation/ \
 	\) \
 	-exec pathfix.py -i "%{__python3} %{py3_shbang_opts}" -p -n {} \+;
 
+# Make a copy and add suffix for kernel licence to prevent conflict of multi kernel package installation
+cp $_KernSrc/COPYING $_KernSrc/COPYING.%{kernel_unamer}
+
 # Update kernel version and suffix info to make uname consistent with RPM version
 # PATCHLEVEL inconsistent only happen on first merge window, but patch them all just in case
 sed -i "/^VESION/cVERSION = $(echo %{kernel_majver} | cut -d '.' -f 1)" $_KernSrc/Makefile
@@ -589,7 +592,7 @@ BuildConfig() {
 
 	%if %{with_modsign}
 	# Don't use Kbuild's signing, use %%{_module_signer} instead, be compatible with debuginfo and compression
-	sed -i -e "s/^CONFIG_MODULE_SIG_ALL.*/# CONFIG_MODULE_SIG_ALL is not set/" .config
+	sed -i -e "s/^CONFIG_MODULE_SIG_ALL=.*/# CONFIG_MODULE_SIG_ALL is not set/" .config
 	%else
 	# Not signing, unset all signing related configs
 	sed -i -e "s/^CONFIG_MODULE_SIG_ALL=.*/# CONFIG_MODULE_SIG_ALL is not set/" .config
@@ -780,6 +783,11 @@ InstKernelBasic() {
 	sha512hmac %{buildroot}/boot/vmlinuz-$KernUnameR | sed -e "s,%{buildroot},," > .vmlinuz.hmac
 	cp .vmlinuz.hmac %{buildroot}/boot/.vmlinuz-$KernUnameR.hmac
 
+	###### Doc and certs #############################
+	[ -e $_KernBuild/certs/signing_key.x509 ] && \
+		mkdir -p %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR
+		install -m 0644 $_KernBuild/certs/signing_key.x509 %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer
+
 	###### kABI checking and packaging #############################
 	# Always create the kABI metadata for use in packaging
 	echo "**** GENERATING kernel ABI metadata ****"
@@ -889,6 +897,14 @@ InstKernelDevel() {
 	# external modules can be built
 	touch -r Makefile include/generated/uapi/linux/version.h
 	touch -r .config include/linux/autoconf.h
+
+	# If we have with_modsign, the key should be installed under _datadir, make a symlink here:
+	if [ -e %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer ]; then
+		mkdir -p certs
+		ln -sf %{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer signing_key.x509
+		ln -sf %{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer certs/signing_key.x509
+	fi
+
 
 	# Delete obj files
 	find . -iname "*.o" -o -iname "*.cmd" -delete
@@ -1168,6 +1184,9 @@ fi
 %ghost /lib/modules/%{kernel_unamer}/modules.softdep
 %ghost /lib/modules/%{kernel_unamer}/modules.symbols
 %ghost /lib/modules/%{kernel_unamer}/modules.symbols.bin
+%{!?_licensedir:%global license %%doc}
+%license %{kernel_tarname}/COPYING.%{kernel_unamer}
+%{_datadir}/doc/kernel-keys/%{kernel_unamer}/kernel-signing-ca.cer
 
 %files modules -f modules.list
 %defattr(-,root,root)
