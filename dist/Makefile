@@ -44,7 +44,7 @@ DISTCONFIGDIR = $(DISTDIR)/configs
 DISTWORKDIR = $(DISTDIR)/workdir
 
 DISTTEMPLATES = $(wildcard $(DISTDIR)/templates/*)
-DISTCONFIGS = $(shell find $(DISTDIR)/configs -type f)
+DISTCONFIGS = $(shell find $(DISTDIR)/configs)
 DISTSCRIPTS = $(wildcard $(DISTDIR)/scripts/*)
 DISTSOURCES = $(wildcard $(DISTDIR)/sources/*)
 DISTKABIS = $(wildcard $(DISTDIR)/kabi/*)
