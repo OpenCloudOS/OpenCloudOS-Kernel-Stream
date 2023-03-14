@@ -761,23 +761,36 @@ InstKernelBasic() {
 
 	# NOTE: If we need to sign the vmlinuz, this is the place to do it.
 	%ifarch aarch64
+	INSTALL_DTB_ARCH_PATH=$_KernBuild/arch/arm64/boot/dts
 	install -m 644 $_KernBuild/arch/arm64/boot/Image vmlinuz
 	%endif
 
 	%ifarch riscv64
-	mkdir dtb
-	cp $_KernBuild/arch/riscv/boot/dts/*/*.dtb dtb/
+	INSTALL_DTB_ARCH_PATH=$_KernBuild/arch/riscv/boot/dts
 	install -m 644 $_KernBuild/arch/riscv/boot/Image vmlinuz
 	%endif
 
 	%ifarch x86_64
+	INSTALL_DTB_ARCH_PATH=
 	install -m 644 $_KernBuild/arch/x86/boot/bzImage vmlinuz
 	%endif
 
 	%ifarch loongarch64
+	INSTALL_DTB_ARCH_PATH=
 	install -m 644 $_KernBuild/vmlinuz vmlinuz
 	%endif
 
+	# Install Arch DTB if exists
+	if [ -n "$INSTALL_DTB_ARCH_PATH" ]; then
+		pushd $INSTALL_DTB_ARCH_PATH || :
+		find . -name "*.dtb" | while read -r dtb; do
+			mkdir -p %{buildroot}/boot/dtb-$KernUnameR/$(dirname $dtb)
+			cp $dtb %{buildroot}/boot/dtb-$KernUnameR/$(dirname $dtb)
+		done
+		popd
+	fi
+
+	# Install Arch vmlinuz
 	install -m 644 vmlinuz %{buildroot}/boot/vmlinuz-$KernUnameR
 
 	sha512hmac %{buildroot}/boot/vmlinuz-$KernUnameR | sed -e "s,%{buildroot},," > .vmlinuz.hmac
@@ -971,9 +984,11 @@ CollectKernelFile() {
 	###### Collect file list #########################################
 	pushd %{buildroot}
 
-	# Collect all module files and dirs
-	(find lib/modules/$KernUnameR/ -not -type d | sed -e 's/^lib*/\/lib/';
-	 find lib/modules/$KernUnameR/ -type d | sed -e 's/^lib*/%dir \/lib/') | sort -n > core.list
+	# Collect all module files, dtb files, and dirs
+	{
+		find lib/modules/$KernUnameR/ boot/dtb-$KernUnameR/ -not -type d -printf '/%%p\n' 2>/dev/null
+		find lib/modules/$KernUnameR/ boot/dtb-$KernUnameR/ -type d -printf '%%%%dir /%%p\n' 2>/dev/null
+	} | sort -u > core.list
 
 	# Do module splitting, filter-modules.sh will generate a list of
 	# modules to be split into external module package
