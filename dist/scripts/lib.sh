@@ -152,7 +152,7 @@ get_kernel_arch () {
 			echo "riscv"
 			;;
 		loongarch64 )
-			echo "loongarch64"
+			echo "loongarch"
 			;;
 		arm64 | aarch64 )
 			echo "arm64"
