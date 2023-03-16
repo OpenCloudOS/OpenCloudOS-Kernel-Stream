@@ -797,9 +797,10 @@ InstKernelBasic() {
 	cp .vmlinuz.hmac %{buildroot}/boot/.vmlinuz-$KernUnameR.hmac
 
 	###### Doc and certs #############################
-	[ -e $_KernBuild/certs/signing_key.x509 ] && \
+	[ -e $_KernBuild/certs/signing_key.x509 ] && {
 		mkdir -p %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR
 		install -m 0644 $_KernBuild/certs/signing_key.x509 %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer
+	}
 
 	###### kABI checking and packaging #############################
 	# Always create the kABI metadata for use in packaging
@@ -988,6 +989,10 @@ CollectKernelFile() {
 	{
 		find lib/modules/$KernUnameR/ boot/dtb-$KernUnameR/ -not -type d -printf '/%%p\n' 2>/dev/null
 		find lib/modules/$KernUnameR/ boot/dtb-$KernUnameR/ -type d -printf '%%%%dir /%%p\n' 2>/dev/null
+
+		# Install certs in core package if found
+		[ -e "%{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer" ] && \
+			echo %{_datadir}/doc/kernel-keys/%{kernel_unamer}/kernel-signing-ca.cer
 	} | sort -u > core.list
 
 	# Do module splitting, filter-modules.sh will generate a list of
@@ -1201,7 +1206,6 @@ fi
 %ghost /lib/modules/%{kernel_unamer}/modules.symbols.bin
 %{!?_licensedir:%global license %%doc}
 %license %{kernel_tarname}/COPYING.%{kernel_unamer}
-%{_datadir}/doc/kernel-keys/%{kernel_unamer}/kernel-signing-ca.cer
 
 %files modules -f modules.list
 %defattr(-,root,root)
