@@ -390,7 +390,7 @@ sanity_check_configs () {
 	_sanity_check_configs() {
 		local target=$1; shift
 		local populated_config
-		local localversion arch_localversion auto_localversion
+		local localversion arch_localversion auto_localversion conf_localversion
 
 		for arch in "${CONFIG_ARCH[@]}"; do
 			populated_config="$CONFIG_OUTDIR/$target.$arch.config"
@@ -411,14 +411,18 @@ sanity_check_configs () {
 				exit 1
 			fi
 
+			conf_localversion=$(sed -ne 's/^CONFIG_LOCALVERSION=\(.*\)$/\1/pg' "$populated_config")
+			conf_localversion=${conf_localversion##\"}
+			conf_localversion=${conf_localversion%%\"}
+			if [ 1 -lt "$(echo "$conf_localversion" | wc -l)" ]; then
+				error "More than one LOCALVERSION is set for config target '$target'"
+				exit 1
+			fi
+
 			if [ -z "$localversion" ]; then
-				localversion=$(sed -ne 's/^CONFIG_LOCALVERSION=\(.*\)$/\1/pg' "$populated_config")
-				if [ 1 -lt $(echo "$localversion" | wc -l) ]; then
-					error "More than one LOCALVERSION is set for config target '$target'"
-					exit 1
-				fi
+				localversion=$conf_localversion
 			else
-				arch_localversion=$(sed -ne 's/^CONFIG_LOCALVERSION=\(.*\)$/\1/pg' "$populated_config")
+				arch_localversion=$conf_localversion
 				if [ "$arch_localversion" != "$localversion" ]; then
 					error "Unexpected '$arch_localversion' != '$localversion':"
 					error "This breaks SRPM package naming, LOCALVERSION inconsistent between sub-arches for config target '$target'"
