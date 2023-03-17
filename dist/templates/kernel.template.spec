@@ -989,10 +989,6 @@ CollectKernelFile() {
 	{
 		find lib/modules/$KernUnameR/ boot/dtb-$KernUnameR/ -not -type d -printf '/%%p\n' 2>/dev/null
 		find lib/modules/$KernUnameR/ boot/dtb-$KernUnameR/ -type d -printf '%%%%dir /%%p\n' 2>/dev/null
-
-		# Install certs in core package if found
-		[ -e "%{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer" ] && \
-			echo %{_datadir}/doc/kernel-keys/%{kernel_unamer}/kernel-signing-ca.cer
 	} | sort -u > core.list
 
 	# Do module splitting, filter-modules.sh will generate a list of
@@ -1002,6 +998,10 @@ CollectKernelFile() {
 
 	comm -23 core.list modules.list > core.list.tmp
 	mv core.list.tmp core.list
+
+	# Install certs in core package if found
+	[ -e %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer ] && \
+		echo %{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer >> core.list
 
 	popd
 
