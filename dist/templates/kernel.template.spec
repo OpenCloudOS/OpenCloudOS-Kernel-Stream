@@ -1116,7 +1116,7 @@ depmod -A %{kernel_unamer}
 rm -f %{_localstatedir}/lib/rpm-state/%{name}-%{version}-%{version}%{?dist}.installing_core
 
 # XXX: Workaround for TLinux 2.x, TLinux 2.x has broken SELinux rule, enabling SELinux will cause boot failure.
-%if "%{dist}" != ".tl2"
+%if "%{dist}" == ".tl2"
 if command -v grubby > /dev/null; then
 	grubby --update-kernel /boot/vmlinuz-%{kernel_unamer} --args selinux=0
 else
