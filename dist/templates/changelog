@@ -1,3 +1,20 @@
+* Fri Mar 31 2023 Kairui Song <kasong@tencent.com> - 6.1.11-2302.1.1
+- dist: fix a wrong if statement
+- dist: fix kernel-signing-ca.cer installation
+- dist: fix certs installation issue
+- dist: fix kernel config arch convertion
+- dist: fix localversion detection
+- dist: unify DTB installation and fix grubby compatibility
+- dist: fix config file make dependency
+- dist: package licence and cert as well
+- dist: fix tag detection with merged branch
+- dist: fix a few issues with multiple tag on same commit (update)
+- dist: update debuginfo-common package
+- dist: spec: clean all up .cmd and .o
+- dist: catch all perf binary
+- dist: config: update debug config
+- dist: config: sanitize config files
+
 * Tue Feb 14 2023 Kairui Song <kasong@tencent.com> - 6.1.11-2302.1.0
 - Initial release based on 6.1.11
 - dist: make it possible to override more meta info on build
