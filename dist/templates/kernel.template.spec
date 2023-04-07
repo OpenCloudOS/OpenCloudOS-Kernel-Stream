@@ -44,6 +44,8 @@
 # with_debuginfo: debuginfo for all packages
 # with_modsign: if mod should be signed
 # with_kabichk: if kabi check is needed at the end of build
+# with_keypkg: package the signing key for user, CAUTION: this package allows
+#              users to be able to sign their modules using kernel trusted key.
 {{PKGPARAMSPEC}}
 
 # Only use with cross build, don't touch it unless you know what you are doing
@@ -266,6 +268,18 @@ AutoReqprov: no
 %description devel
 This package provides kernel headers and makefiles sufficient to build modules
 against the %{version}-%{release} kernel package.
+
+### Kernel module package
+%if %{with_keypkg}
+%package signing-keys
+Summary: %{rpm_vendor} Kernel signing key
+Provides: installonlypkg(kernel)
+Requires: %{rpm_name}-core = %{version}-%{release}
+AutoReq: no
+AutoProv: yes
+%description signing-keys
+This package provides kernel signing key for the %{?2:%{2}-}core kernel package.
+%endif
 
 %if %{with_debuginfo}
 ### Kernel debuginfo package
@@ -797,10 +811,15 @@ InstKernelBasic() {
 	cp .vmlinuz.hmac %{buildroot}/boot/.vmlinuz-$KernUnameR.hmac
 
 	###### Doc and certs #############################
-	[ -e $_KernBuild/certs/signing_key.x509 ] && {
-		mkdir -p %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR
+	mkdir -p %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR
+	if [ -e $_KernBuild/certs/signing_key.x509 ]; then
 		install -m 0644 $_KernBuild/certs/signing_key.x509 %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer
-	}
+%if %{with_keypkg}
+		if [ -e $_KernBuild/certs/signing_key.pem ]; then
+			install -m 0644 $_KernBuild/certs/signing_key.pem %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.pem
+		fi
+%endif
+	fi
 
 	###### kABI checking and packaging #############################
 	# Always create the kABI metadata for use in packaging
@@ -917,6 +936,8 @@ InstKernelDevel() {
 		mkdir -p certs
 		ln -sf %{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer signing_key.x509
 		ln -sf %{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer certs/signing_key.x509
+		ln -sf %{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.pem signing_key.pem
+		ln -sf %{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.pem certs/signing_key.pem
 	fi
 
 
@@ -987,9 +1008,24 @@ CollectKernelFile() {
 
 	# Collect all module files, dtb files, and dirs
 	{
+		# Install certs in core package if found
+		echo "%%dir %{_datadir}/doc/kernel-keys"
+		if [ -e "%{buildroot}/%{_datadir}/doc/kernel-keys/%{kernel_unamer}/kernel-signing-ca.cer" ]; then
+			echo %{_datadir}/doc/kernel-keys/%{kernel_unamer}/kernel-signing-ca.cer
+		fi
+
 		find lib/modules/$KernUnameR/ boot/dtb-$KernUnameR/ -not -type d -printf '/%%p\n' 2>/dev/null
 		find lib/modules/$KernUnameR/ boot/dtb-$KernUnameR/ -type d -printf '%%%%dir /%%p\n' 2>/dev/null
 	} | sort -u > core.list
+
+%if %{with_keypkg}
+	# Install private key in cert package if found
+	# Echo a dir so it don't fail as a empty list if signing is disabled.
+	echo "%%dir %{_datadir}/doc/kernel-keys" > signing-keys.list
+	if [ -e "%{buildroot}/%{_datadir}/doc/kernel-keys/%{kernel_unamer}/kernel-signing-ca.pem" ]; then
+		echo %{_datadir}/doc/kernel-keys/%{kernel_unamer}/kernel-signing-ca.pem >> signing-keys.list
+	fi
+%endif
 
 	# Do module splitting, filter-modules.sh will generate a list of
 	# modules to be split into external module package
@@ -999,15 +1035,10 @@ CollectKernelFile() {
 	comm -23 core.list modules.list > core.list.tmp
 	mv core.list.tmp core.list
 
-	# Install certs in core package if found
-	[ -e %{buildroot}/%{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer ] && \
-		echo %{_datadir}/doc/kernel-keys/$KernUnameR/kernel-signing-ca.cer >> core.list
-
 	popd
 
 	# Make these file list usable in rpm build dir
-	mv %{buildroot}/core.list ../
-	mv %{buildroot}/modules.list ../
+	mv %{buildroot}/*.list ../
 }
 
 ###### Start Kernel Install
@@ -1209,6 +1240,11 @@ fi
 
 %files modules -f modules.list
 %defattr(-,root,root)
+
+%if %{with_keypkg}
+%files signing-keys -f signing-keys.list
+%defattr(-,root,root)
+%endif
 
 %files devel
 %defattr(-,root,root)

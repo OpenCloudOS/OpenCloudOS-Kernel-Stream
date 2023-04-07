@@ -45,7 +45,7 @@ prepare_source_info() {
 	LOCALVERSION=$localversion
 }
 
-DEFAULT_DISALBED=" kabichk "
+DEFAULT_DISALBED=""
 while [[ $# -gt 0 ]]; do
 	case $1 in
 		--kernel-config )
@@ -178,7 +178,8 @@ _gen_pkgopt_spec() {
 		bpftool \
 		debuginfo \
 		modsign \
-		kabichk
+		kabichk \
+		keypkg
 	do
 		case $DEFAULT_DISALBED in
 			*" $opt "* )

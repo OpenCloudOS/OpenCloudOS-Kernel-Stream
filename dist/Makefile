@@ -116,6 +116,12 @@ ifeq ($(MODSIGN), 0)
 override DEFAULT_DISABLED := modsign $(DEFAULT_DISABLED)
 endif
 
+# Disable private key pkg by default
+KEYPKG=0
+ifeq ($(KEYPKG), 0)
+override DEFAULT_DISABLED := keypkg $(DEFAULT_DISABLED)
+endif
+
 # Allow to skip RPM dependency check
 NODEP=0
 ifeq ($(NODEP), 1)
