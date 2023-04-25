@@ -927,10 +927,11 @@ enum elv_merge blk_try_merge(struct request *rq, struct bio *bio)
 }
 
 #ifdef CONFIG_BLK_CGROUP_DISKSTATS
-static void blkcg_stat_acct(struct blkcg *blkcg, struct request *req, int new_io)
+static void blkcg_stat_acct(struct bio *bio, struct request *req, int new_io)
 {
 	struct block_device *part = req->part;
 	int rw = rq_data_dir(req);
+	struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
 
 	if (!new_io) {
 		part_stat_lock_rcu();
@@ -939,7 +940,7 @@ static void blkcg_stat_acct(struct blkcg *blkcg, struct request *req, int new_io
 	}
 }
 #else
-static inline void blkcg_stat_acct(struct blkcg *blkcg, struct request *req, int new_io)
+static inline void blkcg_stat_acct(struct bio *bio, struct request *req, int new_io)
 {
 }
 #endif /* CONFIG_BLK_CGROUP_DISKSTATS */
@@ -981,7 +982,7 @@ static enum bio_merge_status bio_attempt_back_merge(struct request *req,
 	bio_crypt_free_ctx(bio);
 
 	blk_account_io_merge_bio(req);
-	blkcg_stat_acct(css_to_blkcg(bio_blkcg_css(bio)), req, 0);
+	blkcg_stat_acct(bio, req, 0);
 	return BIO_MERGE_OK;
 }
 
@@ -1008,7 +1009,7 @@ static enum bio_merge_status bio_attempt_front_merge(struct request *req,
 	bio_crypt_do_front_merge(req, bio);
 
 	blk_account_io_merge_bio(req);
-	blkcg_stat_acct(css_to_blkcg(bio_blkcg_css(bio)), req, 0);
+	blkcg_stat_acct(bio, req, 0);
 	return BIO_MERGE_OK;
 }
 
@@ -1031,7 +1032,7 @@ static enum bio_merge_status bio_attempt_discard_merge(struct request_queue *q,
 	req->nr_phys_segments = segments + 1;
 
 	blk_account_io_merge_bio(req);
-	blkcg_stat_acct(css_to_blkcg(bio_blkcg_css(bio)), req, 0);
+	blkcg_stat_acct(bio, req, 0);
 	return BIO_MERGE_OK;
 no_merge:
 	req_set_nomerge(q, req);
