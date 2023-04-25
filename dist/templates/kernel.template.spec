@@ -560,16 +560,17 @@ case $KernUnameR in
 ## Cross compile flags
 %if %{with_crossbuild}
 %global kernel_make_opts %{kernel_make_opts} CROSS_COMPILE=%{_cross_compile} ARCH=%{kernel_arch}
+# make for host tool, reset arch and flags for native host bulid, also limit to 1 job for better stability
+%global host_make CFLAGS= LDFLAGS= ARCH= %{make} -j1
 %global __strip %{_build_arch}-linux-gnu-strip
+%else
+%global host_make CFLAGS= LDFLAGS= %{make} -j1
 %endif
 
 # Drop host cflags for crossbuild, arch options from build target will break host compiler
 %if !%{with_crossbuild}
 %global kernel_make_opts %{kernel_make_opts} HOSTCFLAGS="%{?build_cflags}" HOSTLDFLAGS="%{?build_ldflags}"
 %endif
-
-## make for host tool, reset arch and flags for native host bulid
-%global host_make CFLAGS= LDFLAGS= ARCH= %{make}
 
 ## make for kernel
 %global kernel_make %{make} %{kernel_make_opts}
