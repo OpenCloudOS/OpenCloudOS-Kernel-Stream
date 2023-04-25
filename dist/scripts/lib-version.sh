@@ -635,6 +635,14 @@ prepare_kernel_ver() {
 		fi
 	fi
 
+	case $krelease in
+		*.* )
+			;;
+		*)
+			krelease=0.$krelease
+			;;
+	esac
+
 	KERNEL_NAME="kernel${KDIST:+-$KDIST}"
 	KERNEL_MAJVER="$KVERSION.$KPATCHLEVEL.$KSUBLEVEL"
 	KERNEL_RELVER="$krelease"
