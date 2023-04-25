@@ -4,14 +4,22 @@
 # kernel config styles, and build different components.
 ### Kenrel version relation macros
 # Following variables filled by automation scripts:
-# %%{kernel_unamer}: `uname -r` output, needed by scriptlets so prepare it early, eg. 5.18.19-2207.2.1.tks, 5.18.19-2207.2.1.tks+debug, 5.4.119-1-0009.1
 # %%{kernel_majver}: Kernel RPM package version, eg. 5.15.0, 5.15.3, 5.16.0
 # %%{kernel_relver}: Kernel RPM package release, eg. 2207.1, 0.20211115git1135ec008ef3.rc0.2207, 0009.11
+# %%{kernel_variant}: Kernel RPM package release, eg. 2207.1, 0.20211115git1135ec008ef3.rc0.2207, 0009.11
+# %%{kernel_unamer_base}: base part of `uname -r` output, used to generate %%kernel_unamer, needed by scriptlets so prepare it early. eg. 5.18.19-2207.2.1.tks, 5.18.19-2207.2.1.tks+debug, 5.4.119-1-0009.1
+# %%{kernel_unamer_force}: force use a unamer, usually for historical reason.
 # %%{rpm_name}: Kernel RPM package name, eg. kernel, kernel-tlinux4, kernel-stream kernel-stream-debug
 # %%{rpm_vendor}: RPM package vendor
 # %%{rpm_url}: RPM url
 # TODO: kernel_unamer don't have distro mark
 {{VERSIONSPEC}}
+
+%if "%{kernel_unamer_force}" == ""
+%define kernel_unamer %{kernel_unamer_base}%{?dist}.%{_target_cpu}%{kernel_variant}
+%else
+%define kernel_unamer %{kernel_unamer_force}
+%endif
 
 # TODO: We have a fixed tar name, might be better to include KDIST in tarname
 %define kernel_tarname kernel-%{kernel_majver}-%{kernel_relver}
@@ -301,7 +309,7 @@ This is required to use SystemTap with %{rpm_name}.
 %endif
 # Debuginfo file list for main kernel package
 # The (\+.*)? is used to match all variant kernel
-%global _find_debuginfo_opts %{_find_debuginfo_opts} -p '.*\/usr\/src\/kernels/.*|XXX' -o ignored-debuginfo.list -p $(echo '/.*/%{kernel_unamer}/.*|/.*%{kernel_unamer}(\.debug)?' | sed 's/+/[+]/g') -o debuginfo.list
+%global _find_debuginfo_opts %{_find_debuginfo_opts} -p '.*\/usr\/src\/kernels/.*|XXX' -o ignored-debuginfo.list -p $(echo '%{debuginfo_dir}.*%{kernel_unamer}/.*|%{debuginfo_dir}.*%{kernel_unamer}(\.debug)?' | sed 's/+/[+]/g') -o debuginfo.list
 # with_debuginfo
 %endif
 # with_core

@@ -8,6 +8,10 @@
 . "$(dirname "$(realpath "$0")")/lib-version.sh"
 
 prepare_kernel_ver "$@"
+KERNEL_UNAMER="$KERNEL_UNAMER_BASE.<dist>.<arch>"
+if [[ $KERNEL_UNAMER_FORCE ]]; then
+	KERNEL_UNAMER="$KERNEL_UNAMER_FORCE"
+fi
 
 # If tag is not recognized, prepare_kernel_ver will version it as snapshot
 # use this as an indicator of invalid tag

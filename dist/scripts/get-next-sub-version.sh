@@ -6,4 +6,4 @@
 
 prepare_next_sub_kernel_ver "$@"
 
-echo "$KERNEL_UNAMER"
+echo "$KERNEL_UNAMER_BASE"

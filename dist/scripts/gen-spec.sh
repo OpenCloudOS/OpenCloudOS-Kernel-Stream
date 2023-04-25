@@ -106,7 +106,9 @@ _gen_kerver_spec() {
 	cat << EOF
 %define kernel_majver $KERNEL_MAJVER
 %define kernel_relver $KERNEL_RELVER
-%define kernel_unamer $KERNEL_UNAMER
+%define kernel_variant ${LOCALVERSION:-%{nil\}}
+%define kernel_unamer_base $KERNEL_UNAMER_BASE
+%define kernel_unamer_force ${KERNEL_UNAMER_FORCE:-%{nil\}}
 %define rpm_name $KERNEL_NAME
 %define rpm_vendor $VENDOR_CAPITALIZED
 %define rpm_url $URL

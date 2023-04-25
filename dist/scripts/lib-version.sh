@@ -114,13 +114,16 @@ KGIT_RELEASE_NUM=
 KGIT_SUB_RELEASE_NUM=
 
 ### The formal kernel version and release
-# Simulate `uname -r` output, which is always "$KVERSION.$KPATCHLEVEL.$KSUBLEVEL$KEXTRAVERSION"
-export KERNEL_UNAMER=
+# Simulate base part of uname output, which is always "$KVERSION.$KPATCHLEVEL.$KSUBLEVEL$KEXTRAVERSION"
+# The full `uname -r` will also include <dist>.<arch>[+<flavor>]
+export KERNEL_UNAMER_BASE=
+# Force set a value for `uname -r`, see KFORCEUNAMER.
+export KERNEL_UNAMER_FORCE=
 # Basically: $KVERSION.$KPATCHLEVEL.$KSUBLEVEL (eg. 5.17.0, 5.16.3)
 export KERNEL_MAJVER=
 # Release version (eg. 1, 0.rc0, 0.20220329gita11bf64a6e8f), see comments at the beginning of this file
 export KERNEL_RELVER=
-# Kernel distro variable (eg. tks, tlinux4, <none>), with any leading "." or "-" removed, see comments at the beginning of this file
+# Kernel dist repo variable (eg. tks, tlinux4, <none>), with any leading "." or "-" removed, see comments at the beginning of this file
 export KERNEL_DIST=
 # Only used for make-release sub command, get latest release tag of current commit
 export KERNEL_PREV_RELREASE_TAG=
@@ -644,17 +647,20 @@ prepare_kernel_ver() {
 	esac
 
 	KERNEL_NAME="kernel${KDIST:+-$KDIST}"
-	KERNEL_MAJVER="$KVERSION.$KPATCHLEVEL.$KSUBLEVEL"
-	KERNEL_RELVER="$krelease"
-	KERNEL_UNAMER="$KERNEL_MAJVER-$KERNEL_RELVER${KDIST:+.$KDIST}"
-
-	if [[ $KFORCEUNAMER ]] && [[ $KGIT_TAG_RELEASE_INFO_RAW ]]; then
-		KERNEL_UNAMER="$KERNEL_MAJVER$KGIT_TAG_RELEASE_INFO_RAW"
-	fi
-
 	if [[ $localversion ]]; then
 		KERNEL_NAME="$KERNEL_NAME-$localversion"
-		KERNEL_UNAMER="$KERNEL_UNAMER+$localversion"
+	fi
+
+	KERNEL_MAJVER="$KVERSION.$KPATCHLEVEL.$KSUBLEVEL"
+	KERNEL_RELVER="$krelease"
+	KERNEL_UNAMER_BASE="$KERNEL_MAJVER-$KERNEL_RELVER${KDIST:+.$KDIST}"
+
+	if [[ $KFORCEUNAMER ]] && [[ $KGIT_TAG_RELEASE_INFO_RAW ]]; then
+		KERNEL_UNAMER_FORCE="$KERNEL_MAJVER$KGIT_TAG_RELEASE_INFO_RAW"
+
+		if [[ $localversion ]]; then
+			KERNEL_UNAMER_FORCE="$KERNEL_UNAMER_FORCE+$localversion"
+		fi
 	fi
 }
 
