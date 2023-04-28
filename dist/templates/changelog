@@ -1,3 +1,10 @@
+* Fri Apr 28 2023 Kairui Song <kasong@tencent.com> - 6.1.26-2303.1.0
+- dist: update kernel `uname -r` to be more compliant
+- dist: add a '0.' prefix for non-regular release string
+- dist: sanitize host_make for non-crossbuild
+- dist: add a kernel-signing-keys subpackage
+- Update to Linux 6.1.26
+
 * Fri Mar 31 2023 Kairui Song <kasong@tencent.com> - 6.1.11-2302.1.1
 - dist: fix a wrong if statement
 - dist: fix kernel-signing-ca.cer installation
