@@ -203,7 +203,6 @@ Version: %{kernel_majver}
 Release: %{kernel_relver}%{?dist}
 License: GPLv2
 URL: %{rpm_url}
-Vendor: ${rpm_vendor}
 
 # We can't let RPM do the dependencies automatic because it'll then pick up
 # a correct but undesirable perl dependency from the module headers which
