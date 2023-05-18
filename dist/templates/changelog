@@ -1,3 +1,7 @@
+* Thu May 18 2023 Kairui Song <kasong@tencent.com> - 6.1.26-2303.1.1
+- dist: spec: build perf using dynamic libtraceevent
+- dist: spec: drop "Vendor"
+
 * Fri Apr 28 2023 Kairui Song <kasong@tencent.com> - 6.1.26-2303.1.0
 - dist: update kernel `uname -r` to be more compliant
 - dist: add a '0.' prefix for non-regular release string
