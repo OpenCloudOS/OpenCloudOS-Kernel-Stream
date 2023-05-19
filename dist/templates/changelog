@@ -1,3 +1,6 @@
+* Fri May 19 2023 Kairui Song <kasong@tencent.com> - 6.1.26-2303.1.2
+- dist: spec: don't install trace event plugins
+
 * Thu May 18 2023 Kairui Song <kasong@tencent.com> - 6.1.26-2303.1.1
 - dist: spec: build perf using dynamic libtraceevent
 - dist: spec: drop "Vendor"
