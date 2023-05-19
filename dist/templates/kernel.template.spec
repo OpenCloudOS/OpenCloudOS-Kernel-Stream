@@ -965,10 +965,17 @@ InstKernelHeaders () {
 }
 
 InstPerf () {
-	%{perf_make} -C tools/perf install-bin install-traceevent-plugins install-python_ext install-man
+	%{perf_make} -C tools/perf install-bin install-python_ext install-man
 
 	# remove the 'trace' symlink.
 	rm -f %{buildroot}%{_bindir}/trace
+
+	# Be just like CentOS:
+	# remove any tracevent files, eg. its plugins still gets built and installed,
+	# even if we build against system's libtracevent during perf build (by setting
+	# LIBTRACEEVENT_DYNAMIC=1 above in perf_make macro). Those files should already
+	# ship with libtraceevent package.
+	rm -rf %{buildroot}%{_libdir}/traceevent
 }
 
 InstTools() {
@@ -1282,8 +1289,6 @@ fi
 %files -n perf
 %defattr(-,root,root)
 %{_bindir}/perf*
-%dir %{_libdir}/traceevent/
-%{_libdir}/traceevent/*
 %{_libdir}/libperf-jvmti.so
 %dir %{_prefix}/lib/perf
 %{_prefix}/lib/perf/*
