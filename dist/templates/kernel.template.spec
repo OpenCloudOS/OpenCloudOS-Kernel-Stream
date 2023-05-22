@@ -908,6 +908,13 @@ InstKernelDevel() {
 	cp -a $_KernSrc/arch/$Arch/include arch/$Arch/
 	cp -a $_KernBuild/arch/$Arch/include arch/$Arch/
 
+%ifarch loongarch64
+	if [ -f $_KernSrc/arch/$Arch/la64/Platform ]; then
+		mkdir -p arch/$Arch/la64
+		cp -a $_KernSrc/arch/$Arch/la64/Platform arch/$Arch/la64
+	fi
+%endif
+
 	if [ -d $_KernBuild/arch/$Arch/scripts ]; then
 		cp -a $_KernBuild/arch/$Arch/scripts arch/$Arch/ || :
 	fi
