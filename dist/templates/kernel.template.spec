@@ -873,7 +873,7 @@ InstKernelDevel() {
 	pushd $KernDevel
 
 	# First copy everything
-	(cd $_KernSrc; cp --parents $(find . -type f -name "Makefile*" -o -name "Kconfig*") $KernDevel/)
+	(cd $_KernSrc; cp --parents $(find . -type f -name "Makefile*" -o -name "Kconfig*" -o -name "Kbuild*") $KernDevel/)
 	# Copy built config and sym files
 	cp $_KernBuild/Module.symvers .
 	cp $_KernBuild/System.map .
