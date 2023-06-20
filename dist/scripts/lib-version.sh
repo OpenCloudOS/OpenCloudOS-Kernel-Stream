@@ -182,7 +182,7 @@ _get_git_describe_of() {
 	if [[ -n "$gitdesc" ]]; then
 		echo "$gitdesc"
 	else
-		git "$@" describe --tags --abbrev=12 "$gitref"
+		git "$@" describe --always --tags --abbrev=12 "$gitref"
 	fi
 }
 
@@ -196,7 +196,7 @@ _get_last_git_tag_of() {
 	gittag=$(_get_git_tag_of "$gitref" "$@")
 
 	if [[ -z "$gittag" ]]; then
-		git "$@" describe --tags --abbrev=0 "$gitref"
+		git "$@" describe --always --tags --abbrev=0 "$gitref"
 		return 0
 	else
 		echo "$gittag"
@@ -399,7 +399,7 @@ _search_for_release_tag() {
 		done
 
 		# Find a previous tagged commit
-		gitref=$(git "$@" describe --first-parent --tags --abbrev=0 "$gitref^" 2>/dev/null)
+		gitref=$(git "$@" describe --first-parent --tags --abbrev=0 "$gitref^" 2>/dev/null) || break
 		limit=$((limit - 1))
 	done
 
