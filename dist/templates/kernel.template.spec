@@ -1249,6 +1249,7 @@ fi
 # Initramfs will be generated after install
 %ghost /boot/initramfs-%{kernel_unamer}.img
 # Make depmod files ghost files of the core package
+%dir /lib/modules/%{kernel_unamer}
 %ghost /lib/modules/%{kernel_unamer}/modules.alias
 %ghost /lib/modules/%{kernel_unamer}/modules.alias.bin
 %ghost /lib/modules/%{kernel_unamer}/modules.builtin.bin
