@@ -308,7 +308,7 @@ dist-check-kabi: dist-sources
 	@echo "Checking kABI for $(BUILD_ARCH)..."
 	$(call DO_RPMBUILD,-bi $(RPMCROSSFLAGS) \
 		--without doc --without headers --without perf --without tools --without bpftool \
-		--without debuginfo --without selftest --without modsign \
+		--without debuginfo --without selftest \
 		--with kabichk \
 	)
 
@@ -318,7 +318,7 @@ dist-update-kabi: dist-sources dist-check-buildrequires
 	@echo "Updating kABI for $(BUILD_ARCH)..."
 	$(call DO_RPMBUILD,-bc $(RPMCROSSFLAGS) \
 		--without doc --without headers --without perf --without tools --without bpftool \
-		--without debuginfo --without selftest --without modsign --without kabichk \
+		--without debuginfo --without selftest --without kabichk \
 	)
 	MODSYM=$$(find $(KABI_WORKDIR) -maxdepth 3 -type f -name 'Module.symvers'); \
 	if [ -f "$$MODSYM" ]; then \
