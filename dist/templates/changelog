@@ -1,3 +1,13 @@
+* Wed Jun 21 2023 Kairui Song <kasong@tencent.com> - 6.1.34-2303.1.0
+- dist: add /lib/modules/<kver> as dir in files list
+- dist: update kABI
+- Merge remote-tracking branch 'stable/linux-6.1.y' into ocks-2303
+- dist: make it behave better when there are no tag to use
+- dist: spec: remove redundant dist macro in ghost initramfs name
+- dist: spec: add kernel-core-uname-r providees
+- dist: spec: la64: include Platform file in devel package
+- dist: include Kbuild files as part of devel package
+
 * Fri May 19 2023 Kairui Song <kasong@tencent.com> - 6.1.26-2303.1.2
 - dist: spec: don't install trace event plugins
 
