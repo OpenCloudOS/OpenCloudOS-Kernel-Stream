@@ -175,7 +175,7 @@ BuildRequires: rsync
 
 ###### Kernel packages sources #################################################
 ### Kernel tarball
-Source0: %{kernel_tarname}.tar
+Source0: %{kernel_tarname}.tar.gz
 
 ### Build time scripts
 # Script used to assist kernel building

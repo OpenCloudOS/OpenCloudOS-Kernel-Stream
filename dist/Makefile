@@ -92,7 +92,7 @@ $(shell mkdir -p $(WORKDIRS); \
 KFULLVER := $(shell $(DISTDIR)/scripts/get-version.sh $(GITREF) vr)
 CONFIGFILE := $(shell $(DISTDIR)/scripts/ls-config-files.sh $(CONFIG))
 SPECFILE = $(RPM_SOURCEDIR)/kernel.spec
-TARFILE = $(RPM_SOURCEDIR)/kernel-$(KFULLVER).tar
+TARFILE = $(RPM_SOURCEDIR)/kernel-$(KFULLVER).tar.gz
 TESTPATCH = $(RPM_SOURCEDIR)/linux-kernel-test.patch
 ifeq ($(CONFIGFILE),)
 $(error Invalid CONFIG value '$(CONFIG)', no matching config target found)
@@ -146,7 +146,7 @@ default: dist-help
 
 $(TARFILE):
 	@echo "Generating kernel source tar: $(TARFILE)"
-	@cd $(TOPDIR); git archive $(GITREF) $(TOPDIR) --format=tar --prefix=kernel-$(KFULLVER)/ --output $(TARFILE)
+	@cd $(TOPDIR); git archive $(GITREF) $(TOPDIR) --format=tar.gz --prefix=kernel-$(KFULLVER)/ --output $(TARFILE)
 
 dist-tarball: $(TARFILE)
 	@echo "$(TARFILE)"
