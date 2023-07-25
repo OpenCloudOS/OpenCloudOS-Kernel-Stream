@@ -93,8 +93,7 @@ cat_repo_file() {
 get_dist_makefile_var() {
 	local _var=$1
 	local _gitref=$2
-	local _sedexp="/^$_var\s*[:?]?=\s*(.*)/{s/^\s*^$_var\s*[:?]?=\s*//;h};\${x;p}"
-	local _repo=${3:-$TOPDIR}
+	local _sedexp="/^${_var}[[:space:]]*[:?]?=[[:space:]]*(.*)/{s/^${_var}[[:space:]]*[:?]?=[[:space:]]*//;h;};\${x;p;}"
 	local _val
 
 	_val=$(cat_repo_file "dist/Makefile" "$_gitref" "$_repo" | sed -nE -e "$_sedexp")
