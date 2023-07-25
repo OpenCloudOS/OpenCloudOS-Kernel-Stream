@@ -814,6 +814,13 @@ InstKernelBasic() {
 		popd
 	fi
 
+	# Sign the vmlinuz for supporting secure boot feature only when
+	# external efi secure boot signer provided.
+	%if 0%{?_sb_signer:1}
+	%{_sb_signer vmlinuz vmlinuz.signed}
+	mv vmlinuz.signed vmlinuz
+	%endif
+
 	# Install Arch vmlinuz
 	install -m 644 vmlinuz %{buildroot}/boot/vmlinuz-$KernUnameR
 
