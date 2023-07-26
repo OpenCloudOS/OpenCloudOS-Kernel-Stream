@@ -219,17 +219,18 @@ get_kernel_code_version() {
 		return 1
 	fi
 
-	KVERSION=$(sed -nE '/^VERSION\s*:?=\s*/{s///;p;q}' <<< "$makefile")
-	KPATCHLEVEL=$(sed -nE '/^PATCHLEVEL\s*:?=\s*/{s///;p;q}' <<< "$makefile")
-	KSUBLEVEL=$(sed -nE '/^SUBLEVEL\s*:?=\s*/{s///;p;q}' <<< "$makefile")
-	KEXTRAVERSION=$(sed -nE '/^EXTRAVERSION\s*:?=\s*/{s///;p;q}' <<< "$makefile")
+	KVERSION=$(get_makefile_var VERSION <<< "$makefile")
+	KPATCHLEVEL=$(get_makefile_var PATCHLEVEL <<< "$makefile")
+	KSUBLEVEL=$(get_makefile_var SUBLEVEL <<< "$makefile")
+	KEXTRAVERSION=$(get_makefile_var EXTRAVERSION <<< "$makefile")
 	# Replace '-' in KEXTRAVERSION
 	KEXTRAVERSION=${KEXTRAVERSION//-/.}
 	KEXTRAVERSION=${KEXTRAVERSION#.}
 
 	if [[ -z "$KVERSION" ]] || [[ -z "$KPATCHLEVEL" ]] || [[ -z "$KSUBLEVEL" ]]; then
-		die "Invalid VERSION, PATCHLEVEL or SUBLEVEL in Makefile"
-		return 1
+		error "Invalid VERSION, PATCHLEVEL or SUBLEVEL in Makefile:"
+		error "$KVERSION.$KPATCHLEVEL.$KSUBLEVEL:"
+		exit 1
 	fi
 
 	if [[ "$KEXTRAVERSION" == "rc"* ]] || [[ $KEXTRAVERSION == "-rc"* ]]; then
@@ -307,9 +308,9 @@ _check_strip_kernel_majver() {
 	# Update VERSION/PATCHLEVEL/SUBLEVEL using target Makefile, because y upstream
 	# changes them very frequently and may out of sync with previous tag.
 	if makefile=$(git show "$tag:Makefile" 2>/dev/null); then
-		_kversion=$(sed -nE '/^VERSION\s*:?=\s*/{s///;p;q}' <<< "$makefile")
-		_kpatchlevel=$(sed -nE '/^PATCHLEVEL\s*:?=\s*/{s///;p;q}' <<< "$makefile")
-		_ksublevel=$(sed -nE '/^SUBLEVEL\s*:?=\s*/{s///;p;q}' <<< "$makefile")
+		_kversion=$(get_makefile_var VERSION <<< "$makefile")
+		_kpatchlevel=$(get_makefile_var PATCHLEVEL <<< "$makefile")
+		_ksublevel=$(get_makefile_var SUBLEVEL <<< "$makefile")
 	fi
 
 	if rel=$(KVERSION=$_kversion KPATCHLEVEL=$_kpatchlevel KSUBLEVEL=$_ksublevel _do_strip_kernel_majver "$tag"); then

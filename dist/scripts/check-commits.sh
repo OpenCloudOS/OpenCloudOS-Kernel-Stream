@@ -179,8 +179,8 @@ check_commit() {
 		fi
 	fi
 
-	upstream_commit=$(echo "$commit_body" | sed -nE "s/^(Upstream commit:|Upstream: commit) (\S+)/\2/pg")
-	upstream_status=$(echo "$commit_body" | sed -nE "s/^(Upstream status:|Upstream:) (\S+)/\2/pg")
+	upstream_commit=$(echo "$commit_body" | sed -nE "s/^(Upstream commit:|Upstream: commit) ([^[:space:]]+)/\2/pg")
+	upstream_status=$(echo "$commit_body" | sed -nE "s/^(Upstream status:|Upstream:) ([^[:space:]]+)/\2/pg")
 	commits_cnt=$(echo "$upstream_commit" | wc -w)
 
 	if [[ $commit_summary == $VENDOR:* ]]; then

@@ -90,20 +90,28 @@ cat_repo_file() {
 # $1: keyword
 # $2: optional git ref, if not set current Makefile is used
 # $3: optional git repo
-get_dist_makefile_var() {
-	local _var=$1
-	local _gitref=$2
-	local _sedexp="/^${_var}[[:space:]]*[:?]?=[[:space:]]*(.*)/{s/^${_var}[[:space:]]*[:?]?=[[:space:]]*//;h;};\${x;p;}"
+get_makefile_var() {
 	local _val
+	local _sedexp="/^${1}[[:space:]]*[:?]?=[[:space:]]*(.*)/{s/^${1}[[:space:]]*[:?]?=[[:space:]]*//;h;};\${x;p;}"
 
-	_val=$(cat_repo_file "dist/Makefile" "$_gitref" "$_repo" | sed -nE -e "$_sedexp")
+	_val=$(sed -nE -e "$_sedexp")
 	case $_val in
 		*\$* )
-			die "Can't parse Makefile variable '$_var', it references to other variables."
+			die "Can't parse Makefile variable '$1', it references to other variables."
 			;;
 	esac
 
 	echo "$_val"
+}
+
+# $1: keyword
+# $2: optional git ref, if not set current Makefile is used
+# $3: optional git repo
+get_dist_makefile_var() {
+	local _var=$1
+	local _gitref=$2
+
+	cat_repo_file "dist/Makefile" "$_gitref" | get_makefile_var "$1"
 }
 
 [ "$TOPDIR" ] || TOPDIR=$(git rev-parse --show-toplevel 2>/dev/null)
