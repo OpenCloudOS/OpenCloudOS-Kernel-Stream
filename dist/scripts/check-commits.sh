@@ -320,4 +320,6 @@ echo "$git_logs" | while read -r commit_id commit_msg; do
 
 	# Newline as seperator
 	echo
+
+	exit $RET
 done
