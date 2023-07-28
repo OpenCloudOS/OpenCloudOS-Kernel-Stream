@@ -599,7 +599,7 @@ case $KernUnameR in
 ## make for tools
 %global tools_make CFLAGS="${RPM_OPT_FLAGS}" LDFLAGS="%{__global_ldflags}" %{make} %{tools_make_opts}
 %global perf_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" LDFLAGS="%{__global_ldflags}" WERROR=0 NO_LIBUNWIND=1 HAVE_CPLUS_DEMANGLE=1 NO_GTK2=1 NO_STRLCPY=1 NO_BIONIC=1 LIBTRACEEVENT_DYNAMIC=%{?_libtraceevent_dynamic} %{make} %{tools_make_opts}
-%global bpftool_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" EXTRA_LDFLAGS="%{__global_ldflags}" VMLINUX_H="$_KernVmlinuxH" %{make} %{tools_make_opts}
+%global bpftool_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" EXTRA_LDFLAGS="%{__global_ldflags}" %{make} %{tools_make_opts}
 
 ### Real make
 %{prepare_buildvar}
@@ -663,26 +663,6 @@ BuildKernel() {
 	# testing so just delete
 	find . -name *.h.s -delete
 
-	%if %{with_bpftool}
-	echo "*** Building bootstrap bpftool and extrace vmlinux.h"
-	if ! [ -s $_KernVmlinuxH ]; then
-		# Precompile a minimized bpftool without vmlinux.h, use it to extract vmlinux.h
-		# for bootstraping the full feature bpftool
-		%{host_make} -C $_KernSrc/tools/bpf/bpftool/ VMLINUX_BTF= VMLINUX_H=
-		# Prefer to extract the vmlinux.h from the vmlinux that were just compiled
-		# fallback to use host's vmlinux
-		# Skip this if bpftools is too old and doesn't support BTF dump
-		if $_KernSrc/tools/bpf/bpftool/bpftool btf help 2>&1 | grep -q "\bdump\b"; then
-			if grep -q "CONFIG_DEBUG_INFO_BTF=y" ".config"; then
-				$_KernSrc/tools/bpf/bpftool/bpftool btf dump file vmlinux format c > $_KernVmlinuxH
-			else
-				$_KernSrc/tools/bpf/bpftool/bpftool btf dump file /sys/kernel/btf/vmlinux format c > $_KernVmlinuxH
-			fi
-		fi
-		%{host_make} -C $_KernSrc/tools/bpf/bpftool/ clean
-	fi
-	%endif
-
 	popd
 }
 
@@ -708,7 +688,30 @@ BuildTools() {
 }
 
 BuildBpfTool() {
-	%{bpftool_make} -C tools/bpf/bpftool
+	echo "*** Building bootstrap bpftool and extrace vmlinux.h"
+	if ! [ -s $_KernVmlinuxH ]; then
+		# Precompile a minimized bpftool without vmlinux.h, use it to extract vmlinux.h
+		# for bootstraping the full feature bpftool
+		%{host_make} -C tools/bpf/bpftool/ VMLINUX_BTF= VMLINUX_H=
+		# Prefer to extract the vmlinux.h from the vmlinux that were just compiled
+		# fallback to use host's vmlinux
+		# Skip this if bpftools is too old and doesn't support BTF dump
+		if tools/bpf/bpftool/bpftool btf help 2>&1 | grep -q "\bdump\b"; then
+			if grep -q "CONFIG_DEBUG_INFO_BTF=y" "$_KernBuild/.config" && [ -s "$_KernBuild/vmlinux" ]; then
+				tools/bpf/bpftool/bpftool btf dump file "$_KernBuild/vmlinux" format c > $_KernVmlinuxH
+			else
+				tools/bpf/bpftool/bpftool btf dump file /sys/kernel/btf/vmlinux format c > $_KernVmlinuxH
+			fi
+		fi
+		%{host_make} -C tools/bpf/bpftool/ clean
+	fi
+
+	echo "*** Building bpftool"
+	if [ -s $_KernVmlinuxH ]; then
+		%{bpftool_make} VMLINUX_H="$_KernVmlinuxH" -C tools/bpf/bpftool
+	else
+		%{bpftool_make} -C tools/bpf/bpftool
+	fi
 }
 
 %if %{with_core}
@@ -1118,7 +1121,9 @@ InstTools
 InstBpfTool
 %endif
 
+%if %{with_core}
 CollectKernelFile
+%endif
 
 ###### Debuginfo ###############################################################
 %if %{with_debuginfo}
@@ -1129,6 +1134,7 @@ mkdir -p %{buildroot}%{debuginfo_dir}/lib/modules/$KernUnameR
 cp -rpf $_KernBuild/vmlinux %{buildroot}%{debuginfo_dir}/lib/modules/$KernUnameR/vmlinux
 ln -sf %{debuginfo_dir}/lib/modules/$KernUnameR/vmlinux %{buildroot}/boot/vmlinux-$KernUnameR
 %endif
+#with_core
 
 # All binary installation are done here, so run __debug_install_post, then undefine it.
 # This triggers find-debuginfo.sh, undefine prevents it from being triggered again
@@ -1139,11 +1145,10 @@ ln -sf %{debuginfo_dir}/lib/modules/$KernUnameR/vmlinux %{buildroot}/boot/vmlinu
 # Delete the debuginfo for kernel-devel files
 rm -rf %{buildroot}%{debuginfo_dir}/usr/src
 
-%endif
 %undefine __debug_install_post
 
 ###### Finally, module sign and compress ######
-%if %{with_modsign}
+%if %{with_modsign} && %{with_core}
 ### Sign after debuginfo extration, extraction breaks signature
 %{_module_signer} "$KernUnameR" "$_KernBuild" "%{buildroot}" || exit $?
 %endif
@@ -1159,6 +1164,9 @@ find "$KernModule" -type f -name '*.ko' -print0 | xargs -0r -P${NPROC} -n4 xz -T
 for list in ../*.list; do
 	sed -i -e 's/\.ko$/\.ko.xz/' $list
 done
+
+%endif
+#with_debuginfo
 
 ###### RPM scriptslets #########################################################
 ### Core package
