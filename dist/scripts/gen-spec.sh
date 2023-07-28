@@ -188,12 +188,12 @@ _gen_pkgopt_spec() {
 			*" $opt "* )
 				disabled_opts="$disabled_opts $opt"
 				opts_output="$opts_output
-%define with_$opt	%{?_with_$opt: 1}	%{?!_with_$opt: 0}"
+%define with_$opt	%{?_with_$opt:1}%{?!_with_$opt:0}"
 				;;
 			* )
 				enabled_opts="$enabled_opts $opt"
 				opts_output="$opts_output
-%define with_$opt	%{?_without_$opt: 0}	%{?!_without_$opt: 1}"
+%define with_$opt	%{?_without_$opt:0}%{?!_without_$opt:1}"
 		esac
 	done
 
