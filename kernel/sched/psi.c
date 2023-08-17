@@ -1337,6 +1337,7 @@ void psi_cgroup_restart(struct psi_group *group)
 int psi_show(struct seq_file *m, struct psi_group *group, enum psi_res res)
 {
 	bool only_full = false;
+	bool only_some;
 	int full;
 	u64 now;
 
@@ -1354,8 +1355,9 @@ int psi_show(struct seq_file *m, struct psi_group *group, enum psi_res res)
 #ifdef CONFIG_IRQ_TIME_ACCOUNTING
 	only_full = res == PSI_IRQ;
 #endif
+	only_some = psi_use_legacy() && !only_full;
 
-	for (full = 0; full < 2 - only_full; full++) {
+	for (full = 0; full < 2 - (only_full || only_some); full++) {
 		unsigned long avg[3] = { 0, };
 		u64 total = 0;
 		int w;
