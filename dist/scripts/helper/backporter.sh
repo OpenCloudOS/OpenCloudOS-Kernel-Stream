@@ -5,7 +5,9 @@
 . "/$(dirname "$(realpath "$0")")/../lib.sh"
 
 AUTHOR="$(git config user.name) <$(git config user.email)>"
-COMMIT=$1
+REASON=$1
+COMMIT=$2
+UPSTRAM="upstream"
 
 [ -z "$COMMIT" ] && die "Usage: $0 <upstream commit id>"
 
@@ -67,25 +69,20 @@ fi
 
 if ! git cherry-pick "$COMMIT"; then
 	_resolve_conflict_shell
-	CONFLICT=Resolved
+	CONFLICT=resolved
 else
-	CONFLICT=None
+	CONFLICT=none
 fi
 
 git commit \
 	--am \
-	--author="$AUTHOR" \
-	--date=now \
 	--message \
 	"$(git log -1 --format=%s "$COMMIT")
 
-$MSG
+commit $COMMIT $UPSTRAM
 
-Upstream commit: $COMMIT
-Conflict: $CONFLICT
+Conflicts: $CONFLICT
+Back$(echo "port-reason: $REASON" | fold -s -w 75 | sed -e '2,$s/^/    /')
 
-Backport of following upstream commit:
-
-$(git log -1 "$COMMIT")
-
+$(git show --pretty=format:"%B" --no-patch "$COMMIT" | tail -n +3)
 Signed-off-by: $AUTHOR"
