@@ -596,7 +596,7 @@ case $KernUnameR in
 ## make for tools
 %global tools_make CFLAGS="${RPM_OPT_FLAGS}" LDFLAGS="%{__global_ldflags}" %{make} %{tools_make_opts}
 %global perf_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" LDFLAGS="%{__global_ldflags}" WERROR=0 NO_LIBUNWIND=1 HAVE_CPLUS_DEMANGLE=1 NO_GTK2=1 NO_STRLCPY=1 NO_BIONIC=1 LIBTRACEEVENT_DYNAMIC=%{?_libtraceevent_dynamic} %{make} %{tools_make_opts}
-%global bpftool_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" EXTRA_LDFLAGS="%{__global_ldflags}" %{make} %{tools_make_opts}
+%global bpftool_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" EXTRA_LDFLAGS="%{__global_ldflags}" %{make} %{tools_make_opts} $([ -e "$_KernVmlinuxH" ] && echo VMLINUX_H="$_KernVmlinuxH")
 
 ### Real make
 %{prepare_buildvar}
@@ -704,11 +704,7 @@ BuildBpfTool() {
 	fi
 
 	echo "*** Building bpftool"
-	if [ -s $_KernVmlinuxH ]; then
-		%{bpftool_make} VMLINUX_H="$_KernVmlinuxH" -C tools/bpf/bpftool
-	else
-		%{bpftool_make} -C tools/bpf/bpftool
-	fi
+	%{bpftool_make} -C tools/bpf/bpftool
 }
 
 %if %{with_core}
