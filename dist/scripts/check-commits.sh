@@ -293,33 +293,39 @@ fi
 
 IDX=0
 ERROR_MSG=""
-echo "$git_logs" | while read -r commit_id commit_msg; do
-	echo "=== Checking $commit_id ('$commit_msg') ..."
+echo "$git_logs" | {
+	ERROR=0
+	while read -r commit_id commit_msg; do
+		echo "=== Checking $commit_id ('$commit_msg') ..."
 
-	IDX=$(( IDX + 1 ))
-	ERROR_MSG=$(check_commit "$commit_id")
-	RET=$?
-	OUTFILE=$(printf "$OUTPUT_DIR/%04d-%s.err" $IDX "$commit_id")
+		IDX=$(( IDX + 1 ))
+		ERROR_MSG=$(check_commit "$commit_id")
+		RET=$?
+		OUTFILE=$(printf "$OUTPUT_DIR/%04d-%s.err" $IDX "$commit_id")
 
-	if [[ $RET -ne 0 ]]; then
-		echo_yellow "Found following issues with $commit_id ('$commit_msg'):"
-		echo_red "$ERROR_MSG"
-		if [[ "$GEN_REPORT" ]] && [[ "$GEN_REPORT" != "0" ]]; then
-			{
-				echo "$ERROR_MSG"
-			}	> "$OUTFILE"
-		fi
-	else
-		if [[ -n "$ERROR_MSG" ]]; then
-			echo_yellow "$commit_id have some warnings:"
+		if [[ $RET -ne 0 ]]; then
+			ERROR=$(( ERROR + 1 ))
+			echo_yellow "Found following issues with $commit_id ('$commit_msg'):"
 			echo_red "$ERROR_MSG"
+			if [[ "$GEN_REPORT" ]] && [[ "$GEN_REPORT" != "0" ]]; then
+				{
+					echo "$ERROR_MSG"
+				}	> "$OUTFILE"
+			fi
 		else
-			echo_green "$commit_id looks OK"
+			if [[ -n "$ERROR_MSG" ]]; then
+				echo_yellow "$commit_id have some warnings:"
+				echo_red "$ERROR_MSG"
+			else
+				echo_green "$commit_id looks OK"
+			fi
 		fi
-	fi
 
-	# Newline as seperator
-	echo
+		# Newline as seperator
+		echo
+	done
 
-	exit $RET
-done
+	exit "$ERROR"
+}
+
+exit $?
