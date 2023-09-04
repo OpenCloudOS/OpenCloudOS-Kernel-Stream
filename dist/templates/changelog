@@ -1,3 +1,21 @@
+* Mon Sep  4 2023 Kairui Song <kasong@tencent.com> - 6.1.50-2303.1.0
+- dist: update kABI
+- mm/vmscan.c: add cond_resched function call into __shrink_page_cache
+- dist: rename parameter DEFAULT_{DISABLED,ENABLED} -> {DISABLED,ENABLED}
+- tcp: fix usage of totalram_pages
+- mm: pagecachelimit: fix NULL pointer when memcg is disabled
+- emm: psi: update cgroup v1 psi accounting
+- dist: fix check-commits
+- dist: fix gen-spec.sh failing to generator %{nil} macro issue
+- dist: fix vmlinux.h header handling
+- dist: drop dynamic kernel tarname
+- dist: add gcov release type
+- dist: fix building failure with tools only
+- dist: gen-spec.sh: remove space in the switch variables
+- dist: introduce libtraceevent dynamic switch
+- Merge remote-tracking branch 'stable/linux-6.1.y' into ocks-2303
+- Linux 6.1.50
+
 * Thu Jul 27 2023 Kairui Song <kasong@tencent.com> - 6.1.41-2303.1.1
 - dist: filter-modules.sh: split cifs for aarch64 as well
 
