@@ -21,6 +21,9 @@
 %define kernel_unamer %{kernel_unamer_force}
 %endif
 
+# TODO: We have a fixed tar name, might be better to include KDIST in tarname
+%define kernel_tarname kernel-%{kernel_majver}-%{kernel_relver}
+
 # This section defines following value:
 # %%{kernel_arch}
 # Since kernel arch name differs from many other definations, this will insert a script snip
@@ -181,7 +184,7 @@ BuildRequires: rsync
 
 ###### Kernel packages sources #################################################
 ### Kernel tarball
-Source0: linux-kernel-src.tar.gz
+Source0: %{kernel_tarname}.tar.gz
 
 ### Build time scripts
 # Script used to assist kernel building
@@ -485,9 +488,9 @@ This package provides debug information for the bpftool package.
 # KernModule: Kernel modules install path, located in %%{buildroot}
 # KernDevel: Kernel headers and sources install path, located in %%{buildroot}
 %global prepare_buildvar \
-	cd linux-kernel-src \
-	_KernSrc=%{_builddir}/%{rpm_name}-%{kernel_unamer}/linux-kernel-src \
-	_KernBuild=%{_builddir}/%{rpm_name}-%{kernel_unamer}/linux-kernel-obj \
+	cd %{kernel_tarname} \
+	_KernSrc=%{_builddir}/%{rpm_name}-%{kernel_unamer}/%{kernel_tarname} \
+	_KernBuild=%{_builddir}/%{rpm_name}-%{kernel_unamer}/%{kernel_unamer}-obj \
 	_KernVmlinuxH=%{_builddir}/%{rpm_name}-%{kernel_unamer}/vmlinux.h \
 	KernUnameR=%{kernel_unamer} \
 	KernModule=%{buildroot}/lib/modules/%{kernel_unamer} \
@@ -516,7 +519,7 @@ find scripts/ tools/ Documentation/ \
 	-exec pathfix.py -i "%{__python3} %{py3_shbang_opts}" -p -n {} \+;
 
 # Make a copy and add suffix for kernel licence to prevent conflict of multi kernel package installation
-cp $_KernSrc/COPYING ../COPYING.%{kernel_unamer}
+cp $_KernSrc/COPYING $_KernSrc/COPYING.%{kernel_unamer}
 
 # Update kernel version and suffix info to make uname consistent with RPM version
 # PATCHLEVEL inconsistent only happen on first merge window, but patch them all just in case
@@ -1287,7 +1290,7 @@ fi
 %ghost /lib/modules/%{kernel_unamer}/modules.symbols
 %ghost /lib/modules/%{kernel_unamer}/modules.symbols.bin
 %{!?_licensedir:%global license %%doc}
-%license COPYING.%{kernel_unamer}
+%license %{kernel_tarname}/COPYING.%{kernel_unamer}
 
 %files modules -f modules.list
 %defattr(-,root,root)
