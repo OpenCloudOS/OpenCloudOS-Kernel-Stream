@@ -4792,7 +4792,7 @@ void __init tcp_init(void)
 		alloc_large_system_hash("TCP established",
 					sizeof(struct inet_ehash_bucket),
 					thash_entries,
-					(totalram_pages >= 128 * 1024) ?
+					(totalram_pages() >= 128 * 1024) ?
 					13 : 17,
 					0,
 					NULL,
