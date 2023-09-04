@@ -98,27 +98,27 @@ $(error Invalid CONFIG value '$(CONFIG)', no matching config target found)
 endif
 
 ### RPM build options
-# All params enabled by default (except kABI check, see below), DEFAULT_ENABLED overrides DEFAULT_DISABLE.
-DEFAULT_DISABLED=
-DEFAULT_ENABLED=
+# All params enabled by default (except kABI check, see below), ENABLED overrides DEFAULT_DISABLE.
+DISABLED=$(DEFAULT_DISABLED)
+ENABLED=$(DEFAULT_ENABLED)
 
 ## A few shortcut for commonly used params:
 # Disable KABI check by default
 KABI=0
 ifeq ($(KABI), 0)
-override DEFAULT_DISABLED := kabichk $(DEFAULT_DISABLED)
+override DISABLED := kabichk $(DISABLED)
 endif
 
 # Enabled module sign by default
 MODSIGN=1
 ifeq ($(MODSIGN), 0)
-override DEFAULT_DISABLED := modsign $(DEFAULT_DISABLED)
+override DISABLED := modsign $(DISABLED)
 endif
 
 # Disable private key pkg by default
 KEYPKG=0
 ifeq ($(KEYPKG), 0)
-override DEFAULT_DISABLED := keypkg $(DEFAULT_DISABLED)
+override DISABLED := keypkg $(DISABLED)
 endif
 
 # Allow to skip RPM dependency check
@@ -174,8 +174,8 @@ $(SPECFILE): always-rebuild dist-configs
 		--gitref "$(GITREF)" \
 		--build-arch "$(SRPM_ARCH)" \
 		--kernel-config "$(CONFIG)" \
-		--set-default-disabled "$(DEFAULT_DISABLED)" \
-		--set-default-enabled "$(DEFAULT_ENABLED)" \
+		--set-default-disabled "$(DISABLED)" \
+		--set-default-enabled "$(ENABLED)" \
 		> $(SPECFILE)
 	@grep -A2 "# == Package options ==" $(SPECFILE) | cut -c3-
 
