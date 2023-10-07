@@ -1020,6 +1020,8 @@ void psi_task_switch(struct task_struct *prev, struct task_struct *next,
 			int clear = TSK_RUNNING, set = 0;
 			bool wake_clock = true;
 
+			if (prev->in_memstall)
+				clear |= TSK_MEMSTALL_RUNNING;
 			if (prev->in_iowait)
 				set |= TSK_IOWAIT;
 
