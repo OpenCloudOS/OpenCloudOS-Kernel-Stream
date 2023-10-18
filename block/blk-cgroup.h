@@ -570,13 +570,17 @@ static inline unsigned long blkcg_dirty_ratelimit(struct blkcg *blkcg)
 	return blkcg->dirty_ratelimit;
 }
 
-static inline struct blkcg *task_blkcg(struct task_struct *tsk)
+static inline struct blkcg *get_task_blkcg(struct task_struct *tsk)
 {
 	struct cgroup_subsys_state *css;
 
-	css = kthread_blkcg();
-	if (!css)
-		css = task_css(tsk, io_cgrp_id);
+	rcu_read_lock();
+	do {
+		css = kthread_blkcg();
+		if (!css)
+			css = task_css(tsk, io_cgrp_id);
+	} while (!css_tryget(css));
+	rcu_read_unlock();
 
 	return container_of(css, struct blkcg, css);
 }

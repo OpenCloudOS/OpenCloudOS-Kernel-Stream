@@ -1630,7 +1630,7 @@ static int balance_dirty_pages(struct bdi_writeback *wb,
 	unsigned long start_time = jiffies;
 	int ret = 0;
 #ifdef CONFIG_BLK_DEV_THROTTLING_CGROUP_V1
-	struct blkcg *blkcg = task_blkcg(current);
+	struct blkcg *blkcg = get_task_blkcg(current);
 #endif
 
 	for (;;) {
@@ -1911,6 +1911,9 @@ pause:
 		if (fatal_signal_pending(current))
 			break;
 	}
+#ifdef CONFIG_BLK_DEV_THROTTLING_CGROUP_V1
+	css_put(&blkcg->css);
+#endif
 	return ret;
 }
 
@@ -2627,7 +2630,7 @@ static void folio_account_dirtied(struct folio *folio,
 {
 	struct inode *inode = mapping->host;
 #ifdef CONFIG_BLK_DEV_THROTTLING_CGROUP_V1
-	struct blkcg *blkcg = task_blkcg(current);
+	struct blkcg *blkcg = get_task_blkcg(current);
 #endif
 
 	trace_writeback_dirty_folio(folio, mapping);
@@ -2655,6 +2658,9 @@ static void folio_account_dirtied(struct folio *folio,
 
 		mem_cgroup_track_foreign_dirty(folio, wb);
 	}
+#ifdef CONFIG_BLK_DEV_THROTTLING_CGROUP_V1
+	css_put(&blkcg->css);
+#endif
 }
 
 /*
