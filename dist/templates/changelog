@@ -1,3 +1,18 @@
+* Thu Oct 19 2023 Kairui Song <kasong@tencent.com> - 6.1.58-2303.1.0
+- dist: kabi: update kABI
+- drm/vmwgfx: Fix a sparse warning in kernel docs
+- drm/vmwgfx: Optimize initial sizes of cotables
+- drm/vmwgfx: Add a mksstat counter for cotable resizes
+- drm/vmwgfx: Port the framebuffer code to drm fb helpers
+- drm/vmwgfx: Do not allow invalid bpp's for dumb buffers
+- drm/vmwgfx: Diff cursors when using cmds
+- drm/vmwgfx: Support cursor surfaces with mob cursor
+- drm/vmwgfx: Start diffing new mob cursors against old ones
+- drm/vmwgfx: Clean up cursor mobs
+- dist: backport helper update, mimic upstream backport commit format
+- blkcg: fix buffer IO throttle for cgroup v1
+- Linux 6.1.58
+
 * Mon Sep  4 2023 Kairui Song <kasong@tencent.com> - 6.1.50-2303.1.0
 - dist: update kABI
 - mm/vmscan.c: add cond_resched function call into __shrink_page_cache
