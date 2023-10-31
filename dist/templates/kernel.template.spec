@@ -1277,6 +1277,7 @@ fi
 /boot/symvers-%{kernel_unamer}.gz
 # Initramfs will be generated after install
 %ghost /boot/initramfs-%{kernel_unamer}.img
+%ghost /boot/initramfs-%{kernel_unamer}kdump.img
 # Make depmod files ghost files of the core package
 %dir /lib/modules/%{kernel_unamer}
 %ghost /lib/modules/%{kernel_unamer}/modules.alias
