@@ -192,6 +192,7 @@ struct cgroup_subsys_state {
 	atomic_t online_cnt;
 
 	/* percpu_ref killing and RCU release */
+	struct work_struct kill_work;
 	struct work_struct destroy_work;
 	struct rcu_work destroy_rwork;
 

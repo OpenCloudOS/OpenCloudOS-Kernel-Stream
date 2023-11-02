@@ -125,6 +125,7 @@ DEFINE_PERCPU_RWSEM(cgroup_threadgroup_rwsem);
  * which may lead to deadlock.
  */
 static struct workqueue_struct *cgroup_destroy_wq;
+static struct workqueue_struct *cgroup_kill_wq;
 
 /* generate an array of cgroup subsystem pointers */
 #define SUBSYS(_x) [_x ## _cgrp_id] = &_x ## _cgrp_subsys,
@@ -3141,7 +3142,6 @@ restart:
 			cgroup_get_live(dsct);
 			prepare_to_wait(&dsct->offline_waitq, &wait,
 					TASK_UNINTERRUPTIBLE);
-
 			cgroup_unlock();
 			schedule();
 			finish_wait(&dsct->offline_waitq, &wait);
@@ -5520,6 +5520,7 @@ static void offline_css(struct cgroup_subsys_state *css)
 		ss->css_offline(css);
 
 	css->flags &= ~CSS_ONLINE;
+
 	RCU_INIT_POINTER(css->cgroup->subsys[ss->id], NULL);
 
 	wake_up_all(&css->cgroup->offline_waitq);
@@ -5788,7 +5789,7 @@ out_unlock:
 static void css_killed_work_fn(struct work_struct *work)
 {
 	struct cgroup_subsys_state *css =
-		container_of(work, struct cgroup_subsys_state, destroy_work);
+		container_of(work, struct cgroup_subsys_state, kill_work);
 
 	cgroup_lock();
 
@@ -5809,8 +5810,8 @@ static void css_killed_ref_fn(struct percpu_ref *ref)
 		container_of(ref, struct cgroup_subsys_state, refcnt);
 
 	if (atomic_dec_and_test(&css->online_cnt)) {
-		INIT_WORK(&css->destroy_work, css_killed_work_fn);
-		queue_work(cgroup_destroy_wq, &css->destroy_work);
+		INIT_WORK(&css->kill_work, css_killed_work_fn);
+		queue_work(cgroup_kill_wq, &css->kill_work);
 	}
 }
 
@@ -6183,6 +6184,8 @@ static int __init cgroup_wq_init(void)
 	 */
 	cgroup_destroy_wq = alloc_workqueue("cgroup_destroy", 0, 1);
 	BUG_ON(!cgroup_destroy_wq);
+	cgroup_kill_wq = alloc_workqueue("cgroup_kill", 0, 1);
+	BUG_ON(!cgroup_kill_wq);
 	return 0;
 }
 core_initcall(cgroup_wq_init);
