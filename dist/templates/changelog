@@ -1,3 +1,8 @@
+* Thu Nov  2 2023 Kairui Song <kasong@tencent.com> - 6.1.61-2303.1.0
+- cgroup: use a standalone workqueue for killing css
+- dist: fix ghost filenames
+- Linux 6.1.61
+
 * Thu Oct 19 2023 Kairui Song <kasong@tencent.com> - 6.1.58-2303.1.0
 - dist: kabi: update kABI
 - drm/vmwgfx: Fix a sparse warning in kernel docs
