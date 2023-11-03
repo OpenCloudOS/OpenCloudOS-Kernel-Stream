@@ -1208,6 +1208,17 @@ else
 fi
 %endif
 
+# Some system still expect us to setup vmlinuz manually, vmlinuz is listed
+# as ghost file to detect such systems
+if [ ! -e /boot/vmlinuz-%{kernel_unamer} ]; then
+	cp /lib/modules/%{kernel_unamer}/vmlinuz /boot/vmlinuz-%{kernel_unamer}
+	cp /lib/modules/%{kernel_unamer}/config /boot/config-%{kernel_unamer}
+	cp /lib/modules/%{kernel_unamer}/System.map /boot/System.map-%{kernel_unamer}
+	ln -srf /boot/vmlinuz-%{kernel_unamer} /boot/vmlinuz
+	ln -srf /boot/config-%{kernel_unamer} /boot/config
+	ln -srf /boot/System.map-%{kernel_unamer} /boot/System.map
+fi
+
 %preun core
 # Boot entry and depmod files
 if command -v kernel-install > /dev/null; then
