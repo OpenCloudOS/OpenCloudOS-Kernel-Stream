@@ -2752,9 +2752,9 @@ static inline void flush_slab(struct kmem_cache *s, struct kmem_cache_cpu *c)
 	slab = c->slab;
 	freelist = c->freelist;
 
-	c->slab = NULL;
-	c->freelist = NULL;
-	c->tid = next_tid(c->tid);
+	WRITE_ONCE(c->slab, NULL);
+	WRITE_ONCE(c->freelist, NULL);
+	WRITE_ONCE(c->tid, next_tid(c->tid));
 
 	local_unlock_irqrestore(&s->cpu_slab->lock, flags);
 
@@ -3183,9 +3183,9 @@ deactivate_slab:
 		goto reread_slab;
 	}
 	freelist = c->freelist;
-	c->slab = NULL;
-	c->freelist = NULL;
-	c->tid = next_tid(c->tid);
+	WRITE_ONCE(c->slab, NULL);
+	WRITE_ONCE(c->freelist, NULL);
+	WRITE_ONCE(c->tid, next_tid(c->tid));
 	local_unlock_irqrestore(&s->cpu_slab->lock, flags);
 	deactivate_slab(s, slab, freelist);
 
@@ -3283,9 +3283,9 @@ retry_load_slab:
 		void *flush_freelist = c->freelist;
 		struct slab *flush_slab = c->slab;
 
-		c->slab = NULL;
-		c->freelist = NULL;
-		c->tid = next_tid(c->tid);
+		WRITE_ONCE(c->slab, NULL);
+		WRITE_ONCE(c->freelist, NULL);
+		WRITE_ONCE(c->tid, next_tid(c->tid));
 
 		local_unlock_irqrestore(&s->cpu_slab->lock, flags);
 
