@@ -449,7 +449,7 @@ static inline void set_freepointer(struct kmem_cache *s, void *object, void *fp)
 #endif
 
 	freeptr_addr = (unsigned long)kasan_reset_tag((void *)freeptr_addr);
-	*(freeptr_t *)freeptr_addr = freelist_ptr_encode(s, fp, freeptr_addr);
+	WRITE_ONCE(*(freeptr_t *)freeptr_addr, freelist_ptr_encode(s, fp, freeptr_addr));
 }
 
 /* Loop over all objects in a slab */
