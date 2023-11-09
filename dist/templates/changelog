@@ -1,3 +1,11 @@
+* Thu Nov  9 2023 Kairui Song <kasong@tencent.com> - 6.1.61-2303.1.1
+- tracing: fix UAF caused by memory ordering issue
+- mm/slub.c: sanitize freelist pointer assignment even more
+- mm/slub.c: fix a potential UAF
+- mm/slub: remove freelist_dereference()
+- mm/slub: remove redundant kasan_reset_tag() from freelist_ptr calculations
+- mm/slub: refactor freelist to use custom type
+
 * Thu Nov  2 2023 Kairui Song <kasong@tencent.com> - 6.1.61-2303.1.0
 - cgroup: use a standalone workqueue for killing css
 - dist: fix ghost filenames
