@@ -1518,6 +1518,22 @@ static struct ctl_table ipv4_net_table[] = {
 		.mode           = 0644,
 		.proc_handler   = proc_dointvec,
 	},
+	{
+		.procname	= "tcp_init_rto",
+		.data		= &sysctl_tcp_init_rto,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1 	= SYSCTL_FOUR
+	},
+	{
+		.procname	= "tcp_synack_rto_interval",
+		.data		= &sysctl_tcp_synack_rto_interval,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1 	= SYSCTL_FOUR
+	},
 	{ }
 };
 

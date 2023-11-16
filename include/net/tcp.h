@@ -144,7 +144,11 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 
 #define TCP_TIMEOUT_MIN_US (2*USEC_PER_MSEC) /* Min TCP timeout in microsecs */
 
-#define TCP_TIMEOUT_INIT ((unsigned)(1*HZ))	/* RFC6298 2.1 initial RTO value	*/
+/*
+ * RFC6298 2.1 initial RTO value
+ * #define TCP_TIMEOUT_INIT ((unsigned)(1*HZ))
+ */
+#define TCP_TIMEOUT_INIT ((unsigned)((sysctl_tcp_init_rto*HZ)/1000))
 #define TCP_TIMEOUT_FALLBACK ((unsigned)(3*HZ))	/* RFC 1122 initial RTO value, now
 						 * used as a fallback RTO for the
 						 * initial data transmission if no
@@ -253,6 +257,8 @@ extern int sysctl_tcp_loss_init_cwnd;
 extern int sysctl_tcp_no_delay_ack;
 extern int sysctl_tcp_init_cwnd;
 extern int sysctl_tcp_inherit_buffsize;
+extern int sysctl_tcp_init_rto;
+extern int sysctl_tcp_synack_rto_interval;
 
 #define TCP_RACK_LOSS_DETECTION  0x1 /* Use RACK to detect losses */
 #define TCP_RACK_STATIC_REO_WND  0x2 /* Use static RACK reo wnd */
