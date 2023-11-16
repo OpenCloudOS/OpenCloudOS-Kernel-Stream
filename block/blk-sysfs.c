@@ -438,6 +438,24 @@ static ssize_t queue_io_timeout_store(struct request_queue *q, const char *page,
 	return count;
 }
 
+static ssize_t queue_nbd_ignore_blksize_set_show(struct request_queue *q, char *page)
+{
+	return queue_var_show(q->limits.nbd_ignore_blksize_set, (page));
+}
+
+static ssize_t queue_nbd_ignore_blksize_set_store(struct request_queue *q,
+					const char *page, size_t count)
+{
+	unsigned long ignore_blksize_set;
+	ssize_t ret = queue_var_store(&ignore_blksize_set, page, count);
+
+	if (ret < 0)
+		return ret;
+
+	q->limits.nbd_ignore_blksize_set = ignore_blksize_set;
+	return ret;
+}
+
 static ssize_t queue_wc_show(struct request_queue *q, char *page)
 {
 	if (test_bit(QUEUE_FLAG_WC, &q->queue_flags))
@@ -527,6 +545,12 @@ QUEUE_RO_ENTRY(queue_dax, "dax");
 QUEUE_RW_ENTRY(queue_io_timeout, "io_timeout");
 QUEUE_RO_ENTRY(queue_virt_boundary_mask, "virt_boundary_mask");
 QUEUE_RO_ENTRY(queue_dma_alignment, "dma_alignment");
+
+static struct queue_sysfs_entry queue_nbd_ignore_blksize_set_entry = {
+	.attr = {.name = "nbd_ignore_blksize_set", .mode = S_IRUGO | S_IWUSR },
+	.show = queue_nbd_ignore_blksize_set_show,
+	.store = queue_nbd_ignore_blksize_set_store,
+};
 
 #ifdef CONFIG_BLK_DEV_THROTTLING_LOW
 QUEUE_RW_ENTRY(blk_throtl_sample_time, "throttle_sample_time");
@@ -651,6 +675,7 @@ static struct attribute *queue_attrs[] = {
 	&queue_fua_entry.attr,
 	&queue_dax_entry.attr,
 	&queue_poll_delay_entry.attr,
+	&queue_nbd_ignore_blksize_set_entry.attr,
 #ifdef CONFIG_BLK_DEV_THROTTLING_LOW
 	&blk_throtl_sample_time_entry.attr,
 #endif

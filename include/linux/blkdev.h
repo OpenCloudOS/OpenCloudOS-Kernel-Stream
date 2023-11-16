@@ -316,6 +316,7 @@ struct queue_limits {
 	unsigned int		discard_granularity;
 	unsigned int		discard_alignment;
 	unsigned int		zone_write_granularity;
+	unsigned short		nbd_ignore_blksize_set;
 
 	unsigned short		max_segments;
 	unsigned short		max_integrity_segments;
