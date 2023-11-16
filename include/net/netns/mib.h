@@ -12,6 +12,7 @@ struct netns_mib {
 
 	DEFINE_SNMP_STAT(struct tcp_mib, tcp_statistics);
 	DEFINE_SNMP_STAT(struct linux_mib, net_statistics);
+	DEFINE_SNMP_STAT(struct linux_drop_mib, netdrop_statistics);
 
 	DEFINE_SNMP_STAT(struct udp_mib, udp_statistics);
 #if IS_ENABLED(CONFIG_IPV6)

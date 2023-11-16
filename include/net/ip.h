@@ -302,6 +302,11 @@ void ip_send_unicast_reply(struct sock *sk, struct sk_buff *skb,
 #define NET_ADD_STATS(net, field, adnd)	SNMP_ADD_STATS((net)->mib.net_statistics, field, adnd)
 #define __NET_ADD_STATS(net, field, adnd) __SNMP_ADD_STATS((net)->mib.net_statistics, field, adnd)
 
+#define NET_INC_DROPSTATS(net, field)				\
+	SNMP_INC_STATS((net)->mib.netdrop_statistics, field)
+#define __NET_INC_DROPSTATS(net, field)				\
+	__SNMP_INC_STATS((net)->mib.netdrop_statistics, field)
+
 static inline u64 snmp_get_cpu_field(void __percpu *mib, int cpu, int offt)
 {
 	return  *(((unsigned long *)per_cpu_ptr(mib, cpu)) + offt);

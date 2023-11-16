@@ -117,6 +117,11 @@ struct linux_tls_mib {
 	unsigned long	mibs[LINUX_MIB_TLSMAX];
 };
 
+#define LINUX_DROPSTAT_MIB_MAX	__LINUX_DROPSTAT_MIB_MAX
+struct linux_drop_mib {
+	unsigned long	mibs[LINUX_DROPSTAT_MIB_MAX];
+};
+
 #define DEFINE_SNMP_STAT(type, name)	\
 	__typeof__(type) __percpu *name
 #define DEFINE_SNMP_STAT_ATOMIC(type, name)	\

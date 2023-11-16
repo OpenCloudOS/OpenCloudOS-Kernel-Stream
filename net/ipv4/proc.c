@@ -520,6 +520,46 @@ static int netstat_seq_show(struct seq_file *seq, void *v)
 	return 0;
 }
 
+static const struct snmp_mib snmp4_dropstat_list[] = {
+	SNMP_MIB_ITEM("TCPDataQueueNoDataDrop", LINUX_MIB_TCPDQNODATADROP),
+	SNMP_MIB_ITEM("TCPDataQueueNoMemDrop", LINUX_MIB_TCPDQNOMEMDROP),
+	SNMP_MIB_ITEM("TCPCheckSeqDrop", LINUX_MIB_TCPCHECKSEQDROP),
+	SNMP_MIB_ITEM("TCPCheckRstDrop", LINUX_MIB_TCPCHECKRSTDROP),
+	SNMP_MIB_ITEM("TCPNoAckDrop", LINUX_MIB_TCPNOACKDROP),
+	SNMP_MIB_ITEM("TCPInvalidAckDrop", LINUX_MIB_TCPINVALIDACKDROP),
+	SNMP_MIB_ITEM("TCPRstDrop", LINUX_MIB_TCPRSTDROP),
+	SNMP_MIB_ITEM("TCPNoSynDrop", LINUX_MIB_TCPNOSYNDROP),
+	SNMP_MIB_ITEM("TCPPawsDrop", LINUX_MIB_TCPPAWSDROP),
+	SNMP_MIB_ITEM("TCPBadPktDrop", LINUX_MIB_TCPBADPKTDROP),
+	SNMP_MIB_ITEM("TCPNoSocketDrop", LINUX_MIB_TCPNOSOCKETDROP),
+	SNMP_MIB_ITEM("TCPXfrmDrop", LINUX_MIB_TCPXFRMDROP),
+	SNMP_MIB_ITEM("TCPFilterDrop", LINUX_MIB_TCPFILTERDROP),
+	SNMP_MIB_ITEM("TCPMd5Drop", LINUX_MIB_TCPMD5DROP),
+	SNMP_MIB_ITEM("TCPTimewaitDrop", LINUX_MIB_TCPTWDROP),
+	SNMP_MIB_ITEM("TCPRcvEstDrop", LINUX_MIB_TCPRCVESTDROP),
+	SNMP_MIB_ITEM("TCPNewSkDrop", LINUX_MIB_TCPNSKDROP),
+	SNMP_MIB_ITEM("TCPChildProcDrop", LINUX_MIB_TCPCHILDPROCDROP),
+	SNMP_MIB_ITEM("TCPRcvStateProcDrop", LINUX_MIB_TCPRCVSTATEPROCDROP),
+	SNMP_MIB_ITEM("TCPOfoDupDrop", LINUX_MIB_TCPOFODUPDROP),
+	SNMP_MIB_ITEM("TCPUrgDrop", LINUX_MIB_TCPURGDROP),
+	SNMP_MIB_ITEM("TCPOutOfWindowDrop", LINUX_MIB_TCPOOWDROP),
+	SNMP_MIB_SENTINEL
+};
+
+/* Output /proc/net/dropstat */
+static int dropstat_seq_show(struct seq_file *seq, void *v)
+{
+	struct net *net = seq->private;
+	int i;
+
+	for (i = 0; snmp4_dropstat_list[i].name; i++)
+		seq_printf(seq, "%s : %lu\n", snmp4_dropstat_list[i].name,
+			   snmp_fold_field(net->mib.netdrop_statistics,
+					   snmp4_dropstat_list[i].entry));
+
+	return 0;
+}
+
 static __net_init int ip_proc_init_net(struct net *net)
 {
 	if (!proc_create_net_single("sockstat", 0444, net->proc_net,
@@ -531,9 +571,15 @@ static __net_init int ip_proc_init_net(struct net *net)
 	if (!proc_create_net_single("snmp", 0444, net->proc_net, snmp_seq_show,
 			NULL))
 		goto out_snmp;
+	if (!proc_create_net_single("dropstat", 0444, net->proc_net,
+				    dropstat_seq_show, NULL))
+		goto out_dropstat;
+
 
 	return 0;
 
+out_dropstat:
+	remove_proc_entry("snmp", net->proc_net);
 out_snmp:
 	remove_proc_entry("netstat", net->proc_net);
 out_netstat:
@@ -547,6 +593,7 @@ static __net_exit void ip_proc_exit_net(struct net *net)
 	remove_proc_entry("snmp", net->proc_net);
 	remove_proc_entry("netstat", net->proc_net);
 	remove_proc_entry("sockstat", net->proc_net);
+	remove_proc_entry("dropstat", net->proc_net);
 }
 
 static __net_initdata struct pernet_operations ip_proc_ops = {

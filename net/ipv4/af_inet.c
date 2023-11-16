@@ -1784,6 +1784,9 @@ static __net_init int ipv4_mib_init_net(struct net *net)
 	net->mib.net_statistics = alloc_percpu(struct linux_mib);
 	if (!net->mib.net_statistics)
 		goto err_net_mib;
+	net->mib.netdrop_statistics = alloc_percpu(struct linux_drop_mib);
+	if (!net->mib.netdrop_statistics)
+		goto err_netdrop_mib;
 	net->mib.udp_statistics = alloc_percpu(struct udp_mib);
 	if (!net->mib.udp_statistics)
 		goto err_udp_mib;
@@ -1808,6 +1811,8 @@ err_icmp_mib:
 err_udplite_mib:
 	free_percpu(net->mib.udp_statistics);
 err_udp_mib:
+	free_percpu(net->mib.netdrop_statistics);
+err_netdrop_mib:
 	free_percpu(net->mib.net_statistics);
 err_net_mib:
 	free_percpu(net->mib.ip_statistics);
@@ -1823,6 +1828,7 @@ static __net_exit void ipv4_mib_exit_net(struct net *net)
 	free_percpu(net->mib.icmp_statistics);
 	free_percpu(net->mib.udplite_statistics);
 	free_percpu(net->mib.udp_statistics);
+	free_percpu(net->mib.netdrop_statistics);
 	free_percpu(net->mib.net_statistics);
 	free_percpu(net->mib.ip_statistics);
 	free_percpu(net->mib.tcp_statistics);
