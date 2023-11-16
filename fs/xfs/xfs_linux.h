@@ -103,6 +103,9 @@ typedef __u32			xfs_nlink_t;
 #define xfs_inherit_nodefrag	xfs_params.inherit_nodfrg.val
 #define xfs_fstrm_centisecs	xfs_params.fstrm_timer.val
 #define xfs_blockgc_secs	xfs_params.blockgc_timer.val
+#define xfs_kmem_fail_dump_stack	xfs_params.kmem_fail_dump_stack.val
+#define xfs_kmem_alloc_by_vmalloc	xfs_params.kmem_alloc_by_vmalloc.val
+#define xfs_kmem_alloc_large_dump_stack	xfs_params.kmem_alloc_large_dump_stack.val
 
 #define current_cpu()		(raw_smp_processor_id())
 #define current_set_flags_nested(sp, f)		\
