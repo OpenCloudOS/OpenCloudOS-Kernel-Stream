@@ -21,6 +21,8 @@
 #include <linux/timer.h>
 #include <linux/timerqueue.h>
 
+#include <linux/kabi.h>
+
 struct hrtimer_clock_base;
 struct hrtimer_cpu_base;
 
@@ -124,6 +126,9 @@ struct hrtimer {
 	u8				is_rel;
 	u8				is_soft;
 	u8				is_hard;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 /**

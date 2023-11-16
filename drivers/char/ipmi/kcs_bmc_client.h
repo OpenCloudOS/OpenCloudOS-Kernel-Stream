@@ -11,6 +11,9 @@
 struct kcs_bmc_driver_ops {
 	int (*add_device)(struct kcs_bmc_device *kcs_bmc);
 	int (*remove_device)(struct kcs_bmc_device *kcs_bmc);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct kcs_bmc_driver {
@@ -21,6 +24,9 @@ struct kcs_bmc_driver {
 
 struct kcs_bmc_client_ops {
 	irqreturn_t (*event)(struct kcs_bmc_client *client);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct kcs_bmc_client {

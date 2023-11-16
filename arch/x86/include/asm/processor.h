@@ -38,6 +38,8 @@ struct vm86;
 #include <linux/irqflags.h>
 #include <linux/mem_encrypt.h>
 
+#include <linux/kabi.h>
+
 /*
  * We handle most unaligned accesses in hardware.  On the other hand
  * unaligned DMA can be quite expensive on some Nehalem processors.
@@ -146,6 +148,11 @@ struct cpuinfo_x86 {
 	/* Address space bits used by the cache internally */
 	u8			x86_cache_bits;
 	unsigned		initialized : 1;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } __randomize_layout;
 
 #define X86_VENDOR_INTEL	0

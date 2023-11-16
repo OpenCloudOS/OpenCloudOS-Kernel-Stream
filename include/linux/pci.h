@@ -43,6 +43,8 @@
 
 #include <linux/pci_ids.h>
 
+#include <linux/kabi.h>
+
 #define PCI_STATUS_ERROR_BITS (PCI_STATUS_DETECTED_PARITY  | \
 			       PCI_STATUS_SIG_SYSTEM_ERROR | \
 			       PCI_STATUS_REC_MASTER_ABORT | \
@@ -529,6 +531,31 @@ struct pci_dev {
 
 	/* These methods index pci_reset_fn_methods[] */
 	u8 reset_methods[PCI_NUM_RESET_METHODS]; /* In priority order */
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
+	KABI_RESERVE(5);
+	KABI_RESERVE(6);
+	KABI_RESERVE(7);
+	KABI_RESERVE(8);
+	KABI_RESERVE(9);
+	KABI_RESERVE(10);
+	KABI_RESERVE(11);
+	KABI_RESERVE(12);
+	KABI_RESERVE(13);
+	KABI_RESERVE(14);
+	KABI_RESERVE(15);
+	KABI_RESERVE(16);
+	KABI_RESERVE(17);
+	KABI_RESERVE(18);
+	KABI_RESERVE(19);
+	KABI_RESERVE(20);
+	KABI_RESERVE(21);
+	KABI_RESERVE(22);
+	KABI_RESERVE(23);
+	KABI_RESERVE(24);
 };
 
 static inline struct pci_dev *pci_physfn(struct pci_dev *dev)
@@ -678,6 +705,15 @@ struct pci_bus {
 	struct bin_attribute	*legacy_mem;	/* Legacy mem */
 	unsigned int		is_added:1;
 	unsigned int		unsafe_warn:1;	/* warned about RW1C config write */
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
+	KABI_RESERVE(5);
+	KABI_RESERVE(6);
+	KABI_RESERVE(7);
+	KABI_RESERVE(8);
 };
 
 #define to_pci_bus(n)	container_of(n, struct pci_bus, dev)
@@ -927,12 +963,23 @@ struct pci_driver {
 	int  (*sriov_configure)(struct pci_dev *dev, int num_vfs); /* On PF */
 	int  (*sriov_set_msix_vec_count)(struct pci_dev *vf, int msix_vec_count); /* On PF */
 	u32  (*sriov_get_vf_total_msix)(struct pci_dev *pf);
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
+
 	const struct pci_error_handlers *err_handler;
 	const struct attribute_group **groups;
 	const struct attribute_group **dev_groups;
 	struct device_driver	driver;
 	struct pci_dynids	dynids;
 	bool driver_managed_dma;
+
+	KABI_RESERVE(5);
+	KABI_RESERVE(6);
+	KABI_RESERVE(7);
+	KABI_RESERVE(8);
 };
 
 static inline struct pci_driver *to_pci_driver(struct device_driver *drv)

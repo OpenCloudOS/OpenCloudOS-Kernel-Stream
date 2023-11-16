@@ -14,6 +14,8 @@
 #include <linux/bits.h>
 #include <linux/err.h>
 
+#include <linux/kabi.h>
+
 struct fwnode_operations;
 struct device;
 
@@ -45,6 +47,11 @@ struct fwnode_handle {
 	struct list_head suppliers;
 	struct list_head consumers;
 	u8 flags;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 /*
