@@ -113,6 +113,8 @@ static struct pid_namespace *create_pid_namespace(struct user_namespace *user_ns
 #if defined(CONFIG_SYSCTL) && defined(CONFIG_MEMFD_CREATE)
 	ns->memfd_noexec_scope = pidns_memfd_noexec_scope(parent_pid_ns);
 #endif
+	ns->max_map_count = parent_pid_ns->max_map_count;
+
 	return ns;
 
 out_free_idr:

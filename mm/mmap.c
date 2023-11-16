@@ -1241,7 +1241,11 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 		return -EOVERFLOW;
 
 	/* Too many mappings? */
+#ifdef CONFIG_PID_NS
+	if (mm->map_count > task_active_pid_ns(current)->max_map_count)
+#else
 	if (mm->map_count > sysctl_max_map_count)
+#endif
 		return -ENOMEM;
 
 	/* Obtain the address to map to. we verify (or select) it and ensure
@@ -2428,7 +2432,11 @@ out_free_vma:
 int split_vma(struct vma_iterator *vmi, struct vm_area_struct *vma,
 	      unsigned long addr, int new_below)
 {
+#ifdef CONFIG_PID_NS
+	if (vma->vm_mm->map_count >= task_active_pid_ns(current)->max_map_count)
+#else
 	if (vma->vm_mm->map_count >= sysctl_max_map_count)
+#endif
 		return -ENOMEM;
 
 	return __split_vma(vmi, vma, addr, new_below);
@@ -2478,7 +2486,11 @@ do_vmi_align_munmap(struct vma_iterator *vmi, struct vm_area_struct *vma,
 		 * not exceed its limit; but let map_count go just above
 		 * its limit temporarily, to help free resources as expected.
 		 */
+#ifdef CONFIG_PID_NS
+		if (end < vma->vm_end && mm->map_count >= task_active_pid_ns(current)->max_map_count)
+#else
 		if (end < vma->vm_end && mm->map_count >= sysctl_max_map_count)
+#endif
 			goto map_count_exceeded;
 
 		error = __split_vma(vmi, vma, start, 1);
@@ -3080,7 +3092,11 @@ static int do_brk_flags(struct vma_iterator *vmi, struct vm_area_struct *vma,
 	if (!may_expand_vm(mm, flags, len >> PAGE_SHIFT))
 		return -ENOMEM;
 
+#ifdef CONFIG_PID_NS
+	if (mm->map_count > task_active_pid_ns(current)->max_map_count)
+#else
 	if (mm->map_count > sysctl_max_map_count)
+#endif
 		return -ENOMEM;
 
 	if (security_vm_enough_memory_mm(mm, len >> PAGE_SHIFT))

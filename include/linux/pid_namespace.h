@@ -41,6 +41,9 @@ struct pid_namespace {
 #if defined(CONFIG_SYSCTL) && defined(CONFIG_MEMFD_CREATE)
 	int memfd_noexec_scope;
 #endif
+#ifdef CONFIG_PID_NS
+	int max_map_count;
+#endif
 } __randomize_layout;
 
 extern struct pid_namespace init_pid_ns;

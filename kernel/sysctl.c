@@ -875,6 +875,24 @@ int proc_dointvec_minmax(struct ctl_table *table, int write,
 				do_proc_dointvec_minmax_conv, &param);
 }
 
+int proc_dointvec_max_map_count(struct ctl_table *table, int write,
+		     void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+
+	struct do_proc_dointvec_minmax_conv_param param = {
+		.min = (int *) table->extra1,
+		.max = (int *) table->extra2,
+	};
+
+#ifdef CONFIG_PID_NS
+	table->data = &task_active_pid_ns(current)->max_map_count;
+#endif
+
+	return do_proc_dointvec(table, write, buffer, lenp, ppos,
+			do_proc_dointvec_minmax_conv, &param);
+}
+
+
 /**
  * struct do_proc_douintvec_minmax_conv_param - proc_douintvec_minmax() range checking structure
  * @min: pointer to minimum allowable value
@@ -2165,7 +2183,7 @@ static struct ctl_table vm_table[] = {
 		.data		= &sysctl_max_map_count,
 		.maxlen		= sizeof(sysctl_max_map_count),
 		.mode		= 0644,
-		.proc_handler	= proc_dointvec_minmax,
+		.proc_handler	= proc_dointvec_max_map_count,
 		.extra1		= SYSCTL_ZERO,
 	},
 #else

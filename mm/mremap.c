@@ -603,7 +603,11 @@ static unsigned long move_vma(struct vm_area_struct *vma,
 	 * We'd prefer to avoid failure later on in do_munmap:
 	 * which may split one vma into three before unmapping.
 	 */
+#ifdef CONFIG_PID_NS
+	if (mm->map_count >= task_active_pid_ns(current)->max_map_count - 3)
+#else
 	if (mm->map_count >= sysctl_max_map_count - 3)
+#endif
 		return -ENOMEM;
 
 	if (unlikely(flags & MREMAP_DONTUNMAP))
@@ -832,7 +836,11 @@ static unsigned long mremap_to(unsigned long addr, unsigned long old_len,
 	 * Check whether current map count plus 2 still leads us to 4 maps below
 	 * the threshold, otherwise return -ENOMEM here to be more safe.
 	 */
+#ifdef CONFIG_PID_NS
+	if ((mm->map_count + 2) >= task_active_pid_ns(current)->max_map_count - 3)
+#else
 	if ((mm->map_count + 2) >= sysctl_max_map_count - 3)
+#endif
 		return -ENOMEM;
 
 	if (flags & MREMAP_FIXED) {
