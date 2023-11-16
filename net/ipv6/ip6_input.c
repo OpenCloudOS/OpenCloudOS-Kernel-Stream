@@ -160,6 +160,12 @@ static struct sk_buff *ip6_rcv_core(struct sk_buff *skb, struct net_device *dev,
 		return NULL;
 	}
 
+	if (dev) {
+		__SNMP_INC_STATS(dev->mib.dev_statistics, DEV_MIB_IPV6_RX_PKTS);
+		__SNMP_ADD_STATS(dev->mib.dev_statistics, DEV_MIB_IPV6_RX_BYTES,
+				 skb->len);
+	}
+
 	rcu_read_lock();
 
 	idev = __in6_dev_get(skb->dev);

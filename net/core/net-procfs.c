@@ -320,6 +320,57 @@ static const struct seq_operations ptype_seq_ops = {
 	.show  = ptype_seq_show,
 };
 
+static const struct snmp_mib snmp_devstat_list[] = {
+	SNMP_MIB_ITEM("ipv4_rx_pkts", DEV_MIB_IPV4_RX_PKTS),
+	SNMP_MIB_ITEM("ipv4_rx_bytes", DEV_MIB_IPV4_RX_BYTES),
+	SNMP_MIB_ITEM("ipv4_tx_pkts", DEV_MIB_IPV4_TX_PKTS),
+	SNMP_MIB_ITEM("ipv4_tx_bytes", DEV_MIB_IPV4_TX_BYTES),
+	SNMP_MIB_ITEM("ipv6_rx_pkts", DEV_MIB_IPV6_RX_PKTS),
+	SNMP_MIB_ITEM("ipv6_rx_bytes", DEV_MIB_IPV6_RX_BYTES),
+	SNMP_MIB_ITEM("ipv6_tx_pkts", DEV_MIB_IPV6_TX_PKTS),
+	SNMP_MIB_ITEM("ipv6_tx_bytes", DEV_MIB_IPV6_TX_BYTES),
+	SNMP_MIB_SENTINEL
+};
+
+static void dev_ext_seq_printf_stats(struct seq_file *seq, void *v)
+{
+	struct net_device *dev = (struct net_device *)v;
+	int i;
+
+	seq_printf(seq, "%10s  ", dev->name);
+
+	for (i = 0; snmp_devstat_list[i].name; i++)
+		seq_printf(seq, " %12lu",
+			   snmp_fold_field((void __percpu **)
+					   dev->mib.dev_statistics,
+					   snmp_devstat_list[i].entry));
+	seq_putc(seq, '\n');
+}
+
+static int dev_ext_seq_show(struct seq_file *seq, void *v)
+{
+	int i;
+
+	if (v == SEQ_START_TOKEN) {
+		seq_puts(seq, "Interface   ");
+		for (i = 0; snmp_devstat_list[i].name; i++)
+			seq_printf(seq, "%s ", snmp_devstat_list[i].name);
+
+		seq_putc(seq, '\n');
+	} else {
+		dev_ext_seq_printf_stats(seq, v);
+	}
+
+	return 0;
+}
+
+static const struct seq_operations dev_ext_seq_ops = {
+	.start = dev_seq_start,
+	.next  = dev_seq_next,
+	.stop  = dev_seq_stop,
+	.show  = dev_ext_seq_show,
+};
+
 static int __net_init dev_proc_net_init(struct net *net)
 {
 	int rc = -ENOMEM;
@@ -327,9 +378,12 @@ static int __net_init dev_proc_net_init(struct net *net)
 	if (!proc_create_net("dev", 0444, net->proc_net, &dev_seq_ops,
 			sizeof(struct seq_net_private)))
 		goto out;
+	if (!proc_create_net("dev_ext", 0444, net->proc_net, &dev_ext_seq_ops,
+			     sizeof(struct seq_net_private)))
+		goto out_dev;
 	if (!proc_create_seq("softnet_stat", 0444, net->proc_net,
 			 &softnet_seq_ops))
-		goto out_dev;
+		goto out_dev_ext;
 	if (!proc_create_net("ptype", 0444, net->proc_net, &ptype_seq_ops,
 			sizeof(struct seq_net_private)))
 		goto out_softnet;
@@ -343,6 +397,8 @@ out_ptype:
 	remove_proc_entry("ptype", net->proc_net);
 out_softnet:
 	remove_proc_entry("softnet_stat", net->proc_net);
+out_dev_ext:
+	remove_proc_entry("dev_ext", net->proc_net);
 out_dev:
 	remove_proc_entry("dev", net->proc_net);
 	goto out;
@@ -354,6 +410,7 @@ static void __net_exit dev_proc_net_exit(struct net *net)
 
 	remove_proc_entry("ptype", net->proc_net);
 	remove_proc_entry("softnet_stat", net->proc_net);
+	remove_proc_entry("dev_ext", net->proc_net);
 	remove_proc_entry("dev", net->proc_net);
 }
 

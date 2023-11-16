@@ -202,6 +202,10 @@ static int ip_finish_output2(struct net *net, struct sock *sk, struct sk_buff *s
 	struct neighbour *neigh;
 	bool is_v6gw = false;
 
+	SNMP_INC_STATS(dev->mib.dev_statistics, DEV_MIB_IPV4_TX_PKTS);
+	SNMP_ADD_STATS(dev->mib.dev_statistics, DEV_MIB_IPV4_TX_BYTES,
+		       skb->len);
+
 	if (rt->rt_type == RTN_MULTICAST) {
 		IP_UPD_PO_STATS(net, IPSTATS_MIB_OUTMCAST, skb->len);
 	} else if (rt->rt_type == RTN_BROADCAST)

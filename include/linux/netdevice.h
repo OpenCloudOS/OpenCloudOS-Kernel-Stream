@@ -86,6 +86,7 @@ void synchronize_net(void);
 void netdev_set_default_ethtool_ops(struct net_device *dev,
 				    const struct ethtool_ops *ops);
 void netdev_sw_irq_coalesce_default_on(struct net_device *dev);
+extern unsigned long snmp_fold_field(void __percpu *mib, int offt);
 
 /* Backlog congestion levels */
 #define NET_RX_SUCCESS		0	/* keep 'em coming, baby */
@@ -1673,6 +1674,15 @@ struct net_device_ops {
 	KABI_RESERVE(8);
 };
 
+#define DEV_MIB_MAX	__DEV_MIB_MAX
+struct dev_mib {
+	unsigned long mibs[DEV_MIB_MAX];
+};
+
+struct netdev_mib {
+	DEFINE_SNMP_STAT(struct dev_mib, dev_statistics);
+};
+
 /**
  * enum netdev_priv_flags - &struct net_device priv_flags
  *
@@ -2158,6 +2168,7 @@ struct net_device {
 	int			group;
 
 	struct net_device_stats	stats; /* not used by modern drivers */
+	struct netdev_mib mib;
 
 	struct net_device_core_stats __percpu *core_stats;
 

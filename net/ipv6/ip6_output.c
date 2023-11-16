@@ -68,6 +68,10 @@ static int ip6_finish_output2(struct net *net, struct sock *sk, struct sk_buff *
 	struct neighbour *neigh;
 	int ret;
 
+	SNMP_INC_STATS(dev->mib.dev_statistics, DEV_MIB_IPV6_TX_PKTS);
+	SNMP_ADD_STATS(dev->mib.dev_statistics, DEV_MIB_IPV6_TX_BYTES,
+			skb->len);
+
 	/* Be paranoid, rather than too clever. */
 	if (unlikely(hh_len > skb_headroom(skb)) && dev->header_ops) {
 		skb = skb_expand_head(skb, hh_len);

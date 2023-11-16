@@ -10779,8 +10779,12 @@ struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
 	refcount_set(&dev->dev_refcnt, 1);
 #endif
 
-	if (dev_addr_init(dev))
+	dev->mib.dev_statistics = alloc_percpu(struct dev_mib);
+	if (!dev->mib.dev_statistics)
 		goto free_pcpu;
+
+	if (dev_addr_init(dev))
+		goto free_dev_mib;
 
 	dev_mc_init(dev);
 	dev_uc_init(dev);
@@ -10845,7 +10849,8 @@ struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
 free_all:
 	free_netdev(dev);
 	return NULL;
-
+free_dev_mib:
+	free_percpu(dev->mib.dev_statistics);
 free_pcpu:
 #ifdef CONFIG_PCPU_DEV_REFCNT
 	free_percpu(dev->pcpu_refcnt);
@@ -10895,6 +10900,7 @@ void free_netdev(struct net_device *dev)
 	ref_tracker_dir_exit(&dev->refcnt_tracker);
 #ifdef CONFIG_PCPU_DEV_REFCNT
 	free_percpu(dev->pcpu_refcnt);
+	free_percpu(dev->mib.dev_statistics);
 	dev->pcpu_refcnt = NULL;
 #endif
 	free_percpu(dev->core_stats);
