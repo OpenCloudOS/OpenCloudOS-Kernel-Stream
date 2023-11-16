@@ -58,6 +58,7 @@
 /* Whether we react on sysrq keys or just ignore them */
 static int __read_mostly sysrq_enabled = CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE;
 static bool __read_mostly sysrq_always_enabled;
+static bool __read_mostly sysrq_use_leftctrl = true;
 
 static bool sysrq_on(void)
 {
@@ -796,6 +797,7 @@ static void sysrq_reinject_alt_sysrq(struct work_struct *work)
 			container_of(work, struct sysrq_state, reinject_work);
 	struct input_handle *handle = &sysrq->handle;
 	unsigned int alt_code = sysrq->alt_use;
+	unsigned int sysrq_code = sysrq_use_leftctrl ? KEY_LEFTCTRL : KEY_SYSRQ;
 
 	if (sysrq->need_reinject) {
 		/* we do not want the assignment to be reordered */
@@ -804,10 +806,10 @@ static void sysrq_reinject_alt_sysrq(struct work_struct *work)
 
 		/* Simulate press and release of Alt + SysRq */
 		input_inject_event(handle, EV_KEY, alt_code, 1);
-		input_inject_event(handle, EV_KEY, KEY_SYSRQ, 1);
+		input_inject_event(handle, EV_KEY, sysrq_code, 1);
 		input_inject_event(handle, EV_SYN, SYN_REPORT, 1);
 
-		input_inject_event(handle, EV_KEY, KEY_SYSRQ, 0);
+		input_inject_event(handle, EV_KEY, sysrq_code, 0);
 		input_inject_event(handle, EV_KEY, alt_code, 0);
 		input_inject_event(handle, EV_SYN, SYN_REPORT, 1);
 
@@ -849,6 +851,10 @@ static bool sysrq_handle_keypress(struct sysrq_state *sysrq,
 			sysrq->shift_use = sysrq->shift;
 		break;
 
+	case KEY_LEFTCTRL:
+		if (!sysrq_use_leftctrl || sysrq->active)
+			break;
+		fallthrough;
 	case KEY_SYSRQ:
 		if (value == 1 && sysrq->alt != KEY_RESERVED) {
 			sysrq->active = true;
@@ -874,7 +880,6 @@ static bool sysrq_handle_keypress(struct sysrq_state *sysrq,
 			clear_bit(KEY_SYSRQ, sysrq->handle.dev->key);
 
 		break;
-
 	default:
 		if (sysrq->active && value && value != 2) {
 			unsigned char c = sysrq_xlate[code];
@@ -1110,6 +1115,12 @@ int sysrq_toggle_support(int enable_mask)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sysrq_toggle_support);
+
+int sysrq_toggle_sysrq_key(int __sysrq_use_leftctrl)
+{
+	sysrq_use_leftctrl = !!__sysrq_use_leftctrl;
+	return 0;
+}
 
 static int __sysrq_swap_key_ops(u8 key, const struct sysrq_key_op *insert_op_p,
 				const struct sysrq_key_op *remove_op_p)

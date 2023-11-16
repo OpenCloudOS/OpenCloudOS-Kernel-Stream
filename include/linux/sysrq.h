@@ -50,6 +50,7 @@ int unregister_sysrq_key(u8 key, const struct sysrq_key_op *op);
 extern const struct sysrq_key_op *__sysrq_reboot_op;
 
 int sysrq_toggle_support(int enable_mask);
+int sysrq_toggle_sysrq_key(int __sysrq_use_leftctrl);
 int sysrq_mask(void);
 
 #else
