@@ -2069,6 +2069,15 @@ static struct ctl_table kern_table[] = {
 		.extra2		= SYSCTL_INT_MAX,
 	},
 #endif
+#ifdef CONFIG_PID_NS
+	{
+		.procname	= "watch_host_pid",
+		.data		= &sysctl_watch_host_pid,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+#endif
 	{ }
 };
 
