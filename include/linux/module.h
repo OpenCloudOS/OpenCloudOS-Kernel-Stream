@@ -479,11 +479,6 @@ struct module {
 	/* Section attributes */
 	struct module_sect_attrs *sect_attrs;
 
-	KABI_RESERVE(1);
-	KABI_RESERVE(2);
-	KABI_RESERVE(3);
-	KABI_RESERVE(4);
-
 	/* Notes attributes */
 	struct module_notes_attrs *notes_attrs;
 #endif
@@ -588,6 +583,11 @@ struct module {
 #ifdef CONFIG_DYNAMIC_DEBUG_CORE
 	struct _ddebug_info dyndbg_info;
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 } ____cacheline_aligned __randomize_layout;
 #ifndef MODULE_ARCH_INIT
 #define MODULE_ARCH_INIT {}

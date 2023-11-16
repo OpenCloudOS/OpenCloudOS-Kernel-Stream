@@ -128,7 +128,6 @@ struct hrtimer {
 	u8				is_hard;
 
 	KABI_RESERVE(1);
-	KABI_RESERVE(2);
 };
 
 /**

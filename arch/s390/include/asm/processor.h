@@ -42,6 +42,8 @@
 #include <asm/fpu/internal.h>
 #include <asm/irqflags.h>
 
+#include <linux/kabi.h>
+
 typedef long (*sys_call_ptr_t)(struct pt_regs *regs);
 
 static __always_inline void set_cpu_flag(int flag)
@@ -184,6 +186,12 @@ struct thread_struct {
 	struct gs_cb *gs_cb;			/* Current guarded storage cb */
 	struct gs_cb *gs_bc_cb;			/* Broadcast guarded storage cb */
 	struct pgm_tdb trap_tdb;		/* Transaction abort diagnose block */
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
+
 	/*
 	 * Warning: 'fpu' is dynamically-sized. It *MUST* be at
 	 * the end.

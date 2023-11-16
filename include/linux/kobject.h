@@ -125,6 +125,7 @@ struct kobj_type {
 	void (*get_ownership)(const struct kobject *kobj, kuid_t *uid, kgid_t *gid);
 
 	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct kobj_uevent_env {

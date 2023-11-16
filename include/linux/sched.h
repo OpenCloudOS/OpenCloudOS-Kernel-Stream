@@ -503,9 +503,6 @@ struct sched_avg {
 	unsigned long			runnable_avg;
 	unsigned long			util_avg;
 	struct util_est			util_est;
-
-	KABI_RESERVE(1);
-	KABI_RESERVE(2);
 } ____cacheline_aligned;
 
 struct sched_statistics {
