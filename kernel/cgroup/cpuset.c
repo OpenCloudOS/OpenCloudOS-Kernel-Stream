@@ -37,6 +37,8 @@
 #include <linux/sched/deadline.h>
 #include <linux/sched/mm.h>
 #include <linux/sched/task.h>
+#include <linux/sched/stat.h>
+#include <linux/sched/loadavg.h>
 #include <linux/seq_file.h>
 #include <linux/sched/stat.h>
 #include <linux/security.h>
@@ -48,6 +50,7 @@
 #include <linux/kernel_stat.h>
 #include <linux/tick.h>
 #include <linux/cpufreq.h>
+#include <linux/pid_namespace.h>
 
 DEFINE_STATIC_KEY_FALSE(cpusets_pre_enable_key);
 DEFINE_STATIC_KEY_FALSE(cpusets_enabled_key);
@@ -192,6 +195,10 @@ struct cpuset {
 
 	/* Handle for cpuset.cpus.partition */
 	struct cgroup_file partition_file;
+
+	/* for cpu load calc */
+	unsigned long calc_load_tasks;
+	unsigned long avenrun[3];
 
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
@@ -438,6 +445,9 @@ static struct workqueue_struct *cpuset_migrate_mm_wq;
  */
 static void cpuset_hotplug_workfn(struct work_struct *work);
 static DECLARE_WORK(cpuset_hotplug_work, cpuset_hotplug_workfn);
+
+static void cpuset_calc_loadavg_workfn(struct work_struct *work);
+static DECLARE_DELAYED_WORK(cpuset_calc_loadavg_work, cpuset_calc_loadavg_workfn);
 
 static DECLARE_WAIT_QUEUE_HEAD(cpuset_attach_wq);
 
@@ -3284,6 +3294,8 @@ static int cpuset_cgroup_cpuinfo_show(struct seq_file *sf, void *v)
 }
 #endif
 
+static int cpuset_cgroup_loadavg_show(struct seq_file *sf, void *v);
+
 static int sched_partition_show(struct seq_file *seq, void *v)
 {
 	struct cpuset *cs = css_cs(seq_css(seq));
@@ -3463,6 +3475,11 @@ static struct cftype legacy_files[] = {
 		.seq_show = cpuset_cgroup_cpuinfo_show,
 	},
 #endif
+
+	{
+		.name = "loadavg",
+		.seq_show = cpuset_cgroup_loadavg_show,
+	},
 
 	{ }	/* terminate */
 };
@@ -4226,6 +4243,8 @@ void __init cpuset_init_smp(void)
 
 	cpuset_migrate_mm_wq = alloc_ordered_workqueue("cpuset_migrate_mm", 0);
 	BUG_ON(!cpuset_migrate_mm_wq);
+
+	schedule_delayed_work(&cpuset_calc_loadavg_work, LOAD_FREQ);
 }
 
 /**
@@ -4620,4 +4639,88 @@ void cpuset_task_status_allowed(struct seq_file *m, struct task_struct *task)
 		   nodemask_pr_args(&task->mems_allowed));
 	seq_printf(m, "Mems_allowed_list:\t%*pbl\n",
 		   nodemask_pr_args(&task->mems_allowed));
+}
+
+static void __cpuset_calc_load(struct cpuset *cs)
+{
+	long active = cs->calc_load_tasks;
+	active = active > 0 ? active * FIXED_1 : 0;
+	cs->avenrun[0] = calc_load(cs->avenrun[0], EXP_1, active);
+	cs->avenrun[1] = calc_load(cs->avenrun[1], EXP_5, active);
+	cs->avenrun[2] = calc_load(cs->avenrun[2], EXP_15, active);
+
+}
+/*calc cpu load for this cpuset*/
+void cgroup_cpuset_calc_load(void)
+{
+	struct cpuset *cs;
+	struct cgroup_subsys_state *pos_css;
+	struct css_task_iter it;
+	struct task_struct *task;
+	unsigned int state;
+
+	rcu_read_lock();
+	/* in docker, only one level cpuset */
+	cpuset_for_each_descendant_pre(cs, pos_css, &top_cpuset) {
+		if (cs == &top_cpuset)
+			continue;
+
+		cs->calc_load_tasks = 0;
+
+		css_task_iter_start(&cs->css, 0, &it);
+		while ((task = css_task_iter_next(&it))) {
+			state = READ_ONCE(task->__state);
+			if (state == TASK_RUNNING || state == TASK_UNINTERRUPTIBLE)
+				cs->calc_load_tasks++;
+		}
+		css_task_iter_end(&it);
+
+		/*calc load*/
+		__cpuset_calc_load(cs);
+	}
+	rcu_read_unlock();
+}
+
+static void cpuset_calc_loadavg_workfn(struct work_struct *work)
+{
+	cgroup_cpuset_calc_load();
+	schedule_delayed_work(&cpuset_calc_loadavg_work, LOAD_FREQ);
+}
+static unsigned long cpuset_nr_running(struct cpuset *cs)
+{
+	struct css_task_iter it;
+	struct task_struct *task;
+	unsigned long nr_running = 0;
+
+	css_task_iter_start(&cs->css, 0, &it);
+	while ((task = css_task_iter_next(&it))) {
+		if (task_is_running(task))
+			nr_running++;
+	}
+	css_task_iter_end(&it);
+
+	return nr_running;
+}
+
+static int cpuset_cgroup_loadavg_show(struct seq_file *sf, void *v)
+{
+	struct cpuset *cs = css_cs(seq_css(sf));
+	unsigned long loads[3] = {0};
+	unsigned long offset = FIXED_1/200;
+	int shift = 0;
+	unsigned long n_running = cpuset_nr_running(cs);
+
+	loads[0] = (cs->avenrun[0] + offset) << shift;
+	loads[1] = (cs->avenrun[1] + offset) << shift;
+	loads[2] = (cs->avenrun[2] + offset) << shift;
+#define LOAD_INT(x) ((x) >> FSHIFT)
+#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
+
+	seq_printf(sf, "%lu.%02lu %lu.%02lu %lu.%02lu %ld/%d %d\n",
+			LOAD_INT(loads[0]), LOAD_FRAC(loads[0]),
+			LOAD_INT(loads[1]), LOAD_FRAC(loads[1]),
+			LOAD_INT(loads[2]), LOAD_FRAC(loads[2]),
+			n_running, nr_threads,
+			idr_get_cursor(&task_active_pid_ns(current)->idr) - 1);
+	return 0;
 }
