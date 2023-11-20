@@ -5218,6 +5218,14 @@ static int mem_cgroup_meminfo_read_comm(struct seq_file *m, void *v, struct mem_
 	return 0;
 }
 
+#ifdef CONFIG_CGROUPFS
+int mem_cgroupfs_meminfo_show(struct seq_file *m, void *v)
+{
+	struct mem_cgroup *memcg = mem_cgroup_from_task(current);
+	return mem_cgroup_meminfo_read_comm(m, v, memcg);
+}
+#endif
+
 static int mem_cgroup_meminfo_read(struct seq_file *m, void *v)
 {
 	struct mem_cgroup *memcg = mem_cgroup_from_css(seq_css(m));
@@ -5297,6 +5305,14 @@ static int mem_cgroup_vmstat_read_comm(struct seq_file *m, void *vv, struct mem_
 }
 
 static int memory_stat_show(struct seq_file *m, void *v);
+
+#ifdef CONFIG_CGROUPFS
+int mem_cgroupfs_vmstat_show(struct seq_file *m, void *v)
+{
+	struct mem_cgroup *memcg = mem_cgroup_from_task(current);
+	return mem_cgroup_vmstat_read_comm(m, v, memcg);
+}
+#endif
 
 static int mem_cgroup_vmstat_read(struct seq_file *m, void *vv)
 {
