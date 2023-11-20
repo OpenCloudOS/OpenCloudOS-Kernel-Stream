@@ -2096,6 +2096,13 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= proc_dointvec,
 	},
 #endif
+	{
+		.procname	= "cpuset_cpuinfo_show_realinfo",
+		.data		= &cpuset_cpuinfo_show_realinfo,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
 	{ }
 };
 
