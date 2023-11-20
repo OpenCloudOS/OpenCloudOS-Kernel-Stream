@@ -3045,11 +3045,15 @@ static int cpuset_cgroup_stat_show(struct seq_file *sf, void *v)
 	u64 sum_softirq = 0;
 	unsigned int per_softirq_sums[NR_SOFTIRQS] = {0};
 	struct timespec64 boottime;
+	bool is_top_cgrp;
+	int show_realinfo = cpuset_cpuinfo_show_realinfo;
 
 	user = nice = system = idle = iowait =
 		irq = softirq = steal = 0;
 	guest = guest_nice = 0;
 	getboottime64(&boottime);
+
+	is_top_cgrp = seq_css(sf)->parent == NULL ? true : false;
 
 	for_each_cpu(i, cs->cpus_allowed) {
 		user += kcpustat_cpu(i).cpustat[CPUTIME_USER];
@@ -3103,7 +3107,10 @@ static int cpuset_cgroup_stat_show(struct seq_file *sf, void *v)
 		steal = kcpustat_cpu(i).cpustat[CPUTIME_STEAL];
 		guest = kcpustat_cpu(i).cpustat[CPUTIME_GUEST];
 		guest_nice = kcpustat_cpu(i).cpustat[CPUTIME_GUEST_NICE];
-		seq_printf(sf, "cpu%d", i);
+		if (is_top_cgrp || show_realinfo)
+			seq_printf(sf, "cpu%d", i);
+		else
+			seq_printf(sf, "cpu%d", j++);
 		seq_put_decimal_ull(sf, " ", nsec_to_clock_t(user));
 		seq_put_decimal_ull(sf, " ", nsec_to_clock_t(nice));
 		seq_put_decimal_ull(sf, " ", nsec_to_clock_t(system));

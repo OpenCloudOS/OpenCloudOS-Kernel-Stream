@@ -2096,6 +2096,7 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= proc_dointvec,
 	},
 #endif
+#ifdef CONFIG_CPUSETS
 	{
 		.procname	= "cpuset_cpuinfo_show_realinfo",
 		.data		= &cpuset_cpuinfo_show_realinfo,
@@ -2103,6 +2104,7 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
+#endif
 	{ }
 };
 
