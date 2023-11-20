@@ -740,6 +740,70 @@ void invalidate_disk(struct gendisk *disk)
 }
 EXPORT_SYMBOL(invalidate_disk);
 
+static int hide_disk(struct gendisk *gd)
+{
+	struct device *ddev = disk_to_dev(gd);
+	struct block_device *part;
+	int ret;
+	unsigned long idx;
+
+	ret = device_hide(ddev);
+	if (ret)
+		return ret;
+
+	rcu_read_lock();
+	xa_for_each(&gd->part_tbl, idx, part) {
+		if (bdev_is_partition(part) && !bdev_nr_sectors(part))
+			continue;
+		if (!kobject_get_unless_zero(&part->bd_device.kobj))
+			continue;
+
+		rcu_read_unlock();
+		device_hide(&part->bd_device);
+		put_device(&part->bd_device);
+		rcu_read_lock();
+	}
+	rcu_read_unlock();
+
+	sysfs_remove_link(block_depr, dev_name(ddev));
+
+	return ret;
+}
+
+static int unhide_disk(struct gendisk *gd)
+{
+	struct device *ddev = disk_to_dev(gd);
+	struct block_device *part;
+	int ret;
+	unsigned long idx;
+
+	ret = device_unhide(ddev);
+	if (ret)
+		return ret;
+
+	rcu_read_lock();
+	xa_for_each(&gd->part_tbl, idx, part) {
+		if (bdev_is_partition(part) && !bdev_nr_sectors(part))
+			continue;
+		if (!kobject_get_unless_zero(&part->bd_device.kobj))
+			continue;
+
+		rcu_read_unlock();
+		device_unhide(&part->bd_device);
+		put_device(&part->bd_device);
+		rcu_read_lock();
+	}
+	rcu_read_unlock();
+
+	if (sysfs_create_link(block_depr, &ddev->kobj,
+			      kobject_name(&ddev->kobj)))
+		pr_warn("%s: failed to restore /sys/block link\n",
+			gd->disk_name);
+
+	return ret;
+}
+
+
 /* sysfs access to bad-blocks list. */
 static ssize_t disk_badblocks_show(struct device *dev,
 					struct device_attribute *attr,
@@ -1037,6 +1101,31 @@ static ssize_t diskseq_show(struct device *dev,
 	return sprintf(buf, "%llu\n", disk->diskseq);
 }
 
+static ssize_t disk_hiddens_show(struct device *dev,
+				struct device_attribute *attr,
+				char *buf)
+{
+	return sprintf(buf, "%d\n", device_is_hidden(dev));
+}
+
+static ssize_t disk_hiddens_store(struct device *dev,
+				 struct device_attribute *attr,
+				 const char *buf, size_t len)
+{
+	struct gendisk *disk = dev_to_disk(dev);
+	bool hide;
+	int ret;
+
+	ret = kstrtobool(buf, &hide);
+	if (ret)
+		return ret;
+
+	if (hide != device_is_hidden(dev))
+		ret = hide ? hide_disk(disk) : unhide_disk(disk);
+
+	return ret ?: len;
+}
+
 static DEVICE_ATTR(range, 0444, disk_range_show, NULL);
 static DEVICE_ATTR(ext_range, 0444, disk_ext_range_show, NULL);
 static DEVICE_ATTR(removable, 0444, disk_removable_show, NULL);
@@ -1050,6 +1139,8 @@ static DEVICE_ATTR(stat, 0444, part_stat_show, NULL);
 static DEVICE_ATTR(inflight, 0444, part_inflight_show, NULL);
 static DEVICE_ATTR(badblocks, 0644, disk_badblocks_show, disk_badblocks_store);
 static DEVICE_ATTR(diskseq, 0444, diskseq_show, NULL);
+static DEVICE_ATTR(hiddens, S_IRUGO | S_IWUSR, disk_hiddens_show,
+		   disk_hiddens_store);
 
 #ifdef CONFIG_FAIL_MAKE_REQUEST
 ssize_t part_fail_show(struct device *dev,
@@ -1102,6 +1193,7 @@ static struct attribute *disk_attrs[] = {
 #ifdef CONFIG_FAIL_IO_TIMEOUT
 	&dev_attr_fail_timeout.attr,
 #endif
+	&dev_attr_hiddens.attr,
 	NULL
 };
 

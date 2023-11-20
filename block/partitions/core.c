@@ -380,6 +380,9 @@ static struct block_device *add_partition(struct gendisk *disk, int partno,
 	if (err)
 		goto out_put;
 
+	if (device_is_hidden(ddev))
+		device_hide(pdev);
+
 	err = -ENOMEM;
 	bdev->bd_holder_dir = kobject_create_and_add("holders", &pdev->kobj);
 	if (!bdev->bd_holder_dir)

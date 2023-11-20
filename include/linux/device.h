@@ -1084,6 +1084,10 @@ int device_move(struct device *dev, struct device *new_parent,
 int device_change_owner(struct device *dev, kuid_t kuid, kgid_t kgid);
 int device_is_dependent(struct device *dev, void *target);
 
+extern bool device_is_hidden(struct device *dev);
+extern int device_hide(struct device *dev);
+extern int device_unhide(struct device *dev);
+
 static inline bool device_supports_offline(struct device *dev)
 {
 	return dev->bus && dev->bus->offline && dev->bus->online;
