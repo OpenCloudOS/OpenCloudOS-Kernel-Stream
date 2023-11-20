@@ -32,6 +32,8 @@
 #include <linux/blk-crypto.h>
 #include <linux/blk-crypto-profile.h>
 
+#include "../../block/blk-cgroup.h"
+
 #define DM_MSG_PREFIX "core"
 
 /*
@@ -509,6 +511,9 @@ static void dm_io_acct(struct dm_io *io, bool end)
 {
 	struct bio *bio = io->orig_bio;
 
+	struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
+	int rw = bio_data_dir(bio);
+
 	if (dm_io_flagged(io, DM_IO_BLK_STAT)) {
 		if (!end)
 			bdev_start_io_acct(bio->bi_bdev, bio_op(bio),
@@ -518,6 +523,11 @@ static void dm_io_acct(struct dm_io *io, bool end)
 					 dm_io_sectors(io, bio),
 					 io->start_time);
 	}
+
+	part_stat_lock_rcu();
+	blkcg_part_stat_add(blkcg, dm_disk(io->md)->part0, nsecs[rw],
+			jiffies_to_nsecs(jiffies - io->start_time));
+	part_stat_unlock_rcu();
 
 	if (static_branch_unlikely(&stats_enabled) &&
 	    unlikely(dm_stats_used(&io->md->stats))) {
@@ -1816,7 +1826,16 @@ static void dm_submit_bio(struct bio *bio)
 	int srcu_idx;
 	struct dm_table *map;
 
+	struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
+	int rw = bio_data_dir(bio);
+
 	map = dm_get_live_table(md, &srcu_idx);
+
+	part_stat_lock_rcu();
+	blkcg_part_stat_inc(blkcg, dm_disk(md)->part0, ios[rw]);
+	blkcg_part_stat_add(blkcg, dm_disk(md)->part0, sectors[rw],
+			bio_sectors(bio));
+	part_stat_unlock_rcu();
 
 	/* If suspended, or map not yet available, queue this IO for later */
 	if (unlikely(test_bit(DMF_BLOCK_IO_FOR_SUSPEND, &md->flags)) ||
