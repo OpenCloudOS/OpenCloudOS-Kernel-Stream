@@ -5403,6 +5403,11 @@ unsigned int nr_running(void)
 	return sum;
 }
 
+unsigned long nr_running_cpu(int cpu)
+{
+	return cpu_rq(cpu)->nr_running;
+}
+
 /*
  * Check if only the current task is running on the CPU.
  *
