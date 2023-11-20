@@ -240,3 +240,46 @@ void show_stack(struct task_struct *tsk, unsigned long *sp, const char *loglvl)
 	dump_backtrace(NULL, tsk, loglvl);
 	barrier();
 }
+
+/*
+ * XXX: This is not reliable, for arm64, we only have basic guarenteen that
+ * a patched funtion's old version can finish it work before switching to newer one.
+ */
+noinline notrace int arch_stack_walk_reliable(stack_trace_consume_fn consume_entry,
+			      void *cookie, struct task_struct *task)
+{
+	struct stack_info stacks[] = {
+		stackinfo_get_task(task),
+		STACKINFO_CPU(irq),
+#if defined(CONFIG_VMAP_STACK)
+		STACKINFO_CPU(overflow),
+#endif
+#if defined(CONFIG_VMAP_STACK) && defined(CONFIG_ARM_SDE_INTERFACE)
+		STACKINFO_SDEI(normal),
+		STACKINFO_SDEI(critical),
+#endif
+	};
+	struct unwind_state state = {
+		.stacks = stacks,
+		.nr_stacks = ARRAY_SIZE(stacks),
+	};
+
+	if (task == current) {
+		unwind_init_from_caller(&state);
+	} else {
+		unwind_init_from_task(&state, task);
+	}
+
+	while (1) {
+		int ret;
+
+		if (!consume_entry(cookie, state.pc))
+			return -EINVAL;
+
+		ret = unwind_next(&state);
+		if (ret == -ENOENT)
+			return 0;
+		else if (ret < 0)
+			return 1;
+	}
+}
