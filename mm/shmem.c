@@ -1384,6 +1384,17 @@ int shmem_unuse(unsigned int type)
 	if (list_empty(&shmem_swaplist))
 		return 0;
 
+	/*
+	 * try to shrink the page cache proactively even though
+	 * we might already have the page in so the shrinking is
+	 * not necessary but this is much easier than dropping
+	 * the lock in shmem_unuse_inode before add_to_page_cache_lru.
+	 * GFP_NOWAIT makes sure that we do not shrink when adding
+	 * to page cache
+	 */
+	if (pagecache_limit_should_shrink())
+		shrink_page_cache(GFP_KERNEL, NULL);
+
 	mutex_lock(&shmem_swaplist_mutex);
 	list_for_each_entry_safe(info, next, &shmem_swaplist, swaplist) {
 		if (!info->swapped) {
@@ -1412,6 +1423,9 @@ int shmem_unuse(unsigned int type)
 			break;
 	}
 	mutex_unlock(&shmem_swaplist_mutex);
+
+	if (!error && pagecache_limit_should_shrink())
+		shrink_page_cache(GFP_KERNEL, NULL);
 
 	return error;
 }

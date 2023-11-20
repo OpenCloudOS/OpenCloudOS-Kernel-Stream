@@ -556,6 +556,77 @@ static int do_proc_dointvec(struct ctl_table *table, int write,
 			buffer, lenp, ppos, conv, data);
 }
 
+#ifdef CONFIG_PAGECACHE_LIMIT
+#define ADDITIONAL_RECLAIM_RATIO 2
+static int setup_pagecache_limit(void)
+{
+	/* reclaim ADDITIONAL_RECLAIM_PAGES more than limit. */
+	vm_pagecache_limit_reclaim_ratio = vm_pagecache_limit_ratio + ADDITIONAL_RECLAIM_RATIO;
+
+	if (vm_pagecache_limit_reclaim_ratio > 100)
+		vm_pagecache_limit_reclaim_ratio = 100;
+	if (vm_pagecache_limit_ratio == 0)
+		vm_pagecache_limit_reclaim_ratio = 0;
+
+	vm_pagecache_limit_pages = vm_pagecache_limit_ratio * totalram_pages() / 100;
+	vm_pagecache_limit_reclaim_pages = vm_pagecache_limit_reclaim_ratio * totalram_pages() / 100;
+
+	return 0;
+}
+
+static int pc_limit_proc_dointvec(struct ctl_table *table, int write,
+				  void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
+
+	if (write && !ret)
+		ret = setup_pagecache_limit();
+
+	return ret;
+}
+
+static int pc_reclaim_limit_proc_dointvec(struct ctl_table *table, int write,
+					  void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int pre_reclaim_ratio = vm_pagecache_limit_reclaim_ratio;
+	int ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
+
+	if (write && vm_pagecache_limit_ratio == 0)
+		return -EINVAL;
+
+	if (write && !ret) {
+		if (vm_pagecache_limit_reclaim_ratio - vm_pagecache_limit_ratio < ADDITIONAL_RECLAIM_RATIO) {
+			vm_pagecache_limit_reclaim_ratio = pre_reclaim_ratio;
+			return -EINVAL;
+		}
+		vm_pagecache_limit_reclaim_pages = vm_pagecache_limit_reclaim_ratio * totalram_pages() / 100;
+	}
+	return ret;
+}
+
+static int pc_limit_async_handler(struct ctl_table *table, int write,
+				  void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
+
+	if (write && vm_pagecache_limit_ratio == 0)
+		return -EINVAL;
+
+	if (write && !ret) {
+		if (vm_pagecache_limit_async > 0) {
+			if (kpagecache_limitd_run()) {
+				vm_pagecache_limit_async = 0;
+				return -EINVAL;
+			}
+		} else {
+			kpagecache_limitd_stop();
+		}
+	}
+
+	return ret;
+}
+#endif /* CONFIG_PAGECACHE_LIMIT */
+
 static int do_proc_douintvec_w(unsigned int *tbl_data,
 			       struct ctl_table *table,
 			       void *buffer,
@@ -2339,6 +2410,47 @@ static struct ctl_table vm_table[] = {
 		.extra2		= (void *)&mmap_rnd_compat_bits_max,
 	},
 #endif
+#ifdef CONFIG_PAGECACHE_LIMIT
+	{
+		.procname	= "pagecache_limit_ratio",
+		.data		= &vm_pagecache_limit_ratio,
+		.maxlen		= sizeof(vm_pagecache_limit_ratio),
+		.mode		= 0644,
+		.proc_handler	= &pc_limit_proc_dointvec,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE_HUNDRED,
+	},
+	{
+		.procname	= "pagecache_limit_reclaim_ratio",
+		.data		= &vm_pagecache_limit_reclaim_ratio,
+		.maxlen		= sizeof(vm_pagecache_limit_reclaim_ratio),
+		.mode		= 0644,
+		.proc_handler	= &pc_reclaim_limit_proc_dointvec,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE_HUNDRED,
+	},
+	{
+		.procname	= "pagecache_limit_ignore_dirty",
+		.data		= &vm_pagecache_ignore_dirty,
+		.maxlen		= sizeof(vm_pagecache_ignore_dirty),
+		.mode		= 0644,
+		.proc_handler	= &proc_dointvec,
+	},
+	{
+		.procname	= "pagecache_limit_async",
+		.data		= &vm_pagecache_limit_async,
+		.maxlen		= sizeof(vm_pagecache_limit_async),
+		.mode		= 0644,
+		.proc_handler	= &pc_limit_async_handler,
+	},
+	{
+		.procname	= "pagecache_limit_ignore_slab",
+		.data		= &vm_pagecache_ignore_slab,
+		.maxlen		= sizeof(vm_pagecache_ignore_slab),
+		.mode		= 0644,
+		.proc_handler	= &proc_dointvec,
+	},
+#endif /* CONFIG_PAGECACHE_LIMIT */
 	{ }
 };
 
