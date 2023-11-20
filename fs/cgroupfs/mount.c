@@ -21,6 +21,7 @@ cgroupfs_entry_t *cgroupfs_root;
 cgroupfs_entry_t *sys_cpu;
 
 static int cgroufs_entry_num;
+extern int cgroupfs_mounted;
 
 static void cgroupfs_free_inode(struct inode *inode)
 {
@@ -272,6 +273,10 @@ static const struct file_operations cgroupfs_dir_operations = {
 	.iterate_shared		= cgroupfs_readdir,
 };
 
+static const struct dentry_operations cgroupfs_dentry_simple_ops = {
+	.d_delete       	= always_delete_dentry,
+};
+
 struct inode *cgroupfs_get_inode(cgroupfs_entry_t *en)
 {
 	struct inode *inode;
@@ -329,6 +334,15 @@ static bool cgroupfs_new_cpu_dir(int fs_type, umode_t mode,
 	cgroupfs_entry_t *dir;
 	void *private;
 
+	if (!memcmp(name, "online", 7)) {
+		dir = cgroupfs_new_entry(cgroupfs_root->sb, "online", sys_cpu,
+					 CGROUPFS_TYPE_CPU_ONLINE, S_IFREG | 0644);
+		if (!dir)
+			return false;
+		dir->e_dops = &cgroupfs_dentry_simple_ops;
+		return true;
+	}
+
 	if (fs_type & CGROUPFS_TYPE_CPUDIR) {
 		i = start;
 		while (i < len) {
@@ -342,6 +356,7 @@ static bool cgroupfs_new_cpu_dir(int fs_type, umode_t mode,
 	private = kmalloc(len + base_len + 1, GFP_KERNEL);
 	if (!private)
 		return false;
+
 	dir = cgroupfs_new_entry(cgroupfs_root->sb, name,
 				sys_cpu, fs_type, mode);
 	if (!dir) {
@@ -482,11 +497,13 @@ static int cgroupfs_fill_super(struct super_block *sb, void *data, int silent)
 static struct dentry *cgroupfs_get_super(struct file_system_type *fst,
 	int flags, const char *devname, void *data)
 {
+	cgroupfs_mounted = 1;
 	return mount_single(fst, flags, data, cgroupfs_fill_super);
 }
 
 static void cgroupfs_kill_sb(struct super_block *sb)
 {
+	cgroupfs_mounted = 0;
 	kill_anon_super(sb);
 	cgroupfs_umount_remove_tree(cgroupfs_root);
 }

@@ -988,8 +988,16 @@ static int blkcg_reset_stats(struct cgroup_subsys_state *css,
 #ifdef CONFIG_CGROUPFS
 int blkcg_cgroupfs_dkstats_show(struct seq_file *m, void *v)
 {
-	struct blkcg *blkcg = css_to_blkcg(task_css(current, io_cgrp_id));
-	return blkcg_dkstats_show_comm(m, v, blkcg);
+	int ret;
+	struct cgroup_subsys_state *css;
+	struct blkcg *blkcg;
+
+	css = task_get_css(current, io_cgrp_id);
+	blkcg = css_to_blkcg(css);
+	ret = blkcg_dkstats_show_comm(m, v, blkcg);
+	css_put(css);
+
+	return ret;
 }
 #endif
 
