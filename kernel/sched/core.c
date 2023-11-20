@@ -10551,6 +10551,33 @@ static inline struct task_group *css_tg(struct cgroup_subsys_state *css)
 	return css ? container_of(css, struct task_group, css) : NULL;
 }
 
+#ifdef CONFIG_CGROUPFS
+int container_cpuquota_aware;
+#define cpu_quota_aware_enabled(tg) \
+    (tg && tg != &root_task_group && tg->cpuquota_aware)
+
+int cpu_get_max_cpus(struct task_struct *p)
+{
+	int max_cpus = INT_MAX;
+	struct task_group *tg = task_group(p);
+
+	if (!cpu_quota_aware_enabled(tg))
+		return max_cpus;
+
+	if (tg->cfs_bandwidth.quota == RUNTIME_INF)
+		return max_cpus;
+
+	max_cpus = DIV_ROUND_UP(tg->cfs_bandwidth.quota, tg->cfs_bandwidth.period);
+
+	return max_cpus;
+}
+#else /* CONFIG_CGROUPFS */
+int cpu_get_max_cpus(struct task_struct *p)
+{
+       return INT_MAX;
+}
+#endif /* CONFIG_CGROUPFS */
+
 static struct cgroup_subsys_state *
 cpu_cgroup_css_alloc(struct cgroup_subsys_state *parent_css)
 {
@@ -10565,7 +10592,9 @@ cpu_cgroup_css_alloc(struct cgroup_subsys_state *parent_css)
 	tg = sched_create_group(parent);
 	if (IS_ERR(tg))
 		return ERR_PTR(-ENOMEM);
-
+#ifdef CONFIG_CGROUPFS
+	tg->cpuquota_aware = container_cpuquota_aware;
+#endif
 	return &tg->css;
 }
 
@@ -11214,7 +11243,33 @@ static int cpu_idle_write_s64(struct cgroup_subsys_state *css,
 }
 #endif
 
+#ifdef CONFIG_CGROUPFS
+static u64 cpu_quota_aware_read_u64(struct cgroup_subsys_state *css,
+					struct cftype *cft)
+{
+	struct task_group *tg = css_tg(css);
+
+	return tg->cpuquota_aware;
+}
+static int cpu_quota_aware_write_u64(struct cgroup_subsys_state *css,
+					struct cftype *cft, u64 val)
+{
+	struct task_group *tg = css_tg(css);
+	tg->cpuquota_aware = !!val;
+	return 0;
+}
+
+#endif
+
 static struct cftype cpu_legacy_files[] = {
+#ifdef CONFIG_CGROUPFS
+	{
+		.name = "quota_aware",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.read_u64 = cpu_quota_aware_read_u64,
+		.write_u64 = cpu_quota_aware_write_u64,
+	},
+#endif
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	{
 		.name = "shares",

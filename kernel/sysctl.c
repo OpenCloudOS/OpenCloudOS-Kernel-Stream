@@ -134,6 +134,9 @@ static enum sysctl_writes_mode sysctl_writes_strict = SYSCTL_WRITES_STRICT;
     defined(CONFIG_ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT)
 int sysctl_legacy_va_layout;
 #endif
+#ifdef CONFIG_CGROUPFS
+extern int container_cpuquota_aware;
+#endif
 
 #endif /* CONFIG_SYSCTL */
 
@@ -2103,6 +2106,15 @@ static struct ctl_table kern_table[] = {
 		.maxlen		= sizeof(int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
+	},
+#endif
+#ifdef CONFIG_CGROUPFS
+	{
+		.procname       = "container_cpuquota_aware",
+		.data           = &container_cpuquota_aware,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec,
 	},
 #endif
 	{ }
