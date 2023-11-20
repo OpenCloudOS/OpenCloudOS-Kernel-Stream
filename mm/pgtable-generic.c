@@ -27,6 +27,7 @@ void pgd_clear_bad(pgd_t *pgd)
 	pgd_ERROR(*pgd);
 	pgd_clear(pgd);
 }
+EXPORT_SYMBOL(pgd_clear_bad);
 
 #ifndef __PAGETABLE_P4D_FOLDED
 void p4d_clear_bad(p4d_t *p4d)
@@ -34,6 +35,7 @@ void p4d_clear_bad(p4d_t *p4d)
 	p4d_ERROR(*p4d);
 	p4d_clear(p4d);
 }
+EXPORT_SYMBOL(p4d_clear_bad);
 #endif
 
 #ifndef __PAGETABLE_PUD_FOLDED
@@ -42,6 +44,7 @@ void pud_clear_bad(pud_t *pud)
 	pud_ERROR(*pud);
 	pud_clear(pud);
 }
+EXPORT_SYMBOL(pud_clear_bad);
 #endif
 
 /*
@@ -54,6 +57,7 @@ void pmd_clear_bad(pmd_t *pmd)
 	pmd_ERROR(*pmd);
 	pmd_clear(pmd);
 }
+EXPORT_SYMBOL(pmd_clear_bad);
 
 #ifndef __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
 /*

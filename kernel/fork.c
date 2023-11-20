@@ -1219,6 +1219,7 @@ free_tsk:
 }
 
 __cacheline_aligned_in_smp DEFINE_SPINLOCK(mmlist_lock);
+EXPORT_SYMBOL(mmlist_lock);
 
 static unsigned long default_dump_filter = MMF_DUMP_FILTER_DEFAULT;
 

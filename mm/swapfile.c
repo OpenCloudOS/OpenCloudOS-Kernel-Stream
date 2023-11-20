@@ -53,7 +53,8 @@ static bool swap_count_continued(struct swap_info_struct *, pgoff_t,
 				 unsigned char);
 static void free_swap_count_continuations(struct swap_info_struct *);
 
-static DEFINE_SPINLOCK(swap_lock);
+DEFINE_SPINLOCK(swap_lock);
+EXPORT_SYMBOL(swap_lock);
 static unsigned int nr_swapfiles;
 atomic_long_t nr_swap_pages;
 /*
@@ -79,7 +80,8 @@ static const char Unused_offset[] = "Unused swap offset entry ";
  * all active swap_info_structs
  * protected with swap_lock, and ordered by priority.
  */
-static PLIST_HEAD(swap_active_head);
+PLIST_HEAD(swap_active_head);
+EXPORT_SYMBOL(swap_active_head);
 
 /*
  * all available (active, not full) swap_info_structs
@@ -1159,6 +1161,7 @@ out:
 	spin_unlock(&si->lock);
 	return entry;
 }
+EXPORT_SYMBOL(get_cached_swap_page_of_type);
 
 static struct swap_info_struct *_swap_info_get(swp_entry_t entry)
 {
@@ -1365,6 +1368,7 @@ void swap_free(swp_entry_t entry)
 	if (p)
 		__swap_entry_free(p, entry);
 }
+EXPORT_SYMBOL(swap_free);
 
 /*
  * Called after dropping swapcache to decrease refcnt to swap entries.
@@ -1467,6 +1471,7 @@ void swapcache_free_entries(swp_entry_t *entries, int n)
 	if (p)
 		spin_unlock(&p->lock);
 }
+EXPORT_SYMBOL(swapcache_free_entries);
 
 int __swap_count(swp_entry_t entry)
 {
@@ -1538,6 +1543,7 @@ out:
 	unlock_cluster_or_swap_info(p, ci);
 	return count;
 }
+EXPORT_SYMBOL(swp_swapcount);
 
 static bool swap_page_trans_huge_swapped(struct swap_info_struct *si,
 					 swp_entry_t entry)
@@ -3380,6 +3386,7 @@ int swap_duplicate(swp_entry_t entry)
 		err = add_swap_count_continuation(entry, GFP_ATOMIC);
 	return err;
 }
+EXPORT_SYMBOL(swap_duplicate);
 
 /*
  * @entry: swap entry for which we allocate swap cache.
@@ -3398,6 +3405,7 @@ struct swap_info_struct *swp_swap_info(swp_entry_t entry)
 {
 	return swap_type_to_swap_info(swp_type(entry));
 }
+EXPORT_SYMBOL(swp_swap_info);
 
 struct swap_info_struct *page_swap_info(struct page *page)
 {

@@ -204,6 +204,7 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 	__swap_writepage(&folio->page, wbc);
 	return 0;
 }
+EXPORT_SYMBOL(swap_writepage);
 
 static inline void count_swpout_vm_event(struct folio *folio)
 {

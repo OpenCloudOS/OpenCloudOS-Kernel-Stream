@@ -131,6 +131,7 @@ unlock:
 	folio_ref_sub(folio, nr);
 	return xas_error(&xas);
 }
+EXPORT_SYMBOL(add_to_swap_cache);
 
 /*
  * This must be called only on folios that have
@@ -242,6 +243,7 @@ void delete_from_swap_cache(struct folio *folio)
 	put_swap_folio(folio, entry);
 	folio_ref_sub(folio, folio_nr_pages(folio));
 }
+EXPORT_SYMBOL(delete_from_swap_cache);
 
 void clear_shadow_from_swap_cache(int type, unsigned long begin,
 				unsigned long end)
@@ -537,6 +539,7 @@ struct page *read_swap_cache_async(swp_entry_t entry, gfp_t gfp_mask,
 
 	return retpage;
 }
+EXPORT_SYMBOL(read_swap_cache_async);
 
 static unsigned int __swapin_nr_pages(unsigned long prev_offset,
 				      unsigned long offset,

@@ -49,6 +49,7 @@ struct mm_struct init_mm = {
 #endif
 	INIT_MM_CONTEXT(init_mm)
 };
+EXPORT_SYMBOL(init_mm);
 
 void setup_initial_init_mm(void *start_code, void *end_code,
 			   void *end_data, void *brk)
