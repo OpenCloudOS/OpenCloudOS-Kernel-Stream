@@ -319,7 +319,7 @@ This is required to use SystemTap with %{rpm_name}.
 %endif
 # Debuginfo file list for main kernel package
 # The (\+.*)? is used to match all variant kernel
-%global _find_debuginfo_opts %{_find_debuginfo_opts} -p '.*\/usr\/src\/kernels/.*|XXX' -o ignored-debuginfo.list -p $(echo '%{debuginfo_dir}.*%{kernel_unamer}/.*|%{debuginfo_dir}.*%{kernel_unamer}(\.debug)?' | sed 's/+/[+]/g') -o debuginfo.list
+%global _find_debuginfo_opts %{_find_debuginfo_opts} -p '.*\/usr\/src\/kernels/.*|XXX' -o ignored-debuginfo.list -p $(echo '.*/%{kernel_unamer}/.*|.*/%{kernel_unamer}(\.debug)?' | sed 's/+/[+]/g') -o debuginfo.list
 # with_debuginfo
 %endif
 # with_core
