@@ -10,6 +10,7 @@
 #include <linux/blkdev.h>
 #include <linux/bio.h>
 #include <linux/blktrace_api.h>
+#include <linux/psi.h>
 #include "blk.h"
 #include "blk-cgroup-rwstat.h"
 #include "blk-stat.h"
@@ -1510,6 +1511,15 @@ static struct cftype throtl_legacy_files[] = {
 		.read_u64 = tg_read_buffered_write_bps,
 		.write_u64 = tg_set_buffered_write_bps,
 		.max_write_len = 256,
+	},
+#endif
+#ifdef CONFIG_PSI
+	{
+		.name = "pressure",
+		.seq_show = cgroup_io_pressure_show,
+		.write = cgroup_io_pressure_write,
+		.poll = cgroup_pressure_poll,
+		.release = cgroup_pressure_release,
 	},
 #endif
 	{ }	/* terminate */

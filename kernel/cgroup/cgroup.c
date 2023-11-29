@@ -3723,21 +3723,21 @@ static int cpu_local_stat_show(struct seq_file *seq, void *v)
 }
 
 #ifdef CONFIG_PSI
-static int cgroup_io_pressure_show(struct seq_file *seq, void *v)
+int cgroup_io_pressure_show(struct seq_file *seq, void *v)
 {
 	struct cgroup *cgrp = seq_css(seq)->cgroup;
 	struct psi_group *psi = cgroup_psi(cgrp);
 
 	return psi_show(seq, psi, PSI_IO);
 }
-static int cgroup_memory_pressure_show(struct seq_file *seq, void *v)
+int cgroup_memory_pressure_show(struct seq_file *seq, void *v)
 {
 	struct cgroup *cgrp = seq_css(seq)->cgroup;
 	struct psi_group *psi = cgroup_psi(cgrp);
 
 	return psi_show(seq, psi, PSI_MEM);
 }
-static int cgroup_cpu_pressure_show(struct seq_file *seq, void *v)
+int cgroup_cpu_pressure_show(struct seq_file *seq, void *v)
 {
 	struct cgroup *cgrp = seq_css(seq)->cgroup;
 	struct psi_group *psi = cgroup_psi(cgrp);
@@ -3779,21 +3779,21 @@ static ssize_t pressure_write(struct kernfs_open_file *of, char *buf,
 	return nbytes;
 }
 
-static ssize_t cgroup_io_pressure_write(struct kernfs_open_file *of,
+ssize_t cgroup_io_pressure_write(struct kernfs_open_file *of,
 					  char *buf, size_t nbytes,
 					  loff_t off)
 {
 	return pressure_write(of, buf, nbytes, PSI_IO);
 }
 
-static ssize_t cgroup_memory_pressure_write(struct kernfs_open_file *of,
+ssize_t cgroup_memory_pressure_write(struct kernfs_open_file *of,
 					  char *buf, size_t nbytes,
 					  loff_t off)
 {
 	return pressure_write(of, buf, nbytes, PSI_MEM);
 }
 
-static ssize_t cgroup_cpu_pressure_write(struct kernfs_open_file *of,
+ssize_t cgroup_cpu_pressure_write(struct kernfs_open_file *of,
 					  char *buf, size_t nbytes,
 					  loff_t off)
 {
@@ -3865,7 +3865,7 @@ static ssize_t cgroup_pressure_write(struct kernfs_open_file *of,
 	return nbytes;
 }
 
-static __poll_t cgroup_pressure_poll(struct kernfs_open_file *of,
+__poll_t cgroup_pressure_poll(struct kernfs_open_file *of,
 					  poll_table *pt)
 {
 	struct cgroup_file_ctx *ctx = of->priv;
@@ -3873,7 +3873,7 @@ static __poll_t cgroup_pressure_poll(struct kernfs_open_file *of,
 	return psi_trigger_poll(&ctx->psi.trigger, of->file, pt);
 }
 
-static void cgroup_pressure_release(struct kernfs_open_file *of)
+void cgroup_pressure_release(struct kernfs_open_file *of)
 {
 	struct cgroup_file_ctx *ctx = of->priv;
 

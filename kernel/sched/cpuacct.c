@@ -386,6 +386,15 @@ static struct cftype files[] = {
 		.name = "uptime",
 		.seq_show = cpuacct_uptime_show,
 	},
+#ifdef CONFIG_PSI
+	{
+		.name = "pressure",
+		.seq_show = cgroup_cpu_pressure_show,
+		.write = cgroup_cpu_pressure_write,
+		.poll = cgroup_pressure_poll,
+		.release = cgroup_pressure_release,
+	},
+#endif /* CONFIG_PSI */
 	{ }	/* terminate */
 };
 

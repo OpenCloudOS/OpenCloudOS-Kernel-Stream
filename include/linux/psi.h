@@ -41,6 +41,15 @@ int psi_cgroup_alloc(struct cgroup *cgrp);
 void psi_cgroup_free(struct cgroup *cgrp);
 void cgroup_move_task(struct task_struct *p, struct css_set *to);
 void psi_cgroup_restart(struct psi_group *group);
+
+int cgroup_io_pressure_show(struct seq_file *seq, void *v);
+int cgroup_memory_pressure_show(struct seq_file *seq, void *v);
+int cgroup_cpu_pressure_show(struct seq_file *seq, void *v);
+ssize_t cgroup_io_pressure_write(struct kernfs_open_file *of, char *buf, size_t nbytes, loff_t off);
+ssize_t cgroup_memory_pressure_write(struct kernfs_open_file *of, char *buf, size_t nbytes, loff_t off);
+ssize_t cgroup_cpu_pressure_write(struct kernfs_open_file *of, char *buf, size_t nbytes, loff_t off);
+void cgroup_pressure_release(struct kernfs_open_file *of);
+__poll_t cgroup_pressure_poll(struct kernfs_open_file *of, struct poll_table_struct *pt);
 #endif
 
 #else /* CONFIG_PSI */
