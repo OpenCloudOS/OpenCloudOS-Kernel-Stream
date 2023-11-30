@@ -1388,12 +1388,11 @@ fi
 
 %files -n kernel-tools-libs
 %defattr(-,root,root)
-%{_libdir}/libcpupower.so.0
-%{_libdir}/libcpupower.so.0.0.1
+%{_libdir}/libcpupower.so
+%{_libdir}/libcpupower.so.*
 
 %files -n kernel-tools-libs-devel
 %defattr(-,root,root)
-%{_libdir}/libcpupower.so
 %{_includedir}/cpufreq.h
 
 %if %{with_debuginfo}
