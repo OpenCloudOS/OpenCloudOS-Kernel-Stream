@@ -684,7 +684,7 @@ BuildTools() {
 	%{tools_make} -C tools/thermal/tmon/
 	%{tools_make} -C tools/iio/
 	%{tools_make} -C tools/gpio/
-	%{tools_make} -C tools/vm/ slabinfo page_owner_sort
+	%{tools_make} -C tools/mm/ slabinfo page_owner_sort
 }
 
 BuildBpfTool() {
@@ -1039,7 +1039,7 @@ InstTools() {
 	%{tools_make} -C tools/iio install
 	%{tools_make} -C tools/gpio install
 
-	pushd tools/vm/
+	pushd tools/mm/
 	install -m755 slabinfo %{buildroot}%{_bindir}/slabinfo
 	install -m755 page_owner_sort %{buildroot}%{_bindir}/page_owner_sort
 	popd
