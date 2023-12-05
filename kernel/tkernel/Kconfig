@@ -23,4 +23,8 @@ config TKERNEL_NETATOP
 	help
 		Netatop module from TKernel
 
+config TKERNEL_SHIELD_MOUNTS
+	bool 'Shield mount'
+	default n
+
 endif
