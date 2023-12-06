@@ -1275,6 +1275,9 @@ int ptrace_request(struct task_struct *child, long request,
 	return ret;
 }
 
+int (*ptrace_pre_hook)(long request, long pid, struct task_struct *task, long addr, long data);
+EXPORT_SYMBOL(ptrace_pre_hook);
+
 SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
 		unsigned long, data)
 {
@@ -1290,6 +1293,12 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
 	if (!child) {
 		ret = -ESRCH;
 		goto out;
+	}
+
+	if (ptrace_pre_hook) {
+		ret = ptrace_pre_hook(request, pid, child, addr, data);
+		if (ret)
+			goto out_put_task_struct;
 	}
 
 	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {

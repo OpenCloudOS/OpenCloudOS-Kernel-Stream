@@ -9,4 +9,8 @@ config TKERNEL_NONPRIV_NETBIND
 	bool "Allow non-privileged user to bind specific low ports"
 	default n
 
+config TKERNEL_TTOOLS
+	tristate "Tencent Kernel TTools"
+	default n
+
 endif
