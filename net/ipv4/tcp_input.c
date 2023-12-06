@@ -83,6 +83,7 @@
 
 int sysctl_tcp_max_orphans __read_mostly = NR_FILE;
 int sysctl_tcp_tw_ignore_syn_tsval_zero __read_mostly = 1;
+int sysctl_tcp_loss_init_cwnd = 1;
 
 #define FLAG_DATA		0x01 /* Incoming frame contained data.		*/
 #define FLAG_WIN_UPDATE		0x02 /* Incoming ACK was a window update.	*/
@@ -2172,7 +2173,7 @@ void tcp_enter_loss(struct sock *sk)
 		tcp_ca_event(sk, CA_EVENT_LOSS);
 		tcp_init_undo(tp);
 	}
-	tcp_snd_cwnd_set(tp, tcp_packets_in_flight(tp) + 1);
+	tcp_snd_cwnd_set(tp, max((unsigned int) sysctl_tcp_loss_init_cwnd, tcp_packets_in_flight(tp) + 1));
 	tp->snd_cwnd_cnt   = 0;
 	tp->snd_cwnd_stamp = tcp_jiffies32;
 
