@@ -231,6 +231,8 @@ struct netns_ipv4 {
 	u8 sysctl_fib_multipath_hash_policy;
 #endif
 
+	int sysctl_tcp_max_orphans;
+
 	struct fib_notifier_ops	*notifier_ops;
 	unsigned int	fib_seq;	/* protected by rtnl_mutex */
 

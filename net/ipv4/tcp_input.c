@@ -81,7 +81,6 @@
 #include <net/busy_poll.h>
 #include <net/mptcp.h>
 
-int sysctl_tcp_max_orphans __read_mostly = NR_FILE;
 int sysctl_tcp_tw_ignore_syn_tsval_zero __read_mostly = 1;
 int sysctl_tcp_loss_init_cwnd = 1;
 int sysctl_tcp_no_delay_ack;

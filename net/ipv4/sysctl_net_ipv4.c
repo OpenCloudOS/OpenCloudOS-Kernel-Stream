@@ -470,13 +470,6 @@ static int proc_fib_multipath_hash_fields(struct ctl_table *table, int write,
 
 static struct ctl_table ipv4_table[] = {
 	{
-		.procname	= "tcp_max_orphans",
-		.data		= &sysctl_tcp_max_orphans,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec
-	},
-	{
 		.procname	= "inet_peer_threshold",
 		.data		= &inet_peer_threshold,
 		.maxlen		= sizeof(int),
@@ -1095,6 +1088,13 @@ static struct ctl_table ipv4_net_table[] = {
 		.proc_handler	= proc_fib_multipath_hash_policy,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_THREE,
+	},
+	{
+		.procname       = "tcp_max_orphans",
+		.data           = &init_net.ipv4.sysctl_tcp_max_orphans,
+		.maxlen         = sizeof(int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec
 	},
 	{
 		.procname	= "fib_multipath_hash_fields",

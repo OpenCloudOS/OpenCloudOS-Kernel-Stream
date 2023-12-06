@@ -2727,17 +2727,18 @@ static void tcp_orphan_update(struct timer_list *unused)
 	mod_timer(&tcp_orphan_timer, jiffies + TCP_ORPHAN_TIMER_PERIOD);
 }
 
-static bool tcp_too_many_orphans(int shift)
+static bool tcp_too_many_orphans(struct sock *sk, int shift)
 {
+	struct net *net = sock_net(sk);
 	return READ_ONCE(tcp_orphan_cache) << shift >
-		READ_ONCE(sysctl_tcp_max_orphans);
+		READ_ONCE(net->ipv4.sysctl_tcp_max_orphans);
 }
 
 bool tcp_check_oom(struct sock *sk, int shift)
 {
 	bool too_many_orphans, out_of_socket_memory;
 
-	too_many_orphans = tcp_too_many_orphans(shift);
+	too_many_orphans = tcp_too_many_orphans(sk, shift);
 	out_of_socket_memory = tcp_out_of_memory(sk);
 
 	if (too_many_orphans)
@@ -4700,7 +4701,7 @@ void __init tcp_init(void)
 	tcp_hashinfo.pernet = false;
 
 	cnt = tcp_hashinfo.ehash_mask + 1;
-	sysctl_tcp_max_orphans = cnt / 2;
+	init_net.ipv4.sysctl_tcp_max_orphans = cnt / 2;
 
 	tcp_init_mem();
 	/* Set per-socket limits to no more than 1/128 the pressure threshold */
