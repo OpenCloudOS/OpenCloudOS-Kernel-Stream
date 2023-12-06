@@ -84,6 +84,7 @@
 int sysctl_tcp_max_orphans __read_mostly = NR_FILE;
 int sysctl_tcp_tw_ignore_syn_tsval_zero __read_mostly = 1;
 int sysctl_tcp_loss_init_cwnd = 1;
+int sysctl_tcp_no_delay_ack;
 
 #define FLAG_DATA		0x01 /* Incoming frame contained data.		*/
 #define FLAG_WIN_UPDATE		0x02 /* Incoming ACK was a window update.	*/
@@ -5571,6 +5572,8 @@ static void __tcp_ack_snd_check(struct sock *sk, int ofo_possible)
 	     __tcp_select_window(sk) >= tp->rcv_wnd)) ||
 	    /* We ACK each frame or... */
 	    tcp_in_quickack_mode(sk) ||
+		/* We need to send ack no delay or ... */
+		sysctl_tcp_no_delay_ack ||
 	    /* Protocol state mandates a one-time immediate ACK */
 	    inet_csk(sk)->icsk_ack.pending & ICSK_ACK_NOW) {
 send_now:
