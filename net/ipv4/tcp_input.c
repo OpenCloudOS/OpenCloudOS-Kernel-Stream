@@ -82,6 +82,7 @@
 #include <net/mptcp.h>
 
 int sysctl_tcp_max_orphans __read_mostly = NR_FILE;
+int sysctl_tcp_tw_ignore_syn_tsval_zero __read_mostly = 1;
 
 #define FLAG_DATA		0x01 /* Incoming frame contained data.		*/
 #define FLAG_WIN_UPDATE		0x02 /* Incoming ACK was a window update.	*/
@@ -7031,6 +7032,16 @@ int tcp_conn_request(struct request_sock_ops *rsk_ops,
 
 	if (want_cookie && !tmp_opt.saw_tstamp)
 		tcp_clear_options(&tmp_opt);
+
+	if (sysctl_tcp_tw_ignore_syn_tsval_zero && tmp_opt.saw_tstamp && !tmp_opt.rcv_tsval) {
+		/* Some OSes (unknown ones, but I see them on web server, which
+		 * contains information interesting only for windows'
+		 * users) do not send their stamp in SYN. It is easy case.
+		 * We simply do not advertise TS support.
+		 */
+		tmp_opt.saw_tstamp = 0;
+		tmp_opt.tstamp_ok  = 0;
+	}
 
 	if (IS_ENABLED(CONFIG_SMC) && want_cookie)
 		tmp_opt.smc_ok = 0;
