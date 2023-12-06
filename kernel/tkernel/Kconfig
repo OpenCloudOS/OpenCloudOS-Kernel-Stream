@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
+#
+# TKernel configuration
+#
 menuconfig TKERNEL
 	bool "Tencent Kernel Features"
 	default n
@@ -12,5 +15,12 @@ config TKERNEL_NONPRIV_NETBIND
 config TKERNEL_TTOOLS
 	tristate "Tencent Kernel TTools"
 	default n
+
+config TKERNEL_NETATOP
+	tristate 'Netatop support'
+	default n
+	depends on NETFILTER
+	help
+		Netatop module from TKernel
 
 endif
