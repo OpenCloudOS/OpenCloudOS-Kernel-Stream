@@ -23,6 +23,8 @@
 #include <net/xfrm.h>
 #include <net/busy_poll.h>
 
+int sysctl_tcp_inherit_buffsize __read_mostly = 1;
+
 static bool tcp_in_window(u32 seq, u32 end_seq, u32 s_win, u32 e_win)
 {
 	if (seq == s_win)
@@ -532,6 +534,11 @@ struct sock *tcp_create_openreq_child(const struct sock *sk,
 
 	tcp_init_xmit_timers(newsk);
 	WRITE_ONCE(newtp->write_seq, newtp->pushed_seq = treq->snt_isn + 1);
+
+	if (!sysctl_tcp_inherit_buffsize && !(sk->sk_userlocks & SOCK_SNDBUF_LOCK)) {
+		newsk->sk_sndbuf = sock_net(sk)->ipv4.sysctl_tcp_wmem[1];
+		newsk->sk_rcvbuf = sock_net(sk)->ipv4.sysctl_tcp_rmem[1];
+	}
 
 	if (sock_flag(newsk, SOCK_KEEPOPEN))
 		inet_csk_reset_keepalive_timer(newsk,

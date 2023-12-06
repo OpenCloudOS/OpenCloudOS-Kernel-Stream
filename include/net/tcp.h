@@ -252,6 +252,7 @@ extern int sysctl_tcp_tw_ignore_syn_tsval_zero;
 extern int sysctl_tcp_loss_init_cwnd;
 extern int sysctl_tcp_no_delay_ack;
 extern int sysctl_tcp_init_cwnd;
+extern int sysctl_tcp_inherit_buffsize;
 
 #define TCP_RACK_LOSS_DETECTION  0x1 /* Use RACK to detect losses */
 #define TCP_RACK_STATIC_REO_WND  0x2 /* Use static RACK reo wnd */

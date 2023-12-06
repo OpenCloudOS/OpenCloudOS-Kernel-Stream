@@ -492,6 +492,14 @@ tcp_invalid_ratelimit - INTEGER
 
 	Default: 500 (milliseconds).
 
+tcp_inherit_buffsize - BOOLEAN
+	For a new passive TCP connection, can use current tcp_wmem/tcp_rmem
+	parameter to set initial snd/rcv buffer size. This is useful for online
+	services which no need to be restarted just set it with 0. By default,
+	new passive connection inherits snd/rcv buffer size from lister socket.
+
+	Default: 1
+
 tcp_keepalive_time - INTEGER
 	How often TCP sends out keepalive messages when keepalive is enabled.
 	Default: 2hours.
