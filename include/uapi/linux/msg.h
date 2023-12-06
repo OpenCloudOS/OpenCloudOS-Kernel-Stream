@@ -75,8 +75,8 @@ struct msginfo {
  */
 
 #define MSGMNI 32000   /* <= IPCMNI */     /* max # of msg queue identifiers */
-#define MSGMAX  8192   /* <= INT_MAX */   /* max size of message (bytes) */
-#define MSGMNB 16384   /* <= INT_MAX */   /* default max size of a message queue */
+#define MSGMAX 65536   /* <= INT_MAX */   /* max size of message (bytes) */
+#define MSGMNB 65536   /* <= INT_MAX */   /* default max size of a message queue */
 
 /* unused */
 #define MSGPOOL (MSGMNI * MSGMNB / 1024) /* size in kbytes of message pool */
