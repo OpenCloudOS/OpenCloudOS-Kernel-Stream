@@ -236,6 +236,8 @@ struct mem_cgroup {
 	/* vmpressure notifications */
 	struct vmpressure vmpressure;
 
+	bool meminfo_recursive;
+
 	/*
 	 * Should the OOM killer kill all belonging tasks, had it kill one?
 	 */

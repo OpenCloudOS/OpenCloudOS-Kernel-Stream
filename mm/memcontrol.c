@@ -5010,11 +5010,41 @@ static int mem_cgroup_slab_show(struct seq_file *m, void *p)
 }
 #endif
 
+static u64 memcg_meminfo_recursive_read(struct cgroup_subsys_state *css,
+				     struct cftype *cft)
+{
+	return mem_cgroup_from_css(css)->meminfo_recursive;
+}
+
+static int memcg_meminfo_recursive_write(struct cgroup_subsys_state *css,
+				      struct cftype *cft, u64 val)
+{
+	int retval = 0;
+	struct mem_cgroup *memcg = mem_cgroup_from_css(css);
+
+	if (memcg->meminfo_recursive == val)
+		return 0;
+
+	if (val == 1 || val == 0)
+		memcg->meminfo_recursive = val;
+	else
+		retval = -EINVAL;
+
+	return retval;
+}
+
 static int mem_cgroup_meminfo_read(struct seq_file *m, void *v)
 {
 	struct mem_cgroup *memcg = mem_cgroup_from_css(seq_css(m));
-	u64 mem_limit, mem_usage;
-	u64 mem_swap, mem_swap_usage;
+	unsigned long mem_limit, mem_usage;
+	unsigned long mem_swap_limit, mem_swap_usage;
+	unsigned long mem_cache, mem_swap_cache;
+	unsigned long mem_active, mem_inactive;
+	unsigned long mem_active_anon, mem_inactive_anon;
+	unsigned long mem_active_file, mem_inactive_file;
+	unsigned long mem_unevictable;
+	unsigned long mem_rss, mem_rss_huge;
+	unsigned long mem_file_map, mem_shmem;
 
 	/*
 	 * We only need mem_cgroup_css_rstat_flush, but the only
@@ -5025,19 +5055,48 @@ static int mem_cgroup_meminfo_read(struct seq_file *m, void *v)
 	cgroup_rstat_flush(memcg->css.cgroup);
 
 	mem_limit = memcg->memory.max;
-	/* if limit not set, use host ram total size*/
 	if (mem_limit == PAGE_COUNTER_MAX)
-		mem_limit = totalram_pages() * PAGE_SIZE;
-	else
-		mem_limit = mem_limit * PAGE_SIZE;
-	mem_usage = (u64)mem_cgroup_usage(memcg, false) * PAGE_SIZE;
-	mem_swap = memcg->memsw.max;
+		mem_limit = totalram_pages();
 
-	if (mem_swap == PAGE_COUNTER_MAX)
-		mem_swap = total_swap_pages * PAGE_SIZE;
-	else
-		mem_swap = mem_swap * PAGE_SIZE;
-	mem_swap_usage = (u64)mem_cgroup_usage(memcg, true) * PAGE_SIZE - mem_usage;
+	mem_usage = mem_cgroup_usage(memcg, false);
+	mem_swap_limit = memcg->memsw.max;
+	if (mem_swap_limit == PAGE_COUNTER_MAX)
+		mem_swap_limit = total_swap_pages;
+	mem_swap_usage = mem_cgroup_usage(memcg, true) - mem_usage;
+
+	if (!memcg->meminfo_recursive) {
+		mem_cache = memcg_page_state_local(memcg, NR_FILE_PAGES);
+		mem_swap_cache = memcg_page_state(memcg, MEMCG_SWAP);
+		mem_active = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON) | BIT(LRU_ACTIVE_FILE), false);
+		mem_inactive = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON) | BIT(LRU_INACTIVE_FILE), false);
+		mem_active_anon = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON), false);
+		mem_inactive_anon = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON), false);
+		mem_active_file = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE), false);
+		mem_inactive_file = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE), false);
+		mem_unevictable = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_UNEVICTABLE), false);
+		mem_rss = memcg_page_state_local(memcg, NR_ANON_MAPPED);
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+		mem_rss_huge = memcg_page_state(memcg, NR_ANON_THPS);
+#endif
+		mem_file_map = memcg_page_state_local(memcg, NR_FILE_MAPPED);
+		mem_shmem = memcg_page_state_local(memcg, NR_SHMEM);
+	} else {
+		mem_cache = memcg_page_state(memcg, NR_FILE_PAGES);
+		mem_swap_cache = memcg_page_state(memcg, MEMCG_SWAP);
+		mem_active = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON) | BIT(LRU_ACTIVE_FILE), true);
+		mem_inactive = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON) | BIT(LRU_INACTIVE_FILE), true);
+		mem_active_anon = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON), true);
+		mem_inactive_anon = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON), true);
+		mem_active_file = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE), true);
+		mem_inactive_file = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE), true);
+		mem_unevictable = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_UNEVICTABLE), true);
+		mem_rss = memcg_page_state(memcg, NR_ANON_MAPPED);
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+		mem_rss_huge = memcg_page_state(memcg, NR_ANON_THPS);
+#endif
+		mem_file_map = memcg_page_state(memcg, NR_FILE_MAPPED);
+		mem_shmem = memcg_page_state(memcg, NR_SHMEM);
+	}
 
 	/*
 	 * Tagged format, for easy grepping and expansion.
@@ -5094,75 +5153,68 @@ static int mem_cgroup_meminfo_read(struct seq_file *m, void *v)
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 		"AnonHugePages:  %8lu kB\n"
 #endif
-		,
-		(unsigned long)(mem_limit / 1024),
-		(unsigned long)((mem_limit - mem_usage) / 1024),
-		(unsigned long)0,
-		K(memcg_page_state_local(memcg, NR_FILE_PAGES)),
-		K(memcg_page_state_local(memcg, MEMCG_SWAP)),//MEMCG_SWAP
-		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON)) +
-				mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE))),//K(pages[LRU_ACTIVE_ANON]   + pages[LRU_ACTIVE_FILE]),
-		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON)) +
-			mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE))),//K(pages[LRU_INACTIVE_ANON] + pages[LRU_INACTIVE_FILE]),
-		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON))),//K(pages[LRU_ACTIVE_ANON]),
-		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON))),//K(pages[LRU_INACTIVE_ANON]),
-		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE))),//K(pages[LRU_ACTIVE_FILE]),
-		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE))),//K(pages[LRU_INACTIVE_FILE]),
-		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_UNEVICTABLE))),//K(pages[LRU_UNEVICTABLE]),
-		(unsigned long)0,//K(global_page_state(NR_MLOCK)),
+		, K(mem_limit)
+		, K(mem_limit - mem_usage)
+		, 0UL
+		, K(mem_cache)
+		, K(mem_swap_cache)
+		, K(mem_active) // K(pages[LRU_ACTIVE_ANON]   + pages[LRU_ACTIVE_FILE]),
+		, K(mem_inactive) // K(pages[LRU_INACTIVE_ANON] + pages[LRU_INACTIVE_FILE]),
+		, K(mem_active_anon) // K(pages[LRU_ACTIVE_ANON]),
+		, K(mem_inactive_anon) // K(pages[LRU_INACTIVE_ANON]),
+		, K(mem_active_file) // K(pages[LRU_ACTIVE_FILE]),
+		, K(mem_inactive_file) // K(pages[LRU_INACTIVE_FILE]),
+		, K(mem_unevictable) // K(pages[LRU_UNEVICTABLE]),
+		, 0UL // K(global_page_state(NR_MLOCK)),
 #ifdef CONFIG_HIGHMEM
-		(unsigned long)0,//K(i.totalhigh),
-		(unsigned long)0,//K(i.freehigh),
-		(unsigned long)0,//K(i.totalram-i.totalhigh),
-		(unsigned long)0,//K(i.freeram-i.freehigh),
+		, 0UL // K(i.totalhigh),
+		, 0UL // K(i.freehigh),
+		, 0UL // K(i.totalram-i.totalhigh),
+		, 0UL // K(i.freeram-i.freehigh),
 #endif
 #ifndef CONFIG_MMU
-		(unsigned long)0,//K((unsigned long) atomic_long_read(&mmap_pages_allocated)),
+		, 0UL // K((unsigned long) atomic_long_read(&mmap_pages_allocated)),
 #endif
-		(unsigned long)(mem_swap / 1024),
-		(unsigned long)((mem_swap - mem_swap_usage) / 1024),
-		(unsigned long)0,//K(global_page_state(NR_FILE_DIRTY)),
-		(unsigned long)0,//K(global_page_state(NR_WRITEBACK)),
+		, K(mem_swap_limit)
+		, K(mem_swap_limit - mem_swap_usage)
+		, 0UL // K(global_page_state(NR_FILE_DIRTY)),
+		, 0UL // K(global_page_state(NR_WRITEBACK)),
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-		K(memcg_page_state(memcg, memcg1_stats[1])
-			+ memcg_page_state(memcg, memcg1_stats[2]) *
-			HPAGE_PMD_NR),
-		//K(global_page_state(NR_ANON_PAGES)
-		 // + global_page_state(NR_ANON_TRANSPARENT_HUGEPAGES) *
-		  //HPAGE_PMD_NR),
+		, K(mem_rss + mem_rss_huge) // K(global_page_state(NR_ANON_PAGES) +
+					    // global_page_state(NR_ANON_TRANSPARENT_HUGEPAGES) * HPAGE_PMD_NR),
 #else
-		 K(memcg_page_state(memcg, memcg1_stats[1])), //K(global_page_state(NR_ANON_PAGES)),
+		, K(mem_rss) // K(global_page_state(NR_ANON_PAGES)),
 #endif
-		K(memcg_page_state(memcg, memcg1_stats[4])),//K(global_page_state(NR_FILE_MAPPED)),
-		(unsigned long)0, //K(global_page_state(NR_SHMEM)),
-		(unsigned long)0, //K(global_page_state(NR_SLAB_RECLAIMABLE) +
-				//global_page_state(NR_SLAB_UNRECLAIMABLE)),
-		(unsigned long)0, //K(global_page_state(NR_SLAB_RECLAIMABLE)),
-		(unsigned long)0, //K(global_page_state(NR_SLAB_UNRECLAIMABLE)),
-		(unsigned long)0, //global_page_state(NR_KERNEL_STACK) * THREAD_SIZE / 1024,
-		(unsigned long)0, //K(global_page_state(NR_PAGETABLE)),
+		, K(mem_file_map)// K(global_page_state(NR_FILE_MAPPED)),
+		, K(mem_shmem) // K(global_page_state(NR_SHMEM)),
+		, 0UL // K(global_page_state(NR_SLAB_RECLAIMABLE) +
+		      // global_page_state(NR_SLAB_UNRECLAIMABLE)),
+		, 0UL // K(global_page_state(NR_SLAB_RECLAIMABLE)),
+		, 0UL // K(global_page_state(NR_SLAB_UNRECLAIMABLE)),
+		, 0UL // global_page_state(NR_KERNEL_STACK) * THREAD_SIZE / 1024,
+		, 0UL // K(global_page_state(NR_PAGETABLE)),
 #ifdef CONFIG_QUICKLIST
-		(unsigned long)0, //K(quicklist_total_size()),
+		, 0UL // K(quicklist_total_size()),
 #endif
-		(unsigned long)0, //K(global_page_state(NR_UNSTABLE_NFS)),
-		(unsigned long)0, //K(global_page_state(NR_BOUNCE)),
-		(unsigned long)0, //K(global_page_state(NR_WRITEBACK_TEMP)),
-		(unsigned long)0, //K(vm_commit_limit()),
-		(unsigned long)0, //K(committed),
-		(unsigned long)0, //(unsigned long)VMALLOC_TOTAL >> 10,
-		(unsigned long)0, //vmi.used >> 10,
-		(unsigned long)0, //vmi.largest_chunk >> 10
+		, 0UL // K(global_page_state(NR_UNSTABLE_NFS)),
+		, 0UL // K(global_page_state(NR_BOUNCE)),
+		, 0UL // K(global_page_state(NR_WRITEBACK_TEMP)),
+		, 0UL // K(vm_commit_limit()),
+		, 0UL // K(committed),
+		, 0UL // (unsigned long)VMALLOC_TOTAL >> 10,
+		, 0UL // vmi.used >> 10,
+		, 0UL // vmi.largest_chunk >> 10
 #ifdef CONFIG_MEMORY_FAILURE
-		(unsigned long)0, //,atomic_long_read(&num_poisoned_pages) << (PAGE_SHIFT - 10)
+		, 0UL // atomic_long_read(&num_poisoned_pages) << (PAGE_SHIFT - 10)
 #endif
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-		K(memcg_page_state(memcg, memcg1_stats[2]) * HPAGE_PMD_NR)
+		, K(mem_rss_huge)
 #endif
 		);
 
-	//hugetlb_report_meminfo(m);
+	// hugetlb_report_meminfo(m);
 
-	//arch_report_meminfo(m);
+	// arch_report_meminfo(m);
 
 	return 0;
 }
@@ -5196,11 +5248,16 @@ static int mem_cgroup_vmstat_read(struct seq_file *m, void *vv)
 		return -ENOMEM;
 
 	v[NR_FREE_PAGES] = (mem_limit - mem_usage) >> PAGE_SHIFT;
-	v[NR_ZONE_INACTIVE_ANON] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON));
-	v[NR_ZONE_ACTIVE_ANON] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON));
-	v[NR_ZONE_INACTIVE_FILE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE));
-	v[NR_ZONE_ACTIVE_FILE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE));
-	v[NR_ZONE_UNEVICTABLE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_UNEVICTABLE));
+	v[NR_ZONE_INACTIVE_ANON] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON),
+								memcg->meminfo_recursive);
+	v[NR_ZONE_ACTIVE_ANON] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON),
+								memcg->meminfo_recursive);
+	v[NR_ZONE_INACTIVE_FILE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE),
+								memcg->meminfo_recursive);
+	v[NR_ZONE_ACTIVE_FILE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE),
+								memcg->meminfo_recursive);
+	v[NR_ZONE_UNEVICTABLE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_UNEVICTABLE),
+								memcg->meminfo_recursive);
 	v[NR_MLOCK] = 0;
 #if 0
 	v[NR_ANON_PAGES] = v[NR_INACTIVE_ANON] + v[NR_ACTIVE_ANON];
@@ -5219,7 +5276,7 @@ static int mem_cgroup_vmstat_read(struct seq_file *m, void *vv)
 #if IS_ENABLED(CONFIG_ZSMALLOC)
 	v += 1;
 #endif
-	v += NR_VM_NUMA_STAT_ITEMS;
+	v += NR_VM_NUMA_EVENT_ITEMS;
 	v += NR_VM_NODE_STAT_ITEMS;
 	v += NR_VM_WRITEBACK_STAT_ITEMS;
 
@@ -5313,6 +5370,11 @@ static struct cftype mem_cgroup_legacy_files[] = {
 	{
 		.name = "meminfo",
 		.seq_show = mem_cgroup_meminfo_read,
+	},
+	{
+		.name = "meminfo_recursive",
+		.write_u64 = memcg_meminfo_recursive_write,
+		.read_u64 = memcg_meminfo_recursive_read,
 	},
 	{
 		.name = "vmstat",
