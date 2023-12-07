@@ -5010,6 +5010,231 @@ static int mem_cgroup_slab_show(struct seq_file *m, void *p)
 }
 #endif
 
+static int mem_cgroup_meminfo_read(struct seq_file *m, void *v)
+{
+	struct mem_cgroup *memcg = mem_cgroup_from_css(seq_css(m));
+	u64 mem_limit, mem_usage;
+	u64 mem_swap, mem_swap_usage;
+
+	/*
+	 * We only need mem_cgroup_css_rstat_flush, but the only
+	 * safe and easy call chain starts with cgroup_rstat_flush,
+	 * this flushes CPU/Block cgroup stats too which bring extra
+	 * overhead, but accetable in most cases.
+	 */
+	cgroup_rstat_flush(memcg->css.cgroup);
+
+	mem_limit = memcg->memory.max;
+	/* if limit not set, use host ram total size*/
+	if (mem_limit == PAGE_COUNTER_MAX)
+		mem_limit = totalram_pages() * PAGE_SIZE;
+	else
+		mem_limit = mem_limit * PAGE_SIZE;
+	mem_usage = (u64)mem_cgroup_usage(memcg, false) * PAGE_SIZE;
+	mem_swap = memcg->memsw.max;
+
+	if (mem_swap == PAGE_COUNTER_MAX)
+		mem_swap = total_swap_pages * PAGE_SIZE;
+	else
+		mem_swap = mem_swap * PAGE_SIZE;
+	mem_swap_usage = (u64)mem_cgroup_usage(memcg, true) * PAGE_SIZE - mem_usage;
+
+	/*
+	 * Tagged format, for easy grepping and expansion.
+	 */
+	seq_printf(m,
+		"MemTotal:       %8lu kB\n"
+		"MemFree:        %8lu kB\n"
+		"Buffers:        %8lu kB\n"
+		"Cached:         %8lu kB\n"
+		"SwapCached:     %8lu kB\n"
+		"Active:         %8lu kB\n"
+		"Inactive:       %8lu kB\n"
+		"Active(anon):   %8lu kB\n"
+		"Inactive(anon): %8lu kB\n"
+		"Active(file):   %8lu kB\n"
+		"Inactive(file): %8lu kB\n"
+		"Unevictable:    %8lu kB\n"
+		"Mlocked:        %8lu kB\n"
+#ifdef CONFIG_HIGHMEM
+		"HighTotal:      %8lu kB\n"
+		"HighFree:       %8lu kB\n"
+		"LowTotal:       %8lu kB\n"
+		"LowFree:        %8lu kB\n"
+#endif
+#ifndef CONFIG_MMU
+		"MmapCopy:       %8lu kB\n"
+#endif
+		"SwapTotal:      %8lu kB\n"
+		"SwapFree:       %8lu kB\n"
+		"Dirty:          %8lu kB\n"
+		"Writeback:      %8lu kB\n"
+		"AnonPages:      %8lu kB\n"
+		"Mapped:         %8lu kB\n"
+		"Shmem:          %8lu kB\n"
+		"Slab:           %8lu kB\n"
+		"SReclaimable:   %8lu kB\n"
+		"SUnreclaim:     %8lu kB\n"
+		"KernelStack:    %8lu kB\n"
+		"PageTables:     %8lu kB\n"
+#ifdef CONFIG_QUICKLIST
+		"Quicklists:     %8lu kB\n"
+#endif
+		"NFS_Unstable:   %8lu kB\n"
+		"Bounce:         %8lu kB\n"
+		"WritebackTmp:   %8lu kB\n"
+		"CommitLimit:    %8lu kB\n"
+		"Committed_AS:   %8lu kB\n"
+		"VmallocTotal:   %8lu kB\n"
+		"VmallocUsed:    %8lu kB\n"
+		"VmallocChunk:   %8lu kB\n"
+#ifdef CONFIG_MEMORY_FAILURE
+		"HardwareCorrupted: %5lu kB\n"
+#endif
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+		"AnonHugePages:  %8lu kB\n"
+#endif
+		,
+		(unsigned long)(mem_limit / 1024),
+		(unsigned long)((mem_limit - mem_usage) / 1024),
+		(unsigned long)0,
+		K(memcg_page_state_local(memcg, NR_FILE_PAGES)),
+		K(memcg_page_state_local(memcg, MEMCG_SWAP)),//MEMCG_SWAP
+		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON)) +
+				mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE))),//K(pages[LRU_ACTIVE_ANON]   + pages[LRU_ACTIVE_FILE]),
+		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON)) +
+			mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE))),//K(pages[LRU_INACTIVE_ANON] + pages[LRU_INACTIVE_FILE]),
+		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON))),//K(pages[LRU_ACTIVE_ANON]),
+		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON))),//K(pages[LRU_INACTIVE_ANON]),
+		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE))),//K(pages[LRU_ACTIVE_FILE]),
+		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE))),//K(pages[LRU_INACTIVE_FILE]),
+		K(mem_cgroup_nr_lru_pages(memcg, BIT(LRU_UNEVICTABLE))),//K(pages[LRU_UNEVICTABLE]),
+		(unsigned long)0,//K(global_page_state(NR_MLOCK)),
+#ifdef CONFIG_HIGHMEM
+		(unsigned long)0,//K(i.totalhigh),
+		(unsigned long)0,//K(i.freehigh),
+		(unsigned long)0,//K(i.totalram-i.totalhigh),
+		(unsigned long)0,//K(i.freeram-i.freehigh),
+#endif
+#ifndef CONFIG_MMU
+		(unsigned long)0,//K((unsigned long) atomic_long_read(&mmap_pages_allocated)),
+#endif
+		(unsigned long)(mem_swap / 1024),
+		(unsigned long)((mem_swap - mem_swap_usage) / 1024),
+		(unsigned long)0,//K(global_page_state(NR_FILE_DIRTY)),
+		(unsigned long)0,//K(global_page_state(NR_WRITEBACK)),
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+		K(memcg_page_state(memcg, memcg1_stats[1])
+			+ memcg_page_state(memcg, memcg1_stats[2]) *
+			HPAGE_PMD_NR),
+		//K(global_page_state(NR_ANON_PAGES)
+		 // + global_page_state(NR_ANON_TRANSPARENT_HUGEPAGES) *
+		  //HPAGE_PMD_NR),
+#else
+		 K(memcg_page_state(memcg, memcg1_stats[1])), //K(global_page_state(NR_ANON_PAGES)),
+#endif
+		K(memcg_page_state(memcg, memcg1_stats[4])),//K(global_page_state(NR_FILE_MAPPED)),
+		(unsigned long)0, //K(global_page_state(NR_SHMEM)),
+		(unsigned long)0, //K(global_page_state(NR_SLAB_RECLAIMABLE) +
+				//global_page_state(NR_SLAB_UNRECLAIMABLE)),
+		(unsigned long)0, //K(global_page_state(NR_SLAB_RECLAIMABLE)),
+		(unsigned long)0, //K(global_page_state(NR_SLAB_UNRECLAIMABLE)),
+		(unsigned long)0, //global_page_state(NR_KERNEL_STACK) * THREAD_SIZE / 1024,
+		(unsigned long)0, //K(global_page_state(NR_PAGETABLE)),
+#ifdef CONFIG_QUICKLIST
+		(unsigned long)0, //K(quicklist_total_size()),
+#endif
+		(unsigned long)0, //K(global_page_state(NR_UNSTABLE_NFS)),
+		(unsigned long)0, //K(global_page_state(NR_BOUNCE)),
+		(unsigned long)0, //K(global_page_state(NR_WRITEBACK_TEMP)),
+		(unsigned long)0, //K(vm_commit_limit()),
+		(unsigned long)0, //K(committed),
+		(unsigned long)0, //(unsigned long)VMALLOC_TOTAL >> 10,
+		(unsigned long)0, //vmi.used >> 10,
+		(unsigned long)0, //vmi.largest_chunk >> 10
+#ifdef CONFIG_MEMORY_FAILURE
+		(unsigned long)0, //,atomic_long_read(&num_poisoned_pages) << (PAGE_SHIFT - 10)
+#endif
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+		K(memcg_page_state(memcg, memcg1_stats[2]) * HPAGE_PMD_NR)
+#endif
+		);
+
+	//hugetlb_report_meminfo(m);
+
+	//arch_report_meminfo(m);
+
+	return 0;
+}
+
+#define NR_VM_WRITEBACK_STAT_ITEMS	2
+extern const char * const vmstat_text[];
+extern unsigned int vmstat_text_size;
+
+static int mem_cgroup_vmstat_read(struct seq_file *m, void *vv)
+{
+	unsigned long *v1, *v;
+	int i, stat_items_size;
+	struct mem_cgroup *memcg = mem_cgroup_from_css(seq_css(m));
+	u64 mem_limit, mem_usage;
+
+	mem_limit = memcg->memory.max;
+	if (mem_limit == PAGE_COUNTER_MAX)
+		mem_limit = totalram_pages() * PAGE_SIZE;
+	else
+		mem_limit = mem_limit * PAGE_SIZE;
+	mem_usage = (u64)mem_cgroup_usage(memcg, false) * PAGE_SIZE;
+
+	stat_items_size = vmstat_text_size * sizeof(unsigned long);
+
+#ifdef CONFIG_VM_EVENT_COUNTERS
+	stat_items_size += sizeof(struct vm_event_state);
+#endif
+
+	v1 = v = kzalloc(stat_items_size, GFP_KERNEL);
+	if (!v)
+		return -ENOMEM;
+
+	v[NR_FREE_PAGES] = (mem_limit - mem_usage) >> PAGE_SHIFT;
+	v[NR_ZONE_INACTIVE_ANON] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_ANON));
+	v[NR_ZONE_ACTIVE_ANON] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_ANON));
+	v[NR_ZONE_INACTIVE_FILE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_INACTIVE_FILE));
+	v[NR_ZONE_ACTIVE_FILE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_ACTIVE_FILE));
+	v[NR_ZONE_UNEVICTABLE] = mem_cgroup_nr_lru_pages(memcg, BIT(LRU_UNEVICTABLE));
+	v[NR_MLOCK] = 0;
+#if 0
+	v[NR_ANON_PAGES] = v[NR_INACTIVE_ANON] + v[NR_ACTIVE_ANON];
+	v[NR_FILE_MAPPED] = memcg_page_state(memcg, memcg1_stats[4]);
+	v[NR_FILE_PAGES] = memcg_page_state(memcg, memcg1_stats[0]);
+	v[NR_FILE_DIRTY] = 0;
+	v[NR_WRITEBACK] = 0;
+	v[NR_SLAB_RECLAIMABLE] = 0;
+	v[NR_SLAB_UNRECLAIMABLE] = 0;
+	v[NR_PAGETABLE] = 0;
+	v[NR_KERNEL_STACK] = 0;
+	v[NR_UNSTABLE_NFS] = 0;
+#endif
+
+	v += NR_VM_ZONE_STAT_ITEMS;
+#if IS_ENABLED(CONFIG_ZSMALLOC)
+	v += 1;
+#endif
+	v += NR_VM_NUMA_STAT_ITEMS;
+	v += NR_VM_NODE_STAT_ITEMS;
+	v += NR_VM_WRITEBACK_STAT_ITEMS;
+
+#ifdef CONFIG_VM_EVENT_COUNTERS
+	//all_vm_events(v);
+	v[PGPGIN] = memcg_events_local(memcg, memcg1_events[0]) * (PAGE_SIZE / 1024);		/* sectors -> kbytes */
+	v[PGPGOUT] = memcg_events_local(memcg, memcg1_events[1]) * (PAGE_SIZE / 1024);
+#endif
+	for (i = 0; i < vmstat_text_size; i++) {
+		seq_printf(m, "%s %lu\n", vmstat_text[i], v1[i]);
+	}
+	kfree(v1);
+	return 0;
+}
+
 static int memory_stat_show(struct seq_file *m, void *v);
 
 static struct cftype mem_cgroup_legacy_files[] = {
@@ -5085,6 +5310,14 @@ static struct cftype mem_cgroup_legacy_files[] = {
 		.seq_show = memcg_numa_stat_show,
 	},
 #endif
+	{
+		.name = "meminfo",
+		.seq_show = mem_cgroup_meminfo_read,
+	},
+	{
+		.name = "vmstat",
+		.seq_show = mem_cgroup_vmstat_read,
+	},
 	{
 		.name = "kmem.limit_in_bytes",
 		.private = MEMFILE_PRIVATE(_KMEM, RES_LIMIT),
