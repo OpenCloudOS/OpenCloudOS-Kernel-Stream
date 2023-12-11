@@ -88,8 +88,8 @@ check_dup_configs() {
 				# Keep the common config items of differnt archs
 				# The content is filtered with config_sanitizer so `comm` is enough
 				common_conf=$(comm -12 \
-					<(echo "$common_conf") \
-					<(config_sanitizer < "$dir/$arch.config")
+					<(echo "$common_conf" | sort -u) \
+					<(config_sanitizer < "$dir/$arch.config" | sort -u)
 				)
 			fi
 		done
