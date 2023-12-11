@@ -25,6 +25,7 @@
 #include <net/ip6_fib.h>
 #include <net/flow.h>
 #include <net/gro_cells.h>
+#include <linux/kabi.h>
 
 #include <linux/interrupt.h>
 
@@ -124,6 +125,8 @@ struct xfrm_state_walk {
 	u8			proto;
 	u32			seq;
 	struct xfrm_address_filter *filter;
+
+	KABI_RESERVE(1);
 };
 
 enum {
@@ -150,6 +153,9 @@ struct xfrm_dev_offload {
 	u8			dir : 2;
 	u8			type : 2;
 	u8			flags : 2;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct xfrm_mode {

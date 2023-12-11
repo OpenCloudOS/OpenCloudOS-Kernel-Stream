@@ -114,6 +114,11 @@ struct blkcg {
 #ifdef CONFIG_CGROUP_WRITEBACK
 	struct list_head		cgwb_list;
 #endif
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 static inline struct blkcg *css_to_blkcg(struct cgroup_subsys_state *css)
@@ -183,6 +188,9 @@ struct blkcg_policy {
 	blkcg_pol_free_pd_fn		*pd_free_fn;
 	blkcg_pol_reset_pd_stats_fn	*pd_reset_stats_fn;
 	blkcg_pol_stat_pd_fn		*pd_stat_fn;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 extern struct blkcg blkcg_root;

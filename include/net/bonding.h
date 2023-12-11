@@ -151,6 +151,9 @@ struct bond_params {
 
 	/* 2 bytes of padding : see ether_addr_equal_64bits() */
 	u8 ad_actor_system[ETH_ALEN + 2];
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
 };
 
 struct slave {

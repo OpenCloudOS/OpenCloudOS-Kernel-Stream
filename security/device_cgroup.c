@@ -44,6 +44,11 @@ struct dev_cgroup {
 	struct cgroup_subsys_state css;
 	struct list_head exceptions;
 	enum devcg_behavior behavior;
+
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
 };
 
 static inline struct dev_cgroup *css_to_devcgroup(struct cgroup_subsys_state *s)

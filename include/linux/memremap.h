@@ -139,11 +139,13 @@ struct dev_pagemap {
 	const struct dev_pagemap_ops *ops;
 	void *owner;
 	int nr_range;
+
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);
 	KABI_RESERVE(4);
 	KABI_RESERVE(5);
+
 	union {
 		struct range range;
 		DECLARE_FLEX_ARRAY(struct range, ranges);

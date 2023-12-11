@@ -479,6 +479,11 @@ struct module {
 	/* Section attributes */
 	struct module_sect_attrs *sect_attrs;
 
+	KABI_RESERVE(1);
+	KABI_RESERVE(2);
+	KABI_RESERVE(3);
+	KABI_RESERVE(4);
+
 	/* Notes attributes */
 	struct module_notes_attrs *notes_attrs;
 #endif

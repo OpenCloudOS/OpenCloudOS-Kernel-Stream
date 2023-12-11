@@ -251,6 +251,7 @@ struct signal_struct {
 	 * creation time and not embedded directly into other structure.
 	 * So it is also safe to extend the size of the structure.
 	 */
+
 	KABI_RESERVE(1);
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);

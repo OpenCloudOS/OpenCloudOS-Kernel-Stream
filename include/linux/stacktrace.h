@@ -83,6 +83,7 @@ struct stack_trace {
 	unsigned int nr_entries, max_entries;
 	unsigned long *entries;
 	unsigned int skip;	/* input argument: How many entries to skip */
+	KABI_RESERVE(1);
 };
 
 extern void save_stack_trace(struct stack_trace *trace);
