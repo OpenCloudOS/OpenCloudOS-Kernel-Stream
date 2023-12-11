@@ -260,3 +260,14 @@ static struct apic apic_x2apic_cluster __ro_after_init = {
 };
 
 apic_driver(apic_x2apic_cluster);
+
+/*
+ * Kexec may have x2apic enabled but ACPI disabled,
+ * in such case x2apic driver need to be loaded early
+ * for non-ACPI routine (MPtable) to work.
+ */
+void x2apic_kexec_early_fix(void)
+{
+	if (x2apic_enabled())
+		apic_install_driver(&apic_x2apic_cluster);
+}
