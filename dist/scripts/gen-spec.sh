@@ -181,7 +181,6 @@ _gen_pkgopt_spec() {
 		debuginfo \
 		modsign \
 		kabichk \
-		traceevent_dyn \
 		keypkg
 	do
 		case $DEFAULT_DISALBED in

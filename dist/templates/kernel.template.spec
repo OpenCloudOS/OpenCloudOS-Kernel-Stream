@@ -54,13 +54,6 @@
 # with_kabichk: if kabi check is needed at the end of build
 # with_keypkg: package the signing key for user, CAUTION: this package allows
 #              users to be able to sign their modules using kernel trusted key.
-#
-# TODO: Remove with_traceevent_dyn
-# This is added since some distro pack libtraceevent with kernel, and have to
-# stay that way.
-# When disabled, dist build system will build and pack it.
-# When enabled, dist build system will build using dynamic libtraceevent lib.
-# with_traceevent_dyn: build and install libtraceevent
 {{PKGPARAMSPEC}}
 
 # Only use with cross build, don't touch it unless you know what you are doing
@@ -154,9 +147,7 @@ BuildRequires: zlib-devel binutils-devel newt-devel perl(ExtUtils::Embed) bison 
 BuildRequires: audit-libs-devel
 BuildRequires: java-devel
 BuildRequires: libbabeltrace-devel
-%if %{with_traceevent_dyn}
 BuildRequires: libtraceevent-devel
-%endif
 %ifnarch aarch64
 BuildRequires: numactl-devel
 %endif
@@ -590,15 +581,11 @@ case $KernUnameR in
 %global kernel_make_opts %{kernel_make_opts} HOSTCFLAGS="%{?build_cflags}" HOSTLDFLAGS="%{?build_ldflags}"
 %endif
 
-%if %{with_traceevent_dyn}
-%define _libtraceevent_dynamic 1
-%endif
-
 ## make for kernel
 %global kernel_make %{make} %{kernel_make_opts}
 ## make for tools
 %global tools_make CFLAGS="${RPM_OPT_FLAGS}" LDFLAGS="%{__global_ldflags}" %{make} %{tools_make_opts}
-%global perf_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" LDFLAGS="%{__global_ldflags}" WERROR=0 NO_LIBUNWIND=1 HAVE_CPLUS_DEMANGLE=1 NO_GTK2=1 NO_STRLCPY=1 NO_BIONIC=1 LIBTRACEEVENT_DYNAMIC=%{?_libtraceevent_dynamic} %{make} %{tools_make_opts}
+%global perf_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" LDFLAGS="%{__global_ldflags}" WERROR=0 NO_LIBUNWIND=1 HAVE_CPLUS_DEMANGLE=1 NO_GTK2=1 NO_STRLCPY=1 NO_BIONIC=1 LIBTRACEEVENT_DYNAMIC=1 %{make} %{tools_make_opts}
 %global bpftool_make EXTRA_CFLAGS="${RPM_OPT_FLAGS}" EXTRA_LDFLAGS="%{__global_ldflags}" %{make} %{tools_make_opts} $([ -e "$_KernVmlinuxH" ] && echo VMLINUX_H="$_KernVmlinuxH")
 
 ### Real make
@@ -991,23 +978,17 @@ InstKernelHeaders () {
 }
 
 InstPerf () {
-%if %{with_traceevent_dyn}
 	%{perf_make} -C tools/perf install-bin install-python_ext install-man
-%else
-	%{perf_make} -C tools/perf install-bin install-traceevent-plugins install-python_ext install-man
-%endif
 
 	# remove the 'trace' symlink.
 	rm -f %{buildroot}%{_bindir}/trace
 
-%if %{with_traceevent_dyn}
 	# Be just like CentOS:
 	# remove any tracevent files, eg. its plugins still gets built and installed,
 	# even if we build against system's libtracevent during perf build (by setting
 	# LIBTRACEEVENT_DYNAMIC=1 above in perf_make macro). Those files should already
 	# ship with libtraceevent package.
 	rm -rf %{buildroot}%{_libdir}/traceevent
-%endif
 }
 
 InstTools() {
@@ -1339,13 +1320,7 @@ fi
 %files -n perf
 %defattr(-,root,root)
 %{_bindir}/perf*
-%if !%{with_traceevent_dyn}
-%dir %{_libdir}/traceevent/
-%{_libdir}/traceevent/*
-%endif
 %{_libdir}/libperf-jvmti.so
-%dir %{_prefix}/lib/perf
-%{_prefix}/lib/perf/*
 %dir %{_libexecdir}/perf-core
 %{_libexecdir}/perf-core/*
 %{_datadir}/perf-core/*
