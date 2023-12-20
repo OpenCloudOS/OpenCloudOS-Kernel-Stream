@@ -1,2 +1,102 @@
+* Wed Dec 20 2023 Kairui Song <kasong@tencent.com> - 6.6.6-2401.0.1
+- kabi: freeze kabi for x86_64 and arm64
+- x86/mpparse, kexec: switch apic driver early when x2apic is pre-enabled
+- tracing: workaround UAF caused by memory ordering issue
+- mm/slub.c: sanitize freelist pointer assignment even more
+- mm/slub.c: fix a potential UAF
+- cgroup: use a standalone workqueue for killing css
+- mm/vmscan.c: add cond_resched function call into __shrink_page_cache
+- swap: expose required symbols for some 3rd part modules
+- swapfile: add a helper get_cached_swap_page_of_type
+- mm: memcg: introduce v2's interface to v1
+- psi: only show SOME PSI for non-IRQ in cgroup v1
+- psi: support cgroup v1 psi accounting
+- psi: expose cgroup v1 interface for psi
+- psi: link legacy root to psi_system
+- sched/psi: simplify cgroup psi retrieving
+- arm64: fake a reliable stacktrace for livepath
+- arm64: enable livepatch without stable stacktrace
+- arm64: basic infrastructure for livepatch
+- pagecachelimit: limit the pagecache ratio of totalram
+- blkcg: add buffer IO throttle for cgroup v1
+- cgroupfs: support stat based on cpuacct
+- cgroupfs: fix non inited i_ino when inode created
+- cgroupfs: add files inside sys
+- cgroupfs: support for proc and sys
+- cgroupfs: quota aware support
+- cgroupfs: refactor cgroup resource statistics for reuse
+- memcg: make meminfo optionally recursive and rework
+- memcg: add meminfo and vmstat show
+- cpuset: add switch support for cpuset.stat in container
+- cpuset: fix cpuset.stat process field value exception
+- cpuset: add switch for cpuinfo in container
+- cpuset: add loadavg calc for each container
+- cpuset: add cpuinfo and stat show
+- sysfs: add sysfs attribute to hide disk devices
+- blkcg/diskstats/dm: add support for blkcg diskstats
+- blkcg/diskstats/md: add support for blkcg diskstats
+- blkcg/diskstats: add per blkcg diskstats support
+- ext4: Add an error info during new_inode
+- ext4: fix soft lockup caused by sbi->s_es_lru
+- ceph: add mds request pid info into debugfs
+- ceph: Add new mount option req_resend
+- ceph: re-send osd requests if timeout
+- nvme: add the hotplug info output about drive letter and BDF
+- nbd: add the nbd_ignore_blksize_set support
+- xfs: add kmem_alloc_by_vmalloc and kmem_alloc_large_dump_stack sysctl
+- xfs: set xfs default error level to 5
+- ceph: add sysctl to ignore error epoch barrier
+- ext3: set nobarrier as default
+- block: check whether queue is NULL or not in stats functions
+- net: modify default value of host max_orphan
+- net: namespaceify sysctl_tcp_max_orphans
+- vm: isolate max_map_count by pid namespace
+- cpuacct: get the uptime of container
+- proc: add pid mapping between host and container
+- taskstats: expose taskstats to all netspace
+- tcp: make TCP_RTO_MIN/MAX be tunable
+- tcp: support self define parameter to tune rto of syn/synack packets
+- tcp: introduce sysctl tcp_inherit_buffsize
+- net: ipv6 neigh tunnel bypass
+- net: add sysctl to control page frag
+- net: add sriov debug info
+- net: increase tcp listen hash
+- tcp: add TCP_FULLNAT_REAL setsockopt options for fullnat real ip
+- net: reduce the confliction while multi threads connecting same host
+- bonding: add broadcast_arp param to send arp broadcast
+- netlink: don't modprobe proto audit & selinux
+- tcp: add proc parameter to change init cwnd
+- net: add tcp_no_delay_ack to enable absolute quick ack
+- tcp: add tcp_loss_init_cwnd sysctl to tunnel packet numbers in loss
+- network: default zero bond_devices to support
+- tcp: double the default value of thash_entries
+- tcp: backoff the commit allowing timestamps even if SYN packet has tsval=0
+- net: dev ipv4/v6 stat
+- net: add tcp drop stats
+- ipmi: set kipmid_max_busy_us default to 1
+- sched: adaptive default skew_tick value
+- ipc/msg: increase defaults for shmmall, shmmax, msgmax and msgmnb
+- mm: increase dirty-ratio from 20 to 40
+- tkernel: netfilter: conntrack: add netagent extention slot
+- tkernel: net: add toa support
+- tkernel: mounts: add shield mountpoint in container support
+- tkernel: netatop: add netatop module in kernel/tkernel/
+- tkernel: ttools: add ttools module to support ptrace protect
+- tkernel: initial support and nonpriv_bind
+- sysrq: add ALT+LEFTCTRL to trigger crash dump
+- kabi: add paddings and optimize (part 3)
+- kabi: add paddings (part 2)
+- kabi: add paddings (part 1)
+- kabi: add kabi.h
+- kabi: modules: better vermagic check on module load
+- config: update config for ocks-2401
+- dist: config: update config from ocks-2303
+- dist: config: add default config files
+- dist: fix script checker
+- dist: tools/vm -> tools/mm
+- dist: move libcpupower.so to kernel-libs
+- dist: initial support
+- Linux 6.6.6
+
 * Mon Mar 14 2022 Kairui Song <kasong@tencent.com> - 5.17.0-0.20220314git47581bb4d9ae.rc7-tks
 - Initial release
