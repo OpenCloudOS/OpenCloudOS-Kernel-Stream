@@ -5042,7 +5042,10 @@ static int mem_cgroup_meminfo_read_comm(struct seq_file *m, void *v, struct mem_
 	unsigned long mem_active_anon, mem_inactive_anon;
 	unsigned long mem_active_file, mem_inactive_file;
 	unsigned long mem_unevictable;
-	unsigned long mem_rss, mem_rss_huge;
+	unsigned long mem_rss;
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+	unsigned long mem_rss_huge;
+#endif
 	unsigned long mem_file_map, mem_shmem;
 
 	/*
