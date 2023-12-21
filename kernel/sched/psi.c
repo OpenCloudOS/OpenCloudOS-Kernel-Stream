@@ -264,7 +264,9 @@ static inline bool psi_use_legacy(void)
 {
 #ifdef CONFIG_CGROUPS
 	return !cgroup_subsys_on_dfl(cpu_cgrp_subsys) &&
+#ifdef CONFIG_MEMCG
 	       !cgroup_subsys_on_dfl(memory_cgrp_subsys) &&
+#endif
 	       !cgroup_subsys_on_dfl(io_cgrp_subsys);
 #else
 	return false;
@@ -938,14 +940,14 @@ static inline void psi_group_change_legacy(struct task_struct *task, int cpu,
 			psi_group_change(group, cpu, clear & TSK_IOWAIT, set & TSK_IOWAIT, now, wake);
 		} while ((group = group->parent));
 	}
-
+#ifdef CONFIG_MEMCG
 	if ((clear | set) & TSK_MEMSTALL) {
 		group = cgroup_psi(task_cgroup(task, memory_cgrp_subsys.id));
 		do {
 			psi_group_change(group, cpu, clear & TSK_MEMSTALL, set & TSK_MEMSTALL, now, wake);
 		} while ((group = group->parent));
 	}
-
+#endif
 	if ((clear | set) & TSK_RUNNING) {
 		group = cgroup_psi(task_cgroup(task, cpu_cgrp_subsys.id));
 		do {
