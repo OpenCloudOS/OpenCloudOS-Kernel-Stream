@@ -1002,11 +1002,13 @@ int blkcg_cgroupfs_dkstats_show(struct seq_file *m, void *v)
 }
 #endif
 
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 static int blkcg_dkstats_show(struct seq_file *sf, void *v)
 {
 	struct blkcg *blkcg = css_to_blkcg(seq_css(sf));
 	return blkcg_dkstats_show_comm(sf, v, blkcg);
 }
+#endif
 
 const char *blkg_dev_name(struct blkcg_gq *blkg)
 {
