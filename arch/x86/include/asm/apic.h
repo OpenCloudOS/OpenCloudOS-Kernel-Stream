@@ -239,6 +239,7 @@ static inline int x2apic_enabled(void)
 static inline void x2apic_setup(void) { }
 static inline int x2apic_enabled(void) { return 0; }
 static inline u32 native_apic_msr_read(u32 reg) { BUG(); }
+static inline void x2apic_kexec_early_fix(void) { }
 #define x2apic_mode		(0)
 #define	x2apic_supported()	(0)
 #endif /* !CONFIG_X86_X2APIC */
