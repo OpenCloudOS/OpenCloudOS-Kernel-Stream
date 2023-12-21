@@ -266,7 +266,7 @@ apic_driver(apic_x2apic_cluster);
  * in such case x2apic driver need to be loaded early
  * for non-ACPI routine (MPtable) to work.
  */
-void x2apic_kexec_early_fix(void)
+void __init x2apic_kexec_early_fix(void)
 {
 	if (x2apic_enabled())
 		apic_install_driver(&apic_x2apic_cluster);
