@@ -32,7 +32,9 @@
 #include <linux/blk-crypto.h>
 #include <linux/blk-crypto-profile.h>
 
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 #include "../../block/blk-cgroup.h"
+#endif
 
 #define DM_MSG_PREFIX "core"
 
@@ -511,8 +513,10 @@ static void dm_io_acct(struct dm_io *io, bool end)
 {
 	struct bio *bio = io->orig_bio;
 
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 	struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
 	int rw = bio_data_dir(bio);
+#endif
 
 	if (dm_io_flagged(io, DM_IO_BLK_STAT)) {
 		if (!end)
@@ -524,10 +528,12 @@ static void dm_io_acct(struct dm_io *io, bool end)
 					 io->start_time);
 	}
 
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 	part_stat_lock_rcu();
 	blkcg_part_stat_add(blkcg, dm_disk(io->md)->part0, nsecs[rw],
 			jiffies_to_nsecs(jiffies - io->start_time));
 	part_stat_unlock_rcu();
+#endif
 
 	if (static_branch_unlikely(&stats_enabled) &&
 	    unlikely(dm_stats_used(&io->md->stats))) {
@@ -1826,16 +1832,20 @@ static void dm_submit_bio(struct bio *bio)
 	int srcu_idx;
 	struct dm_table *map;
 
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 	struct blkcg *blkcg = css_to_blkcg(bio_blkcg_css(bio));
 	int rw = bio_data_dir(bio);
+#endif
 
 	map = dm_get_live_table(md, &srcu_idx);
 
+#ifdef CONFIG_BLK_CGROUP_DISKSTATS
 	part_stat_lock_rcu();
 	blkcg_part_stat_inc(blkcg, dm_disk(md)->part0, ios[rw]);
 	blkcg_part_stat_add(blkcg, dm_disk(md)->part0, sectors[rw],
 			bio_sectors(bio));
 	part_stat_unlock_rcu();
+#endif
 
 	/* If suspended, or map not yet available, queue this IO for later */
 	if (unlikely(test_bit(DMF_BLOCK_IO_FOR_SUSPEND, &md->flags)) ||
