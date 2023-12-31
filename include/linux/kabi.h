@@ -124,4 +124,8 @@ union { \
 		__KABI_CHECK_SIZE(_new, 8 * (_size));			\
 	})
 
+#define KABI_AUX_EMBED(_struct)					\
+	size_t _struct##_size_resvd;					\
+	KABI_EXCLUDE(struct _struct##_resvd _resvd)
+
 #endif /* _LINUX_KABI_H */
