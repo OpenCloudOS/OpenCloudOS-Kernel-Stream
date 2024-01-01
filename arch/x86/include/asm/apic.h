@@ -247,6 +247,9 @@ extern void __init check_x2apic(void);
 
 struct irq_data;
 
+struct apic_resvd {
+};
+
 /*
  * Copyright 2004 James Cleverdon, IBM.
  *
@@ -309,6 +312,7 @@ struct apic {
 	int	(*wakeup_secondary_cpu_64)(int apicid, unsigned long start_eip);
 
 	char	*name;
+	KABI_AUX_EMBED(apic);
 };
 
 struct apic_override {

@@ -76,6 +76,9 @@ extern u16 __read_mostly tlb_lld_2m[NR_INFO];
 extern u16 __read_mostly tlb_lld_4m[NR_INFO];
 extern u16 __read_mostly tlb_lld_1g[NR_INFO];
 
+struct cpuinfo_x86_resvd {
+};
+
 /*
  *  CPU type and hardware bug flags. Kept separately for each CPU.
  *  Members of this structure are referenced in head_32.S, so think twice
@@ -153,6 +156,7 @@ struct cpuinfo_x86 {
 	KABI_RESERVE(2);
 	KABI_RESERVE(3);
 	KABI_RESERVE(4);
+	KABI_AUX_EMBED(cpuinfo_x86);
 } __randomize_layout;
 
 #define X86_VENDOR_INTEL	0
@@ -490,7 +494,7 @@ struct thread_struct {
 #endif
 
 	/* Floating point and extended processor state */
-	struct fpu		fpu;
+	KABI_EXCLUDE(struct fpu		fpu);
 	/*
 	 * WARNING: 'fpu' is dynamically-sized.  It *MUST* be at
 	 * the end.
