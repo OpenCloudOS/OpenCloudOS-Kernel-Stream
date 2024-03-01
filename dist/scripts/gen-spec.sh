@@ -48,6 +48,10 @@ prepare_source_info() {
 DEFAULT_DISALBED=""
 while [[ $# -gt 0 ]]; do
 	case $1 in
+		--kernel-tar )
+			KERNEL_TARNAME=$2
+			shift 2
+			;;
 		--kernel-config )
 			KERNEL_CONFIG=$2
 			shift 2
@@ -79,6 +83,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 BUILD_ARCH="${BUILD_ARCH:-$SPEC_ARCH}"
+if [ -z "$KERNEL_TARNAME" ]; then
+	die "Kernel tar name missing."
+fi
 
 # This helper prepares LOCALVERSION
 prepare_source_info
@@ -107,6 +114,7 @@ _gen_kerver_spec() {
 %define kernel_majver $KERNEL_MAJVER
 %define kernel_relver $KERNEL_RELVER
 %define kernel_variant ${LOCALVERSION:-"%{nil}"}
+%define kernel_tarname $KERNEL_TARNAME
 %define kernel_unamer_base $KERNEL_UNAMER_BASE
 %define kernel_unamer_force ${KERNEL_UNAMER_FORCE:-"%{nil}"}
 %define rpm_name $KERNEL_NAME

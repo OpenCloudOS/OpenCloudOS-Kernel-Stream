@@ -7,6 +7,7 @@
 # %%{kernel_majver}: Kernel RPM package version, eg. 5.15.0, 5.15.3, 5.16.0
 # %%{kernel_relver}: Kernel RPM package release, eg. 2207.1, 0.20211115git1135ec008ef3.rc0.2207, 0009.11
 # %%{kernel_variant}: Kernel RPM package release, eg. 2207.1, 0.20211115git1135ec008ef3.rc0.2207, 0009.11
+# %%{kernel_tarname} Kernel Source tar's basename and prefix after untar, eg. 5.16.0.20211115git1135ec008ef3.rc0.2207
 # %%{kernel_unamer_base}: base part of `uname -r` output, used to generate %%kernel_unamer, needed by scriptlets so prepare it early. eg. 5.18.19-2207.2.1.tks, 5.18.19-2207.2.1.tks+debug, 5.4.119-1-0009.1
 # %%{kernel_unamer_force}: force use a unamer, usually for historical reason.
 # %%{rpm_name}: Kernel RPM package name, eg. kernel, kernel-tlinux4, kernel-stream kernel-stream-debug
@@ -20,9 +21,6 @@
 %else
 %define kernel_unamer %{kernel_unamer_force}
 %endif
-
-# TODO: We have a fixed tar name, might be better to include KDIST in tarname
-%define kernel_tarname kernel-%{kernel_majver}-%{kernel_relver}
 
 # This section defines following value:
 # %%{kernel_arch}
