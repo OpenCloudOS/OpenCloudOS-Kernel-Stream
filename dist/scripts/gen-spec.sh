@@ -48,7 +48,7 @@ prepare_source_info() {
 DEFAULT_DISALBED=""
 while [[ $# -gt 0 ]]; do
 	case $1 in
-		--kernel-tar )
+		--kernel-tarname )
 			KERNEL_TARNAME=$2
 			shift 2
 			;;

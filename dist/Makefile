@@ -147,7 +147,7 @@ default: dist-help
 
 $(TARFILE):
 	@echo "Generating kernel source tar: $(TARFILE)"
-	@cd $(TOPDIR); git archive $(GITREF) $(TOPDIR) --format=tar.gz --prefix-$(TARNAME)/ --output $(TARFILE)
+	@cd $(TOPDIR); git archive $(GITREF) $(TOPDIR) --format=tar.gz --prefix=$(TARNAME)/ --output $(TARFILE)
 
 dist-tarball: $(TARFILE)
 	@echo "$(TARFILE)"
